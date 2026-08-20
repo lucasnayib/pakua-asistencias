@@ -1,0 +1,128 @@
+// Prisma schema — Sistema de Asistencias Pakua
+// docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Admin {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+model Student {
+  id           String               @id @default(cuid())
+  firstName    String
+  lastName     String
+  photoUrl     String?
+  active       Boolean              @default(true)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  schedules    StudentSchedule[]
+  attendances  Attendance[]
+  orientadores OrientadorStudent[]
+
+  @@index([lastName, firstName])
+}
+
+model Orientador {
+  id        String              @id @default(cuid())
+  firstName String
+  lastName  String
+  email     String?
+  phone     String?
+  photoUrl  String?
+  active    Boolean             @default(true)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  students  OrientadorStudent[]
+
+  @@index([lastName, firstName])
+}
+
+model OrientadorStudent {
+  id           String     @id @default(cuid())
+  orientadorId String
+  studentId    String
+  createdAt    DateTime   @default(now())
+  orientador   Orientador @relation(fields: [orientadorId], references: [id], onDelete: Cascade)
+  student      Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([orientadorId, studentId])
+}
+
+model Schedule {
+  id          String            @id @default(cuid())
+  name        String?
+  startTime   String // "HH:mm"
+  endTime     String // "HH:mm"
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  days        ScheduleDay[]
+  students    StudentSchedule[]
+  attendances Attendance[]
+}
+
+model ScheduleDay {
+  id         String   @id @default(cuid())
+  scheduleId String
+  dayOfWeek  Int // 0=domingo ... 6=sábado (Date.getDay())
+  schedule   Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduleId, dayOfWeek])
+}
+
+model StudentSchedule {
+  id         String   @id @default(cuid())
+  studentId  String
+  scheduleId String
+  createdAt  DateTime @default(now())
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  schedule   Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, scheduleId])
+}
+
+model Attendance {
+  id         String   @id @default(cuid())
+  studentId  String
+  scheduleId String
+  date       String // "YYYY-MM-DD"
+  time       String // "HH:mm:ss"
+  status     String   @default("PRESENTE")
+  createdAt  DateTime @default(now())
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  schedule   Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, scheduleId, date])
+  @@index([date])
+}
+
+model ExportLog {
+  id            String   @id @default(cuid())
+  filename      String
+  format        String // XLSX | PDF | TXT
+  dateFrom      String
+  dateTo        String
+  driveUploaded Boolean  @default(false)
+  createdAt     DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actor     String
+  action    String
+  entity    String
+  entityId  String?
+  detail    String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
