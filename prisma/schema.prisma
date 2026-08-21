@@ -14,11 +14,22 @@ model Admin {
   id           String   @id @default(cuid())
   username     String   @unique
   passwordHash String
+  displayName  String   @default("")
+  slug         String   @unique
+  role         String   @default("ADMIN") // "ADMIN" | "SUPER_ADMIN"
+  active       Boolean  @default(true)
   createdAt    DateTime @default(now())
+
+  students    Student[]
+  schedules   Schedule[]
+  orientadores Orientador[]
+  exportLogs  ExportLog[]
 }
 
 model Student {
   id           String               @id @default(cuid())
+  adminId      String
+  admin        Admin                @relation(fields: [adminId], references: [id])
   firstName    String
   lastName     String
   photoUrl     String?
@@ -30,10 +41,13 @@ model Student {
   orientadores OrientadorStudent[]
 
   @@index([lastName, firstName])
+  @@index([adminId])
 }
 
 model Orientador {
   id        String              @id @default(cuid())
+  adminId   String
+  admin     Admin               @relation(fields: [adminId], references: [id])
   firstName String
   lastName  String
   email     String?
@@ -45,6 +59,7 @@ model Orientador {
   students  OrientadorStudent[]
 
   @@index([lastName, firstName])
+  @@index([adminId])
 }
 
 model OrientadorStudent {
@@ -60,6 +75,8 @@ model OrientadorStudent {
 
 model Schedule {
   id          String            @id @default(cuid())
+  adminId     String
+  admin       Admin             @relation(fields: [adminId], references: [id])
   name        String?
   startTime   String // "HH:mm"
   endTime     String // "HH:mm"
@@ -68,6 +85,8 @@ model Schedule {
   days        ScheduleDay[]
   students    StudentSchedule[]
   attendances Attendance[]
+
+  @@index([adminId])
 }
 
 model ScheduleDay {
@@ -107,16 +126,21 @@ model Attendance {
 
 model ExportLog {
   id            String   @id @default(cuid())
+  adminId       String
+  admin         Admin    @relation(fields: [adminId], references: [id])
   filename      String
   format        String // XLSX | PDF | TXT
   dateFrom      String
   dateTo        String
   driveUploaded Boolean  @default(false)
   createdAt     DateTime @default(now())
+
+  @@index([adminId])
 }
 
 model AuditLog {
   id        String   @id @default(cuid())
+  adminId   String?
   actor     String
   action    String
   entity    String

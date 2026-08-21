@@ -10,7 +10,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="flex min-h-dvh flex-col md:flex-row">
-      <AdminSidebar username={session.username} />
+      <AdminSidebar displayName={session.displayName} role={session.role} />
       <main className="flex-1 overflow-y-auto p-4 md:p-8">{children}</main>
     </div>
   );

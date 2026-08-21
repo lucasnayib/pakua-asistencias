@@ -8,6 +8,7 @@ type ExportButtonProps = {
   dateFrom: string;
   dateTo: string;
   scheduleId?: string;
+  adminId?: string;
   label?: string;
   variant?: "primary" | "secondary" | "danger" | "ghost";
 };
@@ -17,6 +18,7 @@ export function ExportButton({
   dateFrom,
   dateTo,
   scheduleId,
+  adminId,
   label = "Exportar asistencias",
   variant = "secondary",
 }: ExportButtonProps) {
@@ -25,7 +27,7 @@ export function ExportButton({
   return (
     <Button
       variant={variant}
-      onClick={() => runExport({ format, dateFrom, dateTo, scheduleId })}
+      onClick={() => runExport({ format, dateFrom, dateTo, scheduleId, adminId })}
       loading={loading}
     >
       {label}

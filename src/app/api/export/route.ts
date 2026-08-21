@@ -8,6 +8,7 @@ import { buildTxtContent } from "@/lib/export/txt";
 import type { ExportRow } from "@/lib/export/types";
 import { uploadToDrive } from "@/lib/google-drive";
 import { getSession } from "@/lib/auth";
+import { requireSchoolAccess } from "@/lib/school-access";
 import { logChange } from "@/lib/audit";
 
 const MIME_TYPES: Record<string, string> = {
@@ -26,9 +27,21 @@ export async function POST(request: NextRequest) {
   }
   const { format, dateFrom, dateTo, scheduleId } = parsed.data;
 
+  // Con sesión de admin, se usa el tenant de la sesión (ignora cualquier adminId del body).
+  // Sin sesión (página pública de check-in), se exige adminId en el body.
+  const session = await getSession();
+  const adminId = session?.adminId ?? parsed.data.adminId;
+  if (!adminId) {
+    return NextResponse.json({ error: "Falta adminId" }, { status: 400 });
+  }
+
+  const access = await requireSchoolAccess(adminId);
+  if (access instanceof NextResponse) return access;
+
   const attendances = await prisma.attendance.findMany({
     where: {
       date: { gte: dateFrom, lte: dateTo },
+      schedule: { adminId },
       ...(scheduleId ? { scheduleId } : {}),
     },
     include: { student: true, schedule: true },
@@ -61,6 +74,7 @@ export async function POST(request: NextRequest) {
 
   await prisma.exportLog.create({
     data: {
+      adminId,
       filename,
       format,
       dateFrom,
@@ -69,9 +83,9 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  const session = await getSession();
   await logChange({
-    actor: session?.username ?? "profesor",
+    actor: session?.displayName ?? "profesor",
+    adminId,
     action: "EXPORT_ATTENDANCE",
     entity: "ExportLog",
     detail: `${filename} (${rows.length} registros)${driveResult.uploaded ? " — subido a Drive" : ""}`,

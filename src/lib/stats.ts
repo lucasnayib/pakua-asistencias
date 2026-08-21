@@ -21,11 +21,11 @@ function countOccurrences(days: Set<number>, from: Date, to: Date): number {
   return count;
 }
 
-export async function getStudentStats(): Promise<StudentStat[]> {
+export async function getStudentStats(adminId: string): Promise<StudentStat[]> {
   const today = new Date();
 
   const students = await prisma.student.findMany({
-    where: { active: true },
+    where: { active: true, adminId },
     include: {
       schedules: { include: { schedule: { include: { days: true } } } },
       attendances: { where: { status: "PRESENTE" } },

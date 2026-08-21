@@ -16,10 +16,15 @@ const LINKS = [
   { href: "/admin/backups", label: "Copias de seguridad" },
 ];
 
-export function AdminSidebar({ username }: { username: string }) {
+const SUPER_ADMIN_LINKS = [{ href: "/admin/admins", label: "Administradores" }];
+
+export function AdminSidebar({ displayName, role }: { displayName: string; role: string }) {
   const pathname = usePathname();
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
+
+  // El super-admin no tiene acceso a datos de escuela: solo ve la gestión de cuentas.
+  const links = role === "SUPER_ADMIN" ? SUPER_ADMIN_LINKS : LINKS;
 
   async function handleLogout() {
     setLoggingOut(true);
@@ -43,7 +48,7 @@ export function AdminSidebar({ username }: { username: string }) {
       </div>
 
       <nav className="flex flex-1 flex-row flex-wrap gap-1 md:flex-col">
-        {LINKS.map((link) => {
+        {links.map((link) => {
           const active = pathname === link.href;
           return (
             <Link
@@ -61,7 +66,7 @@ export function AdminSidebar({ username }: { username: string }) {
 
       <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium">{username}</p>
+          <p className="truncate text-sm font-medium">{displayName}</p>
           <Link href="/" className="text-xs text-muted-foreground hover:underline">
             Ir a toma de asistencia
           </Link>

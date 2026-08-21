@@ -6,6 +6,7 @@ type LogChangeInput = {
   entity: string;
   entityId?: string;
   detail?: string;
+  adminId?: string;
 };
 
 /** Registra un cambio en el log de auditoría. No lanza si falla: nunca debe romper la operación principal. */
@@ -18,6 +19,7 @@ export async function logChange(input: LogChangeInput): Promise<void> {
         entity: input.entity,
         entityId: input.entityId,
         detail: input.detail,
+        adminId: input.adminId,
       },
     });
   } catch (error) {

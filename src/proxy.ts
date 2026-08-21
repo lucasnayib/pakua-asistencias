@@ -3,17 +3,24 @@ import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 import { SESSION_COOKIE } from "@/lib/auth";
 
-async function hasValidSession(request: NextRequest): Promise<boolean> {
+async function getSessionRole(request: NextRequest): Promise<string | null> {
   const token = request.cookies.get(SESSION_COOKIE)?.value;
-  if (!token) return false;
+  if (!token) return null;
   const secret = process.env.SESSION_SECRET;
-  if (!secret) return false;
+  if (!secret) return null;
   try {
-    await jwtVerify(token, new TextEncoder().encode(secret));
-    return true;
+    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret));
+    return typeof payload.role === "string" ? payload.role : null;
   } catch {
-    return false;
+    return null;
   }
+}
+
+/** Rutas de UI/API reservadas exclusivamente para SUPER_ADMIN: gestión de cuentas de admin. */
+function isSuperAdminOnlyRoute(pathname: string): boolean {
+  if (pathname.startsWith("/api/admins")) return true;
+  if (pathname.startsWith("/admin/admins")) return true;
+  return false;
 }
 
 /** Rutas de API que sólo pueden usarse con sesión de administrador activa. */
@@ -33,27 +40,78 @@ function isAdminOnlyApiRoute(pathname: string, method: string): boolean {
 
   if (pathname.startsWith("/api/stats")) return true;
   if (pathname.startsWith("/api/backup")) return true;
+  if (pathname.startsWith("/api/admins")) return true;
 
   return false;
+}
+
+/**
+ * Rutas de datos de escuela (alumnos, horarios, orientadores, asistencia, estadísticas,
+ * exportaciones, backups). El super-admin no tiene acceso a ninguna de estas, ni siquiera a
+ * las que son públicas para usuarios sin sesión (ej: check-in, historial). Algunas de estas
+ * rutas no están en isAdminOnlyApiRoute porque son de uso público sin sesión — pero si HAY
+ * una sesión de super-admin, igual se bloquean.
+ */
+const SCHOOL_DATA_API_PREFIXES = [
+  "/api/students",
+  "/api/schedules",
+  "/api/orientadores",
+  "/api/assignments",
+  "/api/attendance",
+  "/api/export",
+  "/api/stats",
+  "/api/backup",
+];
+
+function isSchoolDataApiRoute(pathname: string): boolean {
+  return SCHOOL_DATA_API_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 }
 
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
-    if (!(await hasValidSession(request))) {
+    const role = await getSessionRole(request);
+    if (role === null) {
       const loginUrl = new URL("/admin/login", request.url);
       loginUrl.searchParams.set("from", pathname);
       return NextResponse.redirect(loginUrl);
     }
+    if (isSuperAdminOnlyRoute(pathname)) {
+      if (role !== "SUPER_ADMIN") {
+        return NextResponse.redirect(new URL("/admin", request.url));
+      }
+      return NextResponse.next();
+    }
+    // El super-admin no tiene escuela: cualquier otra pantalla del panel lo manda de vuelta
+    // a la gestión de cuentas, que es lo único a lo que tiene acceso.
+    if (role === "SUPER_ADMIN") {
+      return NextResponse.redirect(new URL("/admin/admins", request.url));
+    }
     return NextResponse.next();
   }
 
-  if (pathname.startsWith("/api/") && isAdminOnlyApiRoute(pathname, request.method)) {
-    if (!(await hasValidSession(request))) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  if (pathname.startsWith("/api/")) {
+    const needsSession = isAdminOnlyApiRoute(pathname, request.method);
+    const isSchoolData = isSchoolDataApiRoute(pathname);
+
+    if (needsSession || isSchoolData) {
+      const role = await getSessionRole(request);
+
+      if (needsSession && role === null) {
+        return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+      }
+      if (isSuperAdminOnlyRoute(pathname) && role !== "SUPER_ADMIN") {
+        return NextResponse.json({ error: "No tenés permisos para esta acción" }, { status: 403 });
+      }
+      if (isSchoolData && role === "SUPER_ADMIN") {
+        return NextResponse.json(
+          { error: "El super-admin no tiene acceso a datos de escuela" },
+          { status: 403 }
+        );
+      }
+      return NextResponse.next();
     }
-    return NextResponse.next();
   }
 
   return NextResponse.next();

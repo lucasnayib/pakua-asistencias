@@ -8,7 +8,12 @@ import { Input } from "@/components/ui/Input";
 import { dayOfWeekFromISODate, formatTimeRange, getLocalNow } from "@/lib/time";
 import type { RosterResponse, ScheduleListItem } from "@/types";
 
-export default function ClasesAnterioresPage() {
+type ClasesAnterioresClientProps = {
+  slug: string;
+  adminId: string;
+};
+
+export function ClasesAnterioresClient({ slug, adminId }: ClasesAnterioresClientProps) {
   const [date, setDate] = useState(() => getLocalNow().date);
   const [schedules, setSchedules] = useState<ScheduleListItem[] | null>(null);
   const [loadingSchedules, setLoadingSchedules] = useState(false);
@@ -22,11 +27,11 @@ export default function ClasesAnterioresPage() {
     if (!date) return;
     setLoadingSchedules(true);
     const dayOfWeek = dayOfWeekFromISODate(date);
-    fetch(`/api/schedules?dayOfWeek=${dayOfWeek}`)
+    fetch(`/api/schedules?dayOfWeek=${dayOfWeek}&adminId=${adminId}`)
       .then((res) => res.json())
       .then((data) => setSchedules(data.schedules ?? []))
       .finally(() => setLoadingSchedules(false));
-  }, [date]);
+  }, [date, adminId]);
 
   useEffect(() => {
     if (!selectedScheduleId || !date) return;
@@ -39,7 +44,7 @@ export default function ClasesAnterioresPage() {
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <AppHeader />
+      <AppHeader slug={slug} />
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-4 py-6 sm:px-6">
         <div>
           <h1 className="text-2xl font-semibold">Clases anteriores</h1>

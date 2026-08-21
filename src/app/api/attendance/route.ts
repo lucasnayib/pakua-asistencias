@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { attendanceCreateSchema } from "@/lib/validations";
+import { requireSchoolAccess } from "@/lib/school-access";
 import { logChange } from "@/lib/audit";
 
 export async function POST(request: NextRequest) {
@@ -15,9 +16,12 @@ export async function POST(request: NextRequest) {
     prisma.student.findUnique({ where: { id: studentId } }),
     prisma.schedule.findUnique({ where: { id: scheduleId } }),
   ]);
-  if (!student || !schedule) {
+  if (!student || !schedule || student.adminId !== schedule.adminId) {
     return NextResponse.json({ error: "Alumno u horario no encontrado" }, { status: 404 });
   }
+
+  const access = await requireSchoolAccess(schedule.adminId);
+  if (access instanceof NextResponse) return access;
 
   const attendance = await prisma.attendance.upsert({
     where: { studentId_scheduleId_date: { studentId, scheduleId, date } },

@@ -10,18 +10,19 @@ export type ExportParams = {
   dateFrom: string;
   dateTo: string;
   scheduleId?: string;
+  adminId?: string;
 };
 
 export function useExportDownload() {
   const [loading, setLoading] = useState(false);
 
-  async function runExport({ format = "XLSX", dateFrom, dateTo, scheduleId }: ExportParams): Promise<boolean> {
+  async function runExport({ format = "XLSX", dateFrom, dateTo, scheduleId, adminId }: ExportParams): Promise<boolean> {
     setLoading(true);
     try {
       const res = await fetch("/api/export", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ format, dateFrom, dateTo, scheduleId }),
+        body: JSON.stringify({ format, dateFrom, dateTo, scheduleId, adminId }),
       });
 
       if (!res.ok) {

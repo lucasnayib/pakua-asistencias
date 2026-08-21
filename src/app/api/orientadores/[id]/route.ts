@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { orientadorUpdateSchema, studentIdsSchema } from "@/lib/validations";
 import { deleteOrientadorPhoto, saveOrientadorPhoto, UploadError } from "@/lib/upload";
-import { getSession } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 import { logChange } from "@/lib/audit";
 
 type Params = { params: Promise<{ id: string }> };
@@ -33,8 +33,11 @@ function parseStudentIds(raw: FormDataEntryValue | null): { ok: true; value: str
 }
 
 export async function PATCH(request: NextRequest, { params }: Params) {
+  const session = await requireAdmin();
+  if (session instanceof NextResponse) return session;
+
   const { id } = await params;
-  const existing = await prisma.orientador.findUnique({ where: { id } });
+  const existing = await prisma.orientador.findUnique({ where: { id, adminId: session.adminId } });
   if (!existing) {
     return NextResponse.json({ error: "Orientador no encontrado" }, { status: 404 });
   }
@@ -57,7 +60,15 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (!studentIdsResult.ok) {
     return NextResponse.json({ error: "Lista de alumnos inválida" }, { status: 400 });
   }
-  const studentIds = studentIdsResult.value;
+  let studentIds = studentIdsResult.value;
+  if (studentIds && studentIds.length > 0) {
+    const validStudents = await prisma.student.findMany({
+      where: { id: { in: studentIds }, adminId: session.adminId },
+      select: { id: true },
+    });
+    const validIds = new Set(validStudents.map((s) => s.id));
+    studentIds = studentIds.filter((sid) => validIds.has(sid));
+  }
 
   const photo = formData.get("photo");
   let photoUrl: string | undefined;
@@ -91,7 +102,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 
   const orientador = await prisma.orientador.update({
-    where: { id },
+    where: { id, adminId: session.adminId },
     data: {
       ...rest,
       ...(email !== undefined ? { email: email || null } : {}),
@@ -101,9 +112,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     include: studentsInclude,
   });
 
-  const session = await getSession();
   await logChange({
-    actor: session?.username ?? "admin",
+    actor: session.displayName,
+    adminId: session.adminId,
     action: "UPDATE_ORIENTADOR",
     entity: "Orientador",
     entityId: orientador.id,
@@ -114,18 +125,21 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(_request: NextRequest, { params }: Params) {
+  const session = await requireAdmin();
+  if (session instanceof NextResponse) return session;
+
   const { id } = await params;
-  const existing = await prisma.orientador.findUnique({ where: { id } });
+  const existing = await prisma.orientador.findUnique({ where: { id, adminId: session.adminId } });
   if (!existing) {
     return NextResponse.json({ error: "Orientador no encontrado" }, { status: 404 });
   }
 
-  await prisma.orientador.delete({ where: { id } });
+  await prisma.orientador.delete({ where: { id, adminId: session.adminId } });
   await deleteOrientadorPhoto(existing.photoUrl);
 
-  const session = await getSession();
   await logChange({
-    actor: session?.username ?? "admin",
+    actor: session.displayName,
+    adminId: session.adminId,
     action: "DELETE_ORIENTADOR",
     entity: "Orientador",
     entityId: id,

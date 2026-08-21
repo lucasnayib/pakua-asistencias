@@ -1,12 +1,17 @@
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { formatDateEs } from "@/lib/time";
 import { ExportForm } from "@/components/admin/ExportForm";
+import { getSession } from "@/lib/auth";
 
 export default async function ExportacionesAdminPage() {
+  const session = await getSession();
+  if (!session) redirect("/admin/login");
+
   const [schedules, logs] = await Promise.all([
-    prisma.schedule.findMany({ orderBy: { startTime: "asc" } }),
-    prisma.exportLog.findMany({ orderBy: { createdAt: "desc" }, take: 15 }),
+    prisma.schedule.findMany({ where: { adminId: session.adminId }, orderBy: { startTime: "asc" } }),
+    prisma.exportLog.findMany({ where: { adminId: session.adminId }, orderBy: { createdAt: "desc" }, take: 15 }),
   ]);
 
   return (

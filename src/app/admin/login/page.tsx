@@ -31,8 +31,13 @@ function LoginForm() {
         setError(data.error ?? "No se pudo iniciar sesión");
         return;
       }
-      const from = searchParams.get("from") ?? "/admin";
-      router.push(from);
+      const from = searchParams.get("from");
+      // El super-admin no tiene escuela: si no pidió explícitamente una pantalla de cuentas
+      // (la única a la que tiene acceso), lo mandamos directo ahí en vez del dashboard.
+      const isSuperAdmin = data.role === "SUPER_ADMIN";
+      const canReachFrom = from && (!isSuperAdmin || from.startsWith("/admin/admins"));
+      const destination = canReachFrom ? from : isSuperAdmin ? "/admin/admins" : "/admin";
+      router.push(destination);
       router.refresh();
     } catch {
       setError("Error de conexión");

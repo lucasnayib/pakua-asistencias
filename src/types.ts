@@ -44,6 +44,22 @@ export type StudentListItem = {
   updatedAt: string;
 };
 
+export type AdminListItem = {
+  id: string;
+  username: string;
+  displayName: string;
+  slug: string;
+  role: "ADMIN" | "SUPER_ADMIN";
+  active: boolean;
+  createdAt: string;
+};
+
+export type SchoolListItem = {
+  id: string;
+  displayName: string;
+  slug: string;
+};
+
 export type OrientadorListItem = {
   id: string;
   firstName: string;

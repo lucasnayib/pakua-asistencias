@@ -2,14 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { studentUpdateSchema } from "@/lib/validations";
 import { deleteStudentPhoto, saveStudentPhoto, UploadError } from "@/lib/upload";
-import { getSession } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 import { logChange } from "@/lib/audit";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: NextRequest, { params }: Params) {
+  const session = await requireAdmin();
+  if (session instanceof NextResponse) return session;
+
   const { id } = await params;
-  const existing = await prisma.student.findUnique({ where: { id } });
+  const existing = await prisma.student.findUnique({ where: { id, adminId: session.adminId } });
   if (!existing) {
     return NextResponse.json({ error: "Alumno no encontrado" }, { status: 404 });
   }
@@ -41,13 +44,13 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 
   const student = await prisma.student.update({
-    where: { id },
+    where: { id, adminId: session.adminId },
     data: { ...parsed.data, ...(photoUrl ? { photoUrl } : {}) },
   });
 
-  const session = await getSession();
   await logChange({
-    actor: session?.username ?? "admin",
+    actor: session.displayName,
+    adminId: session.adminId,
     action: "UPDATE_STUDENT",
     entity: "Student",
     entityId: student.id,
@@ -58,8 +61,11 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(_request: NextRequest, { params }: Params) {
+  const session = await requireAdmin();
+  if (session instanceof NextResponse) return session;
+
   const { id } = await params;
-  const existing = await prisma.student.findUnique({ where: { id } });
+  const existing = await prisma.student.findUnique({ where: { id, adminId: session.adminId } });
   if (!existing) {
     return NextResponse.json({ error: "Alumno no encontrado" }, { status: 404 });
   }
@@ -75,12 +81,12 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
     );
   }
 
-  await prisma.student.delete({ where: { id } });
+  await prisma.student.delete({ where: { id, adminId: session.adminId } });
   await deleteStudentPhoto(existing.photoUrl);
 
-  const session = await getSession();
   await logChange({
-    actor: session?.username ?? "admin",
+    actor: session.displayName,
+    adminId: session.adminId,
     action: "DELETE_STUDENT",
     entity: "Student",
     entityId: id,

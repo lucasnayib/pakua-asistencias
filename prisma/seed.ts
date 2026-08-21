@@ -2,6 +2,7 @@ import "dotenv/config";
 import bcrypt from "bcryptjs";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaClient } from "../src/generated/prisma/client";
+import { slugify } from "../src/lib/slug";
 
 async function main() {
   const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL ?? "file:./dev.db" });
@@ -14,7 +15,14 @@ async function main() {
   await prisma.admin.upsert({
     where: { username },
     update: { passwordHash },
-    create: { username, passwordHash },
+    create: {
+      username,
+      passwordHash,
+      displayName: username,
+      slug: slugify(username) || "admin",
+      role: "SUPER_ADMIN",
+      active: true,
+    },
   });
 
   console.log(`Admin listo: usuario "${username}"`);

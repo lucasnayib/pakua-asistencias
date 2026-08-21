@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import ExcelJS from "exceljs";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 import { logChange } from "@/lib/audit";
 
 function normalizeHeader(value: unknown): string {
@@ -9,6 +9,9 @@ function normalizeHeader(value: unknown): string {
 }
 
 export async function POST(request: NextRequest) {
+  const session = await requireAdmin();
+  if (session instanceof NextResponse) return session;
+
   const formData = await request.formData();
   const file = formData.get("file");
   if (!(file instanceof File)) {
@@ -54,11 +57,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No se encontraron filas válidas para importar" }, { status: 400 });
   }
 
-  await prisma.student.createMany({ data: toCreate });
+  await prisma.student.createMany({
+    data: toCreate.map((s) => ({ ...s, adminId: session.adminId })),
+  });
 
-  const session = await getSession();
   await logChange({
-    actor: session?.username ?? "admin",
+    actor: session.displayName,
+    adminId: session.adminId,
     action: "IMPORT_STUDENTS",
     entity: "Student",
     detail: `${toCreate.length} alumnos importados`,

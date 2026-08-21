@@ -4,18 +4,25 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const LINKS = [
-  { href: "/", label: "Asistencia" },
-  { href: "/clases-anteriores", label: "Clases anteriores" },
-  { href: "/historial", label: "Historial" },
-];
+type AppHeaderProps = {
+  /** Slug de la escuela actual (páginas bajo /escuela/[slug]/...). Si no se pasa, no hay nav de escuela. */
+  slug?: string;
+};
 
-export function AppHeader() {
+export function AppHeader({ slug }: AppHeaderProps = {}) {
   const pathname = usePathname();
+
+  const links = slug
+    ? [
+        { href: `/escuela/${slug}`, label: "Asistencia" },
+        { href: `/escuela/${slug}/clases-anteriores`, label: "Clases anteriores" },
+        { href: `/escuela/${slug}/historial`, label: "Historial" },
+      ]
+    : [];
 
   return (
     <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-surface/90 px-4 py-3 backdrop-blur sm:px-6">
-      <Link href="/" className="flex shrink-0 items-center">
+      <span className="flex shrink-0 items-center">
         <Image
           src="/logo.png"
           alt="Pakua"
@@ -24,10 +31,10 @@ export function AppHeader() {
           priority
           className="h-8 w-auto dark:invert"
         />
-      </Link>
+      </span>
 
       <nav className="flex items-center gap-1 overflow-x-auto">
-        {LINKS.map((link) => {
+        {links.map((link) => {
           const active = pathname === link.href;
           return (
             <Link
@@ -43,12 +50,11 @@ export function AppHeader() {
         })}
       </nav>
 
-      <Link
-        href="/admin"
-        className="hidden text-xs text-muted-foreground hover:underline sm:inline"
-      >
-        Admin
-      </Link>
+      <div className="hidden items-center gap-3 sm:flex">
+        <Link href="/admin" className="text-xs text-muted-foreground hover:underline">
+          Admin
+        </Link>
+      </div>
     </header>
   );
 }

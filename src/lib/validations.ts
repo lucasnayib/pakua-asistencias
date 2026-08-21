@@ -59,6 +59,10 @@ export const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+export const schoolUnlockSchema = z.object({
+  password: z.string().min(1),
+});
+
 export const exportFormatSchema = z.enum(["XLSX", "PDF", "TXT"]);
 
 export const exportRequestSchema = z.object({
@@ -66,4 +70,31 @@ export const exportRequestSchema = z.object({
   dateFrom: z.string().regex(dateRegex),
   dateTo: z.string().regex(dateRegex),
   scheduleId: z.string().min(1).optional(),
+  // Solo se usa cuando la exportación se pide sin sesión de admin (página pública de check-in).
+  adminId: z.string().min(1).optional(),
+});
+
+// No existe selector de rol en ninguna UI ni endpoint: el único SUPER_ADMIN se crea por seed
+// y esa cuenta no se puede promover ni degradar desde acá. Toda cuenta creada u editada desde
+// /admin/admins es siempre "ADMIN".
+const slugRegex = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+const slugSchema = z
+  .string()
+  .trim()
+  .min(3, "La dirección debe tener al menos 3 caracteres")
+  .max(50, "La dirección no puede superar los 50 caracteres")
+  .regex(slugRegex, "Solo minúsculas, números y guiones (ej: mi-escuela)");
+
+export const adminCreateSchema = z.object({
+  username: z.string().trim().min(1, "El usuario es obligatorio").max(50),
+  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
+  displayName: z.string().trim().min(1, "El nombre es obligatorio").max(100),
+  slug: slugSchema,
+});
+
+export const adminUpdateSchema = z.object({
+  displayName: z.string().trim().min(1).max(100).optional(),
+  slug: slugSchema.optional(),
+  active: z.boolean().optional(),
+  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres").optional(),
 });

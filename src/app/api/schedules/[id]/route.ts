@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { scheduleSchema } from "@/lib/validations";
-import { getSession } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 import { logChange } from "@/lib/audit";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: NextRequest, { params }: Params) {
+  const session = await requireAdmin();
+  if (session instanceof NextResponse) return session;
+
   const { id } = await params;
-  const existing = await prisma.schedule.findUnique({ where: { id } });
+  const existing = await prisma.schedule.findUnique({ where: { id, adminId: session.adminId } });
   if (!existing) {
     return NextResponse.json({ error: "Horario no encontrado" }, { status: 404 });
   }
@@ -23,7 +26,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   const schedule = await prisma.$transaction(async (tx) => {
     await tx.scheduleDay.deleteMany({ where: { scheduleId: id } });
     return tx.schedule.update({
-      where: { id },
+      where: { id, adminId: session.adminId },
       data: {
         name: name || null,
         startTime,
@@ -34,9 +37,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     });
   });
 
-  const session = await getSession();
   await logChange({
-    actor: session?.username ?? "admin",
+    actor: session.displayName,
+    adminId: session.adminId,
     action: "UPDATE_SCHEDULE",
     entity: "Schedule",
     entityId: schedule.id,
@@ -47,8 +50,11 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(_request: NextRequest, { params }: Params) {
+  const session = await requireAdmin();
+  if (session instanceof NextResponse) return session;
+
   const { id } = await params;
-  const existing = await prisma.schedule.findUnique({ where: { id } });
+  const existing = await prisma.schedule.findUnique({ where: { id, adminId: session.adminId } });
   if (!existing) {
     return NextResponse.json({ error: "Horario no encontrado" }, { status: 404 });
   }
@@ -64,11 +70,11 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
     );
   }
 
-  await prisma.schedule.delete({ where: { id } });
+  await prisma.schedule.delete({ where: { id, adminId: session.adminId } });
 
-  const session = await getSession();
   await logChange({
-    actor: session?.username ?? "admin",
+    actor: session.displayName,
+    adminId: session.adminId,
     action: "DELETE_SCHEDULE",
     entity: "Schedule",
     entityId: id,

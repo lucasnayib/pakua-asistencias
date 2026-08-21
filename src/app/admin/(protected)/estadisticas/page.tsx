@@ -1,8 +1,12 @@
+import { redirect } from "next/navigation";
 import { getStudentStats } from "@/lib/stats";
+import { getSession } from "@/lib/auth";
 import { StatsTable } from "@/components/admin/StatsTable";
 
 export default async function EstadisticasAdminPage() {
-  const stats = await getStudentStats();
+  const session = await getSession();
+  if (!session) redirect("/admin/login");
+  const stats = await getStudentStats(session.adminId);
 
   return (
     <div className="flex flex-col gap-6">

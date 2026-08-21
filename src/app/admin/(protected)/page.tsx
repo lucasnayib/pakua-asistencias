@@ -1,16 +1,22 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { getLocalNow } from "@/lib/time";
+import { getSession } from "@/lib/auth";
 
 export default async function AdminDashboardPage() {
+  const session = await getSession();
+  if (!session) redirect("/admin/login");
+  // El super-admin no tiene escuela propia: no hay dashboard que mostrarle acá.
+  if (session.role === "SUPER_ADMIN") redirect("/admin/admins");
+
   const { date: today } = getLocalNow();
 
-  const [studentsCount, schedulesCount, todayAttendanceCount, recentLogs] = await Promise.all([
-    prisma.student.count({ where: { active: true } }),
-    prisma.schedule.count(),
-    prisma.attendance.count({ where: { date: today } }),
-    prisma.auditLog.findMany({ orderBy: { createdAt: "desc" }, take: 8 }),
+  const [studentsCount, schedulesCount, todayAttendanceCount] = await Promise.all([
+    prisma.student.count({ where: { active: true, adminId: session.adminId } }),
+    prisma.schedule.count({ where: { adminId: session.adminId } }),
+    prisma.attendance.count({ where: { date: today, schedule: { adminId: session.adminId } } }),
   ]);
 
   const stats = [
@@ -42,27 +48,6 @@ export default async function AdminDashboardPage() {
           </Card>
         ))}
       </div>
-
-      <Card className="p-5">
-        <h2 className="mb-3 text-sm font-semibold text-muted-foreground">Última actividad</h2>
-        {recentLogs.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Todavía no hay actividad registrada.</p>
-        ) : (
-          <ul className="flex flex-col divide-y divide-border">
-            {recentLogs.map((log) => (
-              <li key={log.id} className="flex items-center justify-between py-2 text-sm">
-                <span>
-                  <span className="font-medium">{log.actor}</span> — {log.action}
-                  {log.detail ? ` (${log.detail})` : ""}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {new Date(log.createdAt).toLocaleString("es-AR")}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
     </div>
   );
 }

@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { assignmentSchema } from "@/lib/validations";
-import { getSession } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 import { logChange } from "@/lib/audit";
 
 export async function POST(request: NextRequest) {
+  const session = await requireAdmin();
+  if (session instanceof NextResponse) return session;
+
   const body = await request.json().catch(() => null);
   const parsed = assignmentSchema.safeParse(body);
   if (!parsed.success) {
@@ -13,8 +16,8 @@ export async function POST(request: NextRequest) {
   const { studentId, scheduleId } = parsed.data;
 
   const [student, schedule] = await Promise.all([
-    prisma.student.findUnique({ where: { id: studentId } }),
-    prisma.schedule.findUnique({ where: { id: scheduleId } }),
+    prisma.student.findUnique({ where: { id: studentId, adminId: session.adminId } }),
+    prisma.schedule.findUnique({ where: { id: scheduleId, adminId: session.adminId } }),
   ]);
   if (!student || !schedule) {
     return NextResponse.json({ error: "Alumno u horario no encontrado" }, { status: 404 });
@@ -26,9 +29,9 @@ export async function POST(request: NextRequest) {
     create: { studentId, scheduleId },
   });
 
-  const session = await getSession();
   await logChange({
-    actor: session?.username ?? "admin",
+    actor: session.displayName,
+    adminId: session.adminId,
     action: "ASSIGN_STUDENT",
     entity: "StudentSchedule",
     entityId: assignment.id,
@@ -39,6 +42,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const session = await requireAdmin();
+  if (session instanceof NextResponse) return session;
+
   const body = await request.json().catch(() => null);
   const parsed = assignmentSchema.safeParse(body);
   if (!parsed.success) {
@@ -47,18 +53,21 @@ export async function DELETE(request: NextRequest) {
   const { studentId, scheduleId } = parsed.data;
 
   const [student, schedule] = await Promise.all([
-    prisma.student.findUnique({ where: { id: studentId } }),
-    prisma.schedule.findUnique({ where: { id: scheduleId } }),
+    prisma.student.findUnique({ where: { id: studentId, adminId: session.adminId } }),
+    prisma.schedule.findUnique({ where: { id: scheduleId, adminId: session.adminId } }),
   ]);
+  if (!student || !schedule) {
+    return NextResponse.json({ error: "Alumno u horario no encontrado" }, { status: 404 });
+  }
 
   await prisma.studentSchedule.deleteMany({ where: { studentId, scheduleId } });
 
-  const session = await getSession();
   await logChange({
-    actor: session?.username ?? "admin",
+    actor: session.displayName,
+    adminId: session.adminId,
     action: "UNASSIGN_STUDENT",
     entity: "StudentSchedule",
-    detail: `${student?.firstName ?? studentId} ${student?.lastName ?? ""} ↛ ${schedule?.name ?? scheduleId}`.trim(),
+    detail: `${student.firstName} ${student.lastName} ↛ ${schedule.name ?? scheduleId}`.trim(),
   });
 
   return NextResponse.json({ ok: true });

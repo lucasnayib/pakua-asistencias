@@ -46,6 +46,7 @@ next-env.d.ts
 # database (DATABASE_URL="file:./dev.db" es relativo a la raíz del proyecto)
 /dev.db
 /dev.db-journal
+/dev.db.bak-*
 
 # uploaded photos (servidas dinámicamente por /api/uploads, no por /public)
 /storage/uploads/students/*

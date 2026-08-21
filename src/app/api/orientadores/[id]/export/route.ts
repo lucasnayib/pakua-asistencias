@@ -1,25 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { buildOrientadorStudentsExcelBuffer } from "@/lib/export/orientador-excel";
-import { getSession } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 import { logChange } from "@/lib/audit";
+import { slugify } from "@/lib/slug";
 
 type Params = { params: Promise<{ id: string }> };
 
-function slugify(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-zA-Z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "")
-    .toLowerCase();
-}
-
 export async function GET(_request: NextRequest, { params }: Params) {
+  const session = await requireAdmin();
+  if (session instanceof NextResponse) return session;
+
   const { id } = await params;
 
   const orientador = await prisma.orientador.findUnique({
-    where: { id },
+    where: { id, adminId: session.adminId },
     include: {
       students: {
         include: { student: true },
@@ -40,9 +35,9 @@ export async function GET(_request: NextRequest, { params }: Params) {
   const buffer = await buildOrientadorStudentsExcelBuffer(rows);
   const filename = `alumnos_${slugify(`${orientador.firstName}_${orientador.lastName}`)}.xlsx`;
 
-  const session = await getSession();
   await logChange({
-    actor: session?.username ?? "admin",
+    actor: session.displayName,
+    adminId: session.adminId,
     action: "EXPORT_ORIENTADOR_STUDENTS",
     entity: "Orientador",
     entityId: orientador.id,
