@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { requireAdmin } from "@/lib/auth";
+import { requireSuperAdmin } from "@/lib/auth";
 import { logChange } from "@/lib/audit";
 import { pad2 } from "@/lib/time";
 
 export async function GET() {
-  const session = await requireAdmin();
+  const session = await requireSuperAdmin();
   if (session instanceof NextResponse) return session;
 
   const rawUrl = process.env.DATABASE_URL ?? "file:./dev.db";

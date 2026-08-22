@@ -16,10 +16,15 @@ async function getSessionRole(request: NextRequest): Promise<string | null> {
   }
 }
 
-/** Rutas de UI/API reservadas exclusivamente para SUPER_ADMIN: gestión de cuentas de admin. */
+/**
+ * Rutas de UI/API reservadas exclusivamente para SUPER_ADMIN: gestión de cuentas de admin,
+ * y el backup de la base completa (contiene datos de TODAS las escuelas, no solo una).
+ */
 function isSuperAdminOnlyRoute(pathname: string): boolean {
   if (pathname.startsWith("/api/admins")) return true;
   if (pathname.startsWith("/admin/admins")) return true;
+  if (pathname.startsWith("/api/backup")) return true;
+  if (pathname.startsWith("/admin/backups")) return true;
   return false;
 }
 
@@ -47,10 +52,12 @@ function isAdminOnlyApiRoute(pathname: string, method: string): boolean {
 
 /**
  * Rutas de datos de escuela (alumnos, horarios, orientadores, asistencia, estadísticas,
- * exportaciones, backups). El super-admin no tiene acceso a ninguna de estas, ni siquiera a
- * las que son públicas para usuarios sin sesión (ej: check-in, historial). Algunas de estas
- * rutas no están en isAdminOnlyApiRoute porque son de uso público sin sesión — pero si HAY
- * una sesión de super-admin, igual se bloquean.
+ * exportaciones). El super-admin no tiene acceso a ninguna de estas, ni siquiera a las que
+ * son públicas para usuarios sin sesión (ej: check-in, historial). Algunas de estas rutas no
+ * están en isAdminOnlyApiRoute porque son de uso público sin sesión — pero si HAY una sesión
+ * de super-admin, igual se bloquean. `/api/backup` NO va acá: es al revés, exclusiva del
+ * super-admin (ver isSuperAdminOnlyRoute), porque descarga la base completa de TODAS las
+ * escuelas, no la de un admin individual.
  */
 const SCHOOL_DATA_API_PREFIXES = [
   "/api/students",
@@ -60,7 +67,6 @@ const SCHOOL_DATA_API_PREFIXES = [
   "/api/attendance",
   "/api/export",
   "/api/stats",
-  "/api/backup",
 ];
 
 function isSchoolDataApiRoute(pathname: string): boolean {

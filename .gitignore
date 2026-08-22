@@ -48,6 +48,10 @@ next-env.d.ts
 /dev.db-journal
 /dev.db.bak-*
 
+# backups automáticos locales (ver scripts/backup-local.ts)
+/storage/backups/
+/storage/backup.log
+
 # uploaded photos (servidas dinámicamente por /api/uploads, no por /public)
 /storage/uploads/students/*
 !/storage/uploads/students/.gitkeep

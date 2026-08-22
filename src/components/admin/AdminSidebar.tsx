@@ -13,10 +13,12 @@ const LINKS = [
   { href: "/admin/asignaciones", label: "Asignaciones" },
   { href: "/admin/exportaciones", label: "Exportaciones" },
   { href: "/admin/estadisticas", label: "Estadísticas" },
-  { href: "/admin/backups", label: "Copias de seguridad" },
 ];
 
-const SUPER_ADMIN_LINKS = [{ href: "/admin/admins", label: "Administradores" }];
+const SUPER_ADMIN_LINKS = [
+  { href: "/admin/admins", label: "Administradores" },
+  { href: "/admin/backups", label: "Copias de seguridad" },
+];
 
 export function AdminSidebar({ displayName, role }: { displayName: string; role: string }) {
   const pathname = usePathname();
