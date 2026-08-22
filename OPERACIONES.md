@@ -2,6 +2,51 @@
 
 Guía corta para quien administre el servidor día a día (no hace falta saber programar).
 
+## El servidor corre solo (PM2)
+
+La app corre bajo [PM2](https://pm2.keymetrics.io/), un administrador de procesos que:
+
+- La reinicia sola si se cae.
+- La vuelve a levantar automáticamente si Windows se reinicia (tarea programada
+  "PakuaServidorInicio", corre como SYSTEM, no hace falta que nadie inicie sesión).
+
+Por eso, en uso normal **no hace falta abrir `iniciar-servidor.bat`** — eso queda solo
+como método manual de respaldo (por ejemplo, para probar algo puntual en primer plano).
+
+Windows en esta máquina está configurado para no suspenderse ni hibernar mientras esté
+conectada a corriente, así el servidor queda arriba 24/7.
+
+### Ver el estado del servidor
+
+Desde la carpeta del proyecto:
+
+```
+pm2 status
+```
+
+### Ver los logs (para diagnosticar un problema)
+
+```
+pm2 logs pakua-asistencias
+```
+
+(Ctrl+C para salir de la vista en vivo.)
+
+### Reiniciar el servidor a mano
+
+```
+pm2 restart pakua-asistencias
+```
+
+### Después de instalar una actualización de código
+
+Hay que reconstruir la app y reiniciar el proceso:
+
+```
+npm run build
+pm2 restart pakua-asistencias
+```
+
 ## Backups automáticos
 
 Todos los días a las 3:00 AM se guarda una copia de la base de datos completa en la carpeta `storage/backups/`, con nombre `pakua-backup-AAAAMMDD-HHMM.db`. Se conservan los últimos **30 días**; las copias más viejas se borran solas en cada corrida.
@@ -23,10 +68,10 @@ npm run backup
 
 ### Restaurar un backup
 
-1. **Apagar el servidor** (cerrar la ventana de `iniciar-servidor.bat`, o detener el proceso si corre con PM2).
+1. **Apagar el servidor**: `pm2 stop pakua-asistencias`.
 2. Hacer una copia del `dev.db` actual por las dudas (por si el backup elegido resulta no ser el correcto).
 3. Copiar el archivo de backup elegido (desde `storage/backups/`) sobre `dev.db`, en la raíz del proyecto, renombrándolo a `dev.db`.
-4. Volver a prender el servidor.
+4. Volver a prender el servidor: `pm2 start pakua-asistencias`.
 
 ### Qué NO cubre esto
 
