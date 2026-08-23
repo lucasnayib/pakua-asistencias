@@ -13,6 +13,9 @@ const adminSelect = {
   slug: true,
   role: true,
   active: true,
+  approved: true,
+  contactEmail: true,
+  contactPhone: true,
   createdAt: true,
 };
 

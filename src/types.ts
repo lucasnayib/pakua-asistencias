@@ -51,6 +51,9 @@ export type AdminListItem = {
   slug: string;
   role: "ADMIN" | "SUPER_ADMIN";
   active: boolean;
+  approved: boolean;
+  contactEmail: string | null;
+  contactPhone: string | null;
   createdAt: string;
 };
 

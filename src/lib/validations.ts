@@ -96,5 +96,16 @@ export const adminUpdateSchema = z.object({
   displayName: z.string().trim().min(1).max(100).optional(),
   slug: slugSchema.optional(),
   active: z.boolean().optional(),
+  approved: z.boolean().optional(),
   password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres").optional(),
+});
+
+// Formulario público de registro de escuela nueva (`/registrar-escuela`). La cuenta se crea
+// con `approved: false`: queda pendiente de revisión del super-admin antes de poder operar.
+export const schoolRegistrationSchema = z.object({
+  username: z.string().trim().min(1, "El usuario es obligatorio").max(50),
+  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
+  displayName: z.string().trim().min(1, "El nombre es obligatorio").max(100),
+  contactEmail: z.string().trim().email("Email inválido").max(150),
+  contactPhone: z.string().trim().min(1, "El teléfono es obligatorio").max(30),
 });

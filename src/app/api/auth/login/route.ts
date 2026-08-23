@@ -42,6 +42,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Esta cuenta está desactivada" }, { status: 401 });
   }
 
+  if (!admin.approved) {
+    return NextResponse.json({ error: "Tu cuenta todavía está pendiente de aprobación" }, { status: 401 });
+  }
+
   resetRateLimit(rateLimitKey);
   const role = admin.role === "SUPER_ADMIN" ? "SUPER_ADMIN" : "ADMIN";
   await setSessionCookie({

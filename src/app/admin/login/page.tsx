@@ -86,6 +86,12 @@ function LoginForm() {
         >
           Ir a toma de asistencia
         </Link>
+        <Link
+          href="/registrar-escuela"
+          className="mt-2 block text-center text-sm text-muted-foreground hover:underline"
+        >
+          ¿Sos una escuela nueva? Registrate acá
+        </Link>
       </Card>
     </main>
   );

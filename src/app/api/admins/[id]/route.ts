@@ -15,6 +15,9 @@ const adminSelect = {
   slug: true,
   role: true,
   active: true,
+  approved: true,
+  contactEmail: true,
+  contactPhone: true,
   createdAt: true,
 };
 
@@ -37,12 +40,14 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   // El rol nunca se puede cambiar desde esta ruta (ni al crear, ni al editar): no hay ningún
   // camino de código que pueda crear o promover un segundo super-admin. Si el cliente manda
   // "role" en el body, se ignora por completo (ni siquiera llega acá, adminUpdateSchema no lo admite).
-  const { displayName, slug, active, password } = parsed.data;
+  const { displayName, slug, active, approved, password } = parsed.data;
 
   // No permitir que el super-admin se desactive a sí mismo, para evitar quedarse afuera.
   if (id === session.adminId && active === false) {
     return NextResponse.json({ error: "No podés desactivar tu propia cuenta" }, { status: 400 });
   }
+
+  const wasApproving = approved === true && existing.approved === false;
 
   const passwordHash = password ? await bcrypt.hash(password, 10) : undefined;
 
@@ -54,6 +59,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
         ...(displayName !== undefined ? { displayName } : {}),
         ...(slug !== undefined ? { slug } : {}),
         ...(active !== undefined ? { active } : {}),
+        ...(approved !== undefined ? { approved } : {}),
         ...(passwordHash ? { passwordHash } : {}),
       },
       select: adminSelect,
@@ -63,6 +69,17 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "Esa dirección ya está en uso" }, { status: 409 });
     }
     throw error;
+  }
+
+  if (wasApproving) {
+    await logChange({
+      actor: session.displayName,
+      adminId: session.adminId,
+      action: "APPROVE_ADMIN",
+      entity: "Admin",
+      entityId: admin.id,
+      detail: `${admin.displayName} (${admin.username})`,
+    });
   }
 
   await logChange({

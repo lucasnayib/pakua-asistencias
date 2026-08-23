@@ -24,10 +24,12 @@ export function AdminSidebar({
   displayName,
   role,
   schoolSlug,
+  pendingAdminCount = 0,
 }: {
   displayName: string;
   role: string;
   schoolSlug?: string | null;
+  pendingAdminCount?: number;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -64,11 +66,16 @@ export function AdminSidebar({
             <Link
               key={link.href}
               href={link.href}
-              className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+              className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
                 active ? "bg-accent text-accent-foreground" : "text-foreground hover:bg-surface-2"
               }`}
             >
               {link.label}
+              {link.href === "/admin/admins" && pendingAdminCount > 0 && (
+                <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1.5 text-xs font-semibold text-white">
+                  {pendingAdminCount}
+                </span>
+              )}
             </Link>
           );
         })}

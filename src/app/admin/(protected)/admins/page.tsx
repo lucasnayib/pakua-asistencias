@@ -17,6 +17,8 @@ export default function AdminsPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<AdminListItem | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
+  const [rejecting, setRejecting] = useState<AdminListItem | null>(null);
+  const [rejectBusy, setRejectBusy] = useState(false);
   const [origin, setOrigin] = useState("");
 
   useEffect(() => {
@@ -83,6 +85,47 @@ export default function AdminsPage() {
     }
   }
 
+  async function handleApprove(admin: AdminListItem) {
+    setBusyId(admin.id);
+    try {
+      const res = await fetch(`/api/admins/${admin.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ approved: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "No se pudo aprobar la cuenta");
+        return;
+      }
+      toast.success("Solicitud aprobada");
+      loadAdmins();
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleReject() {
+    if (!rejecting) return;
+    setRejectBusy(true);
+    try {
+      const res = await fetch(`/api/admins/${rejecting.id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "No se pudo rechazar la solicitud");
+        return;
+      }
+      toast.success("Solicitud rechazada");
+      setRejecting(null);
+      loadAdmins();
+    } finally {
+      setRejectBusy(false);
+    }
+  }
+
+  const pending = admins.filter((a) => !a.approved);
+  const approvedAdmins = admins.filter((a) => a.approved);
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -100,17 +143,55 @@ export default function AdminsPage() {
         </Button>
       </div>
 
+      {!loading && pending.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <h2 className="text-lg font-semibold">Solicitudes pendientes</h2>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {pending.map((a) => (
+              <Card key={a.id} className="flex flex-col gap-3 border-accent/40 p-4">
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{a.displayName}</p>
+                  <p className="truncate text-xs text-muted-foreground">@{a.username}</p>
+                  {a.contactEmail && (
+                    <p className="mt-1 truncate text-xs text-muted-foreground">{a.contactEmail}</p>
+                  )}
+                  {a.contactPhone && (
+                    <p className="truncate text-xs text-muted-foreground">{a.contactPhone}</p>
+                  )}
+                  <div className="mt-3 flex flex-wrap gap-3 text-xs">
+                    <button
+                      className="font-medium text-success hover:underline"
+                      disabled={busyId === a.id}
+                      onClick={() => handleApprove(a)}
+                    >
+                      Aprobar
+                    </button>
+                    <button
+                      className="font-medium text-danger hover:underline"
+                      disabled={busyId === a.id}
+                      onClick={() => setRejecting(a)}
+                    >
+                      Rechazar
+                    </button>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex items-center gap-2 py-12 text-sm text-muted-foreground">
           <Spinner className="h-4 w-4" /> Cargando…
         </div>
-      ) : admins.length === 0 ? (
+      ) : approvedAdmins.length === 0 ? (
         <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
           Todavía no hay cuentas de admin.
         </p>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {admins.map((a) => (
+          {approvedAdmins.map((a) => (
             <Card key={a.id} className="flex flex-col gap-3 p-4">
               <div className="min-w-0">
                 <p className="truncate font-medium">{a.displayName}</p>
@@ -193,6 +274,21 @@ export default function AdminsPage() {
         loading={deleteBusy}
         onConfirm={handleDelete}
         onCancel={() => setDeleting(null)}
+      />
+
+      <ConfirmDialog
+        open={rejecting !== null}
+        title="Rechazar solicitud"
+        message={
+          rejecting
+            ? `Se eliminará por completo la solicitud de "${rejecting.displayName}" (@${rejecting.username}). No queda historial de esta cuenta.`
+            : ""
+        }
+        confirmLabel="Rechazar"
+        danger
+        loading={rejectBusy}
+        onConfirm={handleReject}
+        onCancel={() => setRejecting(null)}
       />
     </div>
   );
