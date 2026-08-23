@@ -123,41 +123,19 @@ export default function OrientadoresAdminPage() {
                 </div>
               </div>
 
-              <details className="group flex flex-col gap-2 border-t border-border pt-3 [&_summary::-webkit-details-marker]:hidden">
-                <summary className="flex cursor-pointer list-none items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-                    <svg
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                      className="h-3 w-3 shrink-0 transition-transform group-open:rotate-90"
-                    >
-                      <path d="M7 5l6 5-6 5V5z" />
-                    </svg>
-                    Alumnos a cargo ({o.students.length})
-                  </span>
-                  {o.students.length > 0 && (
-                    <a
-                      href={`/api/orientadores/${o.id}/export`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-xs font-medium text-accent hover:underline"
-                    >
-                      Exportar Excel
-                    </a>
-                  )}
-                </summary>
-                {o.students.length === 0 ? (
-                  <p className="pt-2 text-xs text-muted-foreground">Sin alumnos asignados todavía.</p>
-                ) : (
-                  <ul className="flex max-h-40 flex-col gap-1 overflow-y-auto pt-2 text-sm">
-                    {o.students.map((s) => (
-                      <li key={s.id} className="truncate">
-                        {s.firstName} {s.lastName}
-                        {!s.active && <span className="ml-1 text-xs text-danger">(baja)</span>}
-                      </li>
-                    ))}
-                  </ul>
+              <div className="flex items-center justify-between border-t border-border pt-3">
+                <span className="text-xs font-semibold text-muted-foreground">
+                  {o.students.length} alumno{o.students.length === 1 ? "" : "s"} a cargo
+                </span>
+                {o.students.length > 0 && (
+                  <a
+                    href={`/api/orientadores/${o.id}/export`}
+                    className="text-xs font-medium text-accent hover:underline"
+                  >
+                    Exportar Lista de Alumnos
+                  </a>
                 )}
-              </details>
+              </div>
             </Card>
           ))}
         </div>
