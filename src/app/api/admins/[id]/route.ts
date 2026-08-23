@@ -5,6 +5,7 @@ import { adminUpdateSchema } from "@/lib/validations";
 import { requireSuperAdmin } from "@/lib/auth";
 import { logChange } from "@/lib/audit";
 import { isP2002 } from "@/lib/prisma-errors";
+import { notifySchoolApproved, notifySchoolRejected } from "@/lib/email";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -80,6 +81,12 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       entityId: admin.id,
       detail: `${admin.displayName} (${admin.username})`,
     });
+    await notifySchoolApproved({
+      contactEmail: admin.contactEmail,
+      displayName: admin.displayName,
+      username: admin.username,
+      slug: admin.slug,
+    });
   }
 
   await logChange({
@@ -124,6 +131,8 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
     );
   }
 
+  const wasRejectingRequest = existing.approved === false;
+
   await prisma.admin.delete({ where: { id } });
 
   await logChange({
@@ -134,6 +143,12 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
     entityId: id,
     detail: `${existing.displayName} (${existing.username})`,
   });
+
+  // El mail de "rechazado" solo aplica cuando lo que se borra es una solicitud pendiente,
+  // no cuando se elimina una cuenta de escuela ya aprobada (sin datos) por otro motivo.
+  if (wasRejectingRequest) {
+    await notifySchoolRejected({ contactEmail: existing.contactEmail, displayName: existing.displayName });
+  }
 
   return NextResponse.json({ ok: true });
 }

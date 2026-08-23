@@ -6,6 +6,7 @@ import { slugify, uniqueSlug } from "@/lib/slug";
 import { checkRateLimit, recordFailedAttempt } from "@/lib/rate-limit";
 import { logChange } from "@/lib/audit";
 import { isP2002, p2002Fields } from "@/lib/prisma-errors";
+import { notifyNewSchoolRequest } from "@/lib/email";
 
 function lockoutMessage(remainingMs: number): string {
   const minutes = Math.max(1, Math.ceil(remainingMs / 60_000));
@@ -89,6 +90,12 @@ export async function POST(request: NextRequest) {
     detail: `${displayName} (${username}) — contacto: ${contactEmail} / ${contactPhone}`,
     adminId: admin.id,
   });
+
+  try {
+    await notifyNewSchoolRequest({ displayName, username, contactEmail, contactPhone });
+  } catch (error) {
+    console.error("No se pudo notificar la solicitud nueva por mail:", error);
+  }
 
   return NextResponse.json({
     ok: true,
