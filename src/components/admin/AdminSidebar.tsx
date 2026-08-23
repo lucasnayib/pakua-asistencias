@@ -20,7 +20,15 @@ const SUPER_ADMIN_LINKS = [
   { href: "/admin/backups", label: "Copias de seguridad" },
 ];
 
-export function AdminSidebar({ displayName, role }: { displayName: string; role: string }) {
+export function AdminSidebar({
+  displayName,
+  role,
+  schoolSlug,
+}: {
+  displayName: string;
+  role: string;
+  schoolSlug?: string | null;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
@@ -69,7 +77,10 @@ export function AdminSidebar({ displayName, role }: { displayName: string; role:
       <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium">{displayName}</p>
-          <Link href="/" className="text-xs text-muted-foreground hover:underline">
+          <Link
+            href={schoolSlug ? `/escuela/${schoolSlug}` : "/"}
+            className="text-xs text-muted-foreground hover:underline"
+          >
             Ir a toma de asistencia
           </Link>
         </div>

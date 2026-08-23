@@ -14,7 +14,7 @@ export default async function AdminDashboardPage() {
   const { date: today, dayOfWeek, time } = getLocalNow();
   const shortNow = formatTimeShort(time);
 
-  const [studentsCount, schedulesCount, todayAttendanceCount, todaySchedules] = await Promise.all([
+  const [studentsCount, schedulesCount, todayAttendanceCount, todaySchedules, admin] = await Promise.all([
     prisma.student.count({ where: { active: true, adminId: session.adminId } }),
     prisma.schedule.count({ where: { adminId: session.adminId } }),
     prisma.attendance.count({ where: { date: today, schedule: { adminId: session.adminId } } }),
@@ -22,6 +22,7 @@ export default async function AdminDashboardPage() {
       where: { adminId: session.adminId, days: { some: { dayOfWeek } } },
       orderBy: { startTime: "asc" },
     }),
+    prisma.admin.findUnique({ where: { id: session.adminId }, select: { slug: true } }),
   ]);
 
   const upcomingSchedules = todaySchedules.filter((s) => s.endTime > shortNow);
@@ -40,7 +41,7 @@ export default async function AdminDashboardPage() {
           <p className="text-sm text-muted-foreground">Estado general de la escuela Pakua</p>
         </div>
         <Link
-          href="/"
+          href={admin?.slug ? `/escuela/${admin.slug}` : "/"}
           className="inline-flex h-10 items-center justify-center rounded-lg bg-accent px-4 text-sm font-medium text-accent-foreground transition hover:opacity-90"
         >
           Ir a toma de asistencia
