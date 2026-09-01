@@ -23,6 +23,13 @@ model Admin {
   contactPhone String?
   createdAt    DateTime @default(now())
 
+  // 2FA (TOTP): pensado únicamente para la cuenta de SUPER_ADMIN. twoFactorSecret y
+  // twoFactorBackupCodes nunca deben devolverse en ningún select de API salvo lo
+  // estrictamente necesario para la verificación server-side del propio login.
+  twoFactorSecret      String?
+  twoFactorEnabled     Boolean @default(false)
+  twoFactorBackupCodes String? // JSON: array de hashes bcrypt, uno por código, uso único
+
   students    Student[]
   schedules   Schedule[]
   orientadores Orientador[]

@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+import { GoToAttendanceLink } from "./GoToAttendanceLink";
 
 const LINKS = [
   { href: "/admin", label: "Resumen" },
@@ -13,11 +14,13 @@ const LINKS = [
   { href: "/admin/asignaciones", label: "Asignaciones" },
   { href: "/admin/exportaciones", label: "Exportaciones" },
   { href: "/admin/estadisticas", label: "Estadísticas" },
+  { href: "/admin/facturacion", label: "Facturación" },
 ];
 
 const SUPER_ADMIN_LINKS = [
   { href: "/admin/admins", label: "Administradores" },
   { href: "/admin/backups", label: "Copias de seguridad" },
+  { href: "/admin/dos-factores", label: "Seguridad" },
 ];
 
 export function AdminSidebar({
@@ -66,9 +69,8 @@ export function AdminSidebar({
             <Link
               key={link.href}
               href={link.href}
-              className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
-                active ? "bg-accent text-accent-foreground" : "text-foreground hover:bg-surface-2"
-              }`}
+              className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${active ? "bg-accent text-accent-foreground" : "text-foreground hover:bg-surface-2"
+                }`}
             >
               {link.label}
               {link.href === "/admin/admins" && pendingAdminCount > 0 && (
@@ -84,12 +86,12 @@ export function AdminSidebar({
       <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium">{displayName}</p>
-          <Link
+          <GoToAttendanceLink
             href={schoolSlug ? `/escuela/${schoolSlug}` : "/"}
             className="text-xs text-muted-foreground hover:underline"
           >
             Ir a toma de asistencia
-          </Link>
+          </GoToAttendanceLink>
         </div>
         <button
           type="button"

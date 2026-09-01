@@ -63,6 +63,18 @@ export const schoolUnlockSchema = z.object({
   password: z.string().min(1),
 });
 
+export const twoFactorVerifySchema = z.object({
+  tempToken: z.string().min(1),
+  code: z.string().trim().min(6, "Ingresá el código completo").max(20),
+});
+
+export const twoFactorConfirmSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, "El código debe tener 6 dígitos"),
+});
+
 export const exportFormatSchema = z.enum(["XLSX", "PDF", "TXT"]);
 
 export const exportRequestSchema = z.object({

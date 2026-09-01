@@ -25,6 +25,8 @@ function isSuperAdminOnlyRoute(pathname: string): boolean {
   if (pathname.startsWith("/admin/admins")) return true;
   if (pathname.startsWith("/api/backup")) return true;
   if (pathname.startsWith("/admin/backups")) return true;
+  if (pathname.startsWith("/api/admin/two-factor")) return true;
+  if (pathname.startsWith("/admin/dos-factores")) return true;
   return false;
 }
 
@@ -46,6 +48,7 @@ function isAdminOnlyApiRoute(pathname: string, method: string): boolean {
   if (pathname.startsWith("/api/stats")) return true;
   if (pathname.startsWith("/api/backup")) return true;
   if (pathname.startsWith("/api/admins")) return true;
+  if (pathname.startsWith("/api/admin/two-factor")) return true;
 
   return false;
 }

@@ -73,7 +73,19 @@ export default function RegistrarEscuelaPage() {
   }
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-background px-4 py-10">
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-background px-4 py-10">
+      <Card className="w-full max-w-sm border-accent/30 bg-accent/5 p-6 text-center">
+        <p className="text-xs font-medium uppercase tracking-wide text-accent">Plan único</p>
+        <p className="mt-1 text-3xl font-semibold">
+          $X.XXX<span className="text-base font-normal text-muted-foreground">/mes</span>
+        </p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          7 días de prueba gratis. Sin compromiso: cancelás cuando quieras.
+        </p>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Incluye asistencia digital, gestión de alumnos, horarios y orientadores para toda tu escuela.
+        </p>
+      </Card>
       <Card className="w-full max-w-sm p-8">
         <Image
           src="/logo.png"

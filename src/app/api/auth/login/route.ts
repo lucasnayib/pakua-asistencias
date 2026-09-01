@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { setSessionCookie } from "@/lib/auth";
+import { createTwoFactorPendingToken, setSessionCookie } from "@/lib/auth";
 import { loginSchema } from "@/lib/validations";
 import { logChange } from "@/lib/audit";
 import { checkRateLimit, recordFailedAttempt, resetRateLimit } from "@/lib/rate-limit";
@@ -48,6 +48,14 @@ export async function POST(request: Request) {
 
   resetRateLimit(rateLimitKey);
   const role = admin.role === "SUPER_ADMIN" ? "SUPER_ADMIN" : "ADMIN";
+
+  // El 2FA solo aplica al super-admin. Si lo tiene activo, todavía no se crea la sesión:
+  // se devuelve un token intermedio que solo sirve para pasar por /api/auth/verify-2fa.
+  if (role === "SUPER_ADMIN" && admin.twoFactorEnabled) {
+    const tempToken = await createTwoFactorPendingToken(admin.id);
+    return NextResponse.json({ requiresTwoFactor: true, tempToken });
+  }
+
   await setSessionCookie({
     adminId: admin.id,
     username: admin.username,

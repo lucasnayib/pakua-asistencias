@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { formatTimeRange, formatTimeShort, getLocalNow } from "@/lib/time";
 import { getSession } from "@/lib/auth";
+import { GoToAttendanceLink } from "@/components/admin/GoToAttendanceLink";
 
 export default async function AdminDashboardPage() {
   const session = await getSession();
@@ -40,12 +40,12 @@ export default async function AdminDashboardPage() {
           <h1 className="text-2xl font-semibold">Resumen</h1>
           <p className="text-sm text-muted-foreground">Estado general de la escuela Pakua</p>
         </div>
-        <Link
+        <GoToAttendanceLink
           href={admin?.slug ? `/escuela/${admin.slug}` : "/"}
           className="inline-flex h-10 items-center justify-center rounded-lg bg-accent px-4 text-sm font-medium text-accent-foreground transition hover:opacity-90"
         >
           Ir a toma de asistencia
-        </Link>
+        </GoToAttendanceLink>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

@@ -22,6 +22,31 @@ export type SessionPayload = {
   role: AdminRole;
 };
 
+const TWO_FACTOR_PENDING_DURATION_SECONDS = 5 * 60; // 5 minutos
+
+/**
+ * Token intermedio emitido tras validar usuario/contraseña cuando la cuenta tiene 2FA
+ * activo. No es una sesión: no alcanza por sí solo para pasar setSessionCookie, tiene
+ * que pasar primero por /api/auth/verify-2fa.
+ */
+export async function createTwoFactorPendingToken(adminId: string): Promise<string> {
+  return new SignJWT({ adminId, purpose: "2fa_pending" })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime(`${TWO_FACTOR_PENDING_DURATION_SECONDS}s`)
+    .sign(getSecretKey());
+}
+
+export async function verifyTwoFactorPendingToken(token: string): Promise<{ adminId: string } | null> {
+  try {
+    const { payload } = await jwtVerify(token, getSecretKey());
+    if (payload.purpose !== "2fa_pending" || typeof payload.adminId !== "string") return null;
+    return { adminId: payload.adminId };
+  } catch {
+    return null;
+  }
+}
+
 export async function createSessionToken(payload: SessionPayload): Promise<string> {
   return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: "HS256" })
