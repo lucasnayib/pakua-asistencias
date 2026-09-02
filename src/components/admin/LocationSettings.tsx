@@ -18,7 +18,39 @@ export function LocationSettings({ initialLatitude, initialLongitude, initialRad
   const [radius, setRadius] = useState(initialRadius !== null ? String(initialRadius) : "150");
   const [locating, setLocating] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [address, setAddress] = useState("");
+  const [geocoding, setGeocoding] = useState(false);
+  const [resolvedAddress, setResolvedAddress] = useState<string | null>(null);
   const enabled = initialLatitude !== null && initialLongitude !== null && initialRadius !== null;
+
+  async function searchAddress() {
+    if (!address.trim()) {
+      toast.error("Escribí una dirección primero");
+      return;
+    }
+    setGeocoding(true);
+    setResolvedAddress(null);
+    try {
+      const res = await fetch("/api/admin/location/geocode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "No se pudo buscar la dirección");
+        return;
+      }
+      setLatitude(String(data.latitude));
+      setLongitude(String(data.longitude));
+      setResolvedAddress(data.formattedAddress);
+      toast.success("Dirección encontrada");
+    } catch {
+      toast.error("Error de conexión");
+    } finally {
+      setGeocoding(false);
+    }
+  }
 
   function useCurrentLocation() {
     if (!("geolocation" in navigator)) {
@@ -103,6 +135,31 @@ export function LocationSettings({ initialLatitude, initialLongitude, initialRad
       </p>
 
       <form onSubmit={handleSave} className="mt-4 flex flex-col gap-4">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <Input
+                label="Buscar por dirección"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    searchAddress();
+                  }
+                }}
+                placeholder="Av. Colón 1234, Córdoba"
+              />
+            </div>
+            <Button type="button" variant="secondary" loading={geocoding} onClick={searchAddress}>
+              Buscar
+            </Button>
+          </div>
+          {resolvedAddress && (
+            <p className="text-xs text-muted-foreground">Encontrado: {resolvedAddress}</p>
+          )}
+        </div>
+
         <Button type="button" variant="secondary" loading={locating} onClick={useCurrentLocation}>
           Usar mi ubicación actual
         </Button>

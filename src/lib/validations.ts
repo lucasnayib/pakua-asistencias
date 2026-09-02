@@ -64,6 +64,10 @@ export const locationSettingsSchema = z.object({
   attendanceRadiusMeters: z.number().int().min(10).max(5000).nullable(),
 });
 
+export const geocodeAddressSchema = z.object({
+  address: z.string().trim().min(3, "Ingresá una dirección").max(300),
+});
+
 export const loginSchema = z.object({
   username: z.string().trim().min(1),
   password: z.string().min(1),
