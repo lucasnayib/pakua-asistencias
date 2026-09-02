@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { slugify } from "@/lib/slug";
 import type { AdminListItem } from "@/types";
 
@@ -110,9 +111,8 @@ export function AdminFormDialog({ open, admin, onClose, onSaved }: AdminFormDial
           required
           disabled={Boolean(admin)}
         />
-        <Input
+        <PasswordInput
           label={admin ? "Nueva contraseña (opcional)" : "Contraseña"}
-          type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required={!admin}

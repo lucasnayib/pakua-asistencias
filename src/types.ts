@@ -23,6 +23,7 @@ export type RosterResponse = {
   schedule: ScheduleSummary | null;
   date: string;
   roster: RosterStudent[];
+  requiresLocation: boolean;
 };
 
 export type ScheduleListItem = {

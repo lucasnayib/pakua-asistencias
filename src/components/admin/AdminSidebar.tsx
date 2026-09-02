@@ -15,6 +15,7 @@ const LINKS = [
   { href: "/admin/exportaciones", label: "Exportaciones" },
   { href: "/admin/estadisticas", label: "Estadísticas" },
   { href: "/admin/facturacion", label: "Facturación" },
+  { href: "/admin/ubicacion", label: "Ubicación" },
 ];
 
 const SUPER_ADMIN_LINKS = [

@@ -30,6 +30,12 @@ model Admin {
   twoFactorEnabled     Boolean @default(false)
   twoFactorBackupCodes String? // JSON: array de hashes bcrypt, uno por código, uso único
 
+  // Restricción de asistencia por ubicación (opcional, por escuela). Si alguno de los tres
+  // campos es null, no se aplica ninguna restricción — la asistencia funciona como siempre.
+  latitude               Float?
+  longitude              Float?
+  attendanceRadiusMeters Int?
+
   students    Student[]
   schedules   Schedule[]
   orientadores Orientador[]

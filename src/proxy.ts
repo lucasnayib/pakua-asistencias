@@ -49,6 +49,7 @@ function isAdminOnlyApiRoute(pathname: string, method: string): boolean {
   if (pathname.startsWith("/api/backup")) return true;
   if (pathname.startsWith("/api/admins")) return true;
   if (pathname.startsWith("/api/admin/two-factor")) return true;
+  if (pathname.startsWith("/api/admin/location")) return true;
 
   return false;
 }
@@ -79,7 +80,12 @@ function isSchoolDataApiRoute(pathname: string): boolean {
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
+  const isPublicAdminPage =
+    pathname === "/admin/login" ||
+    pathname === "/admin/olvide-password" ||
+    pathname === "/admin/restablecer-password";
+
+  if (pathname.startsWith("/admin") && !isPublicAdminPage) {
     const role = await getSessionRole(request);
     if (role === null) {
       const loginUrl = new URL("/admin/login", request.url);

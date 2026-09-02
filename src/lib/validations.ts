@@ -52,6 +52,16 @@ export const attendanceCreateSchema = z.object({
   scheduleId: z.string().min(1),
   date: z.string().regex(dateRegex, "Fecha inválida (YYYY-MM-DD)"),
   time: z.string().regex(timeWithSecondsRegex, "Hora inválida"),
+  // Ubicación del dispositivo que marca la asistencia. Solo se exige si la escuela tiene
+  // configurada una restricción de ubicación (ver /api/attendance).
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
+});
+
+export const locationSettingsSchema = z.object({
+  latitude: z.number().min(-90).max(90).nullable(),
+  longitude: z.number().min(-180).max(180).nullable(),
+  attendanceRadiusMeters: z.number().int().min(10).max(5000).nullable(),
 });
 
 export const loginSchema = z.object({
@@ -61,6 +71,15 @@ export const loginSchema = z.object({
 
 export const schoolUnlockSchema = z.object({
   password: z.string().min(1),
+});
+
+export const forgotPasswordSchema = z.object({
+  username: z.string().trim().min(1),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1),
+  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
 });
 
 export const twoFactorVerifySchema = z.object({

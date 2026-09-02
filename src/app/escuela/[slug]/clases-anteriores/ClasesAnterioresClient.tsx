@@ -101,8 +101,14 @@ export function ClasesAnterioresClient({ slug, adminId }: ClasesAnterioresClient
           </div>
         )}
 
+        {/* Clase de un día anterior: no tiene sentido pedir ubicación en tiempo real acá. */}
         {!loadingRoster && roster?.schedule && (
-          <RosterView scheduleId={roster.schedule.id} date={date} initialRoster={roster.roster} />
+          <RosterView
+            scheduleId={roster.schedule.id}
+            date={date}
+            initialRoster={roster.roster}
+            requiresLocation={false}
+          />
         )}
       </main>
     </div>

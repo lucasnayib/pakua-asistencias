@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Card } from "@/components/ui/Card";
 
 type SchoolUnlockGateProps = {
@@ -54,9 +54,8 @@ export function SchoolUnlockGate({ slug, schoolName }: SchoolUnlockGateProps) {
           Ingresá la contraseña de esta escuela para acceder a la asistencia
         </p>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <Input
+          <PasswordInput
             label="Contraseña"
-            type="password"
             autoComplete="current-password"
             autoFocus
             value={password}

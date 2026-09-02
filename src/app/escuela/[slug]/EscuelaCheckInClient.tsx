@@ -92,7 +92,12 @@ export function EscuelaCheckInClient({ slug, adminId }: EscuelaCheckInClientProp
               />
             </div>
 
-            <RosterView scheduleId={data.schedule.id} date={now.date} initialRoster={data.roster} />
+            <RosterView
+              scheduleId={data.schedule.id}
+              date={now.date}
+              initialRoster={data.roster}
+              requiresLocation={data.requiresLocation}
+            />
           </>
         )}
 

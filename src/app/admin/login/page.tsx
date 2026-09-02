@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Card } from "@/components/ui/Card";
 
 function LoginForm() {
@@ -146,9 +147,8 @@ function LoginForm() {
             onChange={(e) => setUsername(e.target.value)}
             required
           />
-          <Input
+          <PasswordInput
             label="Contraseña"
-            type="password"
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -160,8 +160,14 @@ function LoginForm() {
           </Button>
         </form>
         <Link
-          href="/"
+          href="/admin/olvide-password"
           className="mt-4 block text-center text-sm text-muted-foreground hover:underline"
+        >
+          ¿Olvidaste tu contraseña?
+        </Link>
+        <Link
+          href="/"
+          className="mt-2 block text-center text-sm text-muted-foreground hover:underline"
         >
           Ir a toma de asistencia
         </Link>

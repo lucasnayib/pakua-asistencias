@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Card } from "@/components/ui/Card";
 import { slugify } from "@/lib/slug";
 
@@ -121,9 +122,8 @@ export default function RegistrarEscuelaPage() {
             required
             maxLength={50}
           />
-          <Input
+          <PasswordInput
             label="Contraseña"
-            type="password"
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}

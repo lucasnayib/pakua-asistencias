@@ -98,6 +98,34 @@ export async function notifySchoolApproved(data: {
   );
 }
 
+export async function sendPasswordResetEmail(data: {
+  contactEmail: string;
+  displayName: string;
+  token: string;
+}): Promise<void> {
+  const config = getEmailConfig();
+  const url = baseUrl();
+  // Sin APP_BASE_URL configurado no hay forma de armar un link que sirva de verdad —
+  // no tiene sentido mandar el mail (a diferencia de los otros mails, acá el link no es
+  // opcional, es el mail entero).
+  if (!config || !url) return;
+
+  const resetUrl = `${url}/admin/restablecer-password?token=${data.token}`;
+
+  await sendMail(
+    config,
+    data.contactEmail,
+    `Restablecer contraseña — ${data.displayName}`,
+    [
+      `Pediste restablecer la contraseña de tu cuenta en Pakua Asistencias.`,
+      ``,
+      `Elegí una nueva acá (el link vence en 1 hora): ${resetUrl}`,
+      ``,
+      `Si no fuiste vos, podés ignorar este mail — tu contraseña actual sigue funcionando.`,
+    ].join("\n")
+  );
+}
+
 export async function notifySchoolRejected(data: {
   contactEmail: string | null;
   displayName: string;

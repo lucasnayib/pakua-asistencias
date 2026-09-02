@@ -23,19 +23,27 @@ export async function GET(request: NextRequest) {
 
   const shortTime = formatTimeShort(time);
 
-  const schedule = await prisma.schedule.findFirst({
-    where: {
-      adminId,
-      days: { some: { dayOfWeek } },
-      startTime: { lte: shortTime },
-      endTime: { gt: shortTime },
-    },
-  });
+  const [schedule, admin] = await Promise.all([
+    prisma.schedule.findFirst({
+      where: {
+        adminId,
+        days: { some: { dayOfWeek } },
+        startTime: { lte: shortTime },
+        endTime: { gt: shortTime },
+      },
+    }),
+    prisma.admin.findUnique({
+      where: { id: adminId },
+      select: { latitude: true, longitude: true, attendanceRadiusMeters: true },
+    }),
+  ]);
+  const requiresLocation =
+    admin?.latitude != null && admin.longitude != null && admin.attendanceRadiusMeters != null;
 
   if (!schedule) {
-    return NextResponse.json({ schedule: null, roster: [], date });
+    return NextResponse.json({ schedule: null, roster: [], date, requiresLocation });
   }
 
   const result = await getRosterForSchedule(schedule.id, date);
-  return NextResponse.json(result);
+  return NextResponse.json({ ...result, requiresLocation });
 }

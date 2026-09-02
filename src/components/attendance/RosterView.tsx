@@ -11,9 +11,35 @@ type RosterViewProps = {
   scheduleId: string;
   date: string;
   initialRoster: RosterStudent[];
+  requiresLocation: boolean;
 };
 
-export function RosterView({ scheduleId, date, initialRoster }: RosterViewProps) {
+/** Envuelve navigator.geolocation en una promesa, con mensajes de error entendibles. */
+function getCurrentLocation(): Promise<{ latitude: number; longitude: number }> {
+  return new Promise((resolve, reject) => {
+    if (!("geolocation" in navigator)) {
+      reject(new Error("Este navegador no soporta geolocalización"));
+      return;
+    }
+    if (typeof window !== "undefined" && !window.isSecureContext) {
+      reject(new Error("La ubicación solo funciona por HTTPS o en localhost"));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude }),
+      (error) => {
+        if (error.code === error.PERMISSION_DENIED) {
+          reject(new Error("Necesitás dar permiso de ubicación para marcar asistencia"));
+        } else {
+          reject(new Error("No se pudo obtener tu ubicación"));
+        }
+      },
+      { enableHighAccuracy: true, timeout: 15_000 }
+    );
+  });
+}
+
+export function RosterView({ scheduleId, date, initialRoster, requiresLocation }: RosterViewProps) {
   const [roster, setRoster] = useState(initialRoster);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<RosterStudent | null>(null);
@@ -22,11 +48,26 @@ export function RosterView({ scheduleId, date, initialRoster }: RosterViewProps)
   async function markPresent(student: RosterStudent) {
     setPendingId(student.id);
     try {
+      let location: { latitude: number; longitude: number } | null = null;
+      if (requiresLocation) {
+        try {
+          location = await getCurrentLocation();
+        } catch (locationError) {
+          toast.error(locationError instanceof Error ? locationError.message : "No se pudo obtener tu ubicación");
+          return;
+        }
+      }
       const { time } = getLocalNow();
       const res = await fetch("/api/attendance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ studentId: student.id, scheduleId, date, time }),
+        body: JSON.stringify({
+          studentId: student.id,
+          scheduleId,
+          date,
+          time,
+          ...(location ? { latitude: location.latitude, longitude: location.longitude } : {}),
+        }),
       });
       const data = await res.json();
       if (!res.ok) {

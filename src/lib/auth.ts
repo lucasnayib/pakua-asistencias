@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { createHash } from "node:crypto";
 
 export const SESSION_COOKIE = "pakua_admin_session";
 const SESSION_DURATION_SECONDS = 8 * 60 * 60; // 8 horas
@@ -45,6 +46,57 @@ export async function verifyTwoFactorPendingToken(token: string): Promise<{ admi
   } catch {
     return null;
   }
+}
+
+const PASSWORD_RESET_DURATION_SECONDS = 60 * 60; // 1 hora
+
+/**
+ * Huella corta del passwordHash actual, para meter en el token de reseteo. Sirve para que
+ * el token quede "invalidado" solo con que la contraseña cambie mientras tanto (uso único
+ * de facto, sin necesitar guardar el token en la base) — no expone el hash real, solo un
+ * hash del hash.
+ */
+function passwordFingerprint(passwordHash: string): string {
+  return createHash("sha256").update(passwordHash).digest("hex").slice(0, 16);
+}
+
+/** Token de "olvidé mi contraseña", pensado únicamente para cuentas ADMIN (no super-admin). */
+export async function createPasswordResetToken(adminId: string, passwordHash: string): Promise<string> {
+  return new SignJWT({ adminId, fp: passwordFingerprint(passwordHash), purpose: "password_reset" })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime(`${PASSWORD_RESET_DURATION_SECONDS}s`)
+    .sign(getSecretKey());
+}
+
+/**
+ * Decodifica el token de reseteo (firma + purpose), sin validar todavía la huella contra
+ * ningún passwordHash — para eso hace falta buscar primero al admin por el adminId que
+ * devuelve acá. Separado en dos pasos porque no se puede buscar al admin sin decodificar,
+ * ni validar la huella sin haberlo buscado.
+ */
+export async function decodePasswordResetToken(token: string): Promise<{ adminId: string; fp: string } | null> {
+  try {
+    const { payload } = await jwtVerify(token, getSecretKey());
+    if (
+      payload.purpose !== "password_reset" ||
+      typeof payload.adminId !== "string" ||
+      typeof payload.fp !== "string"
+    ) {
+      return null;
+    }
+    return { adminId: payload.adminId, fp: payload.fp };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Compara la huella del token contra el passwordHash actual del admin. Si no coincide, el
+ * token ya fue usado (cambió la contraseña) o pertenece a otra cuenta.
+ */
+export function passwordResetFingerprintMatches(fp: string, currentPasswordHash: string): boolean {
+  return fp === passwordFingerprint(currentPasswordHash);
 }
 
 export async function createSessionToken(payload: SessionPayload): Promise<string> {
