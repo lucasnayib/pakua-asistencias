@@ -123,12 +123,13 @@ export const adminCreateSchema = z.object({
   slug: slugSchema,
 });
 
+// Sin campo "password": el super-admin no puede cambiarle la contraseña a otra cuenta
+// desde acá — cada admin la cambia por su cuenta desde "¿Olvidaste tu contraseña?".
 export const adminUpdateSchema = z.object({
   displayName: z.string().trim().min(1).max(100).optional(),
   slug: slugSchema.optional(),
   active: z.boolean().optional(),
   approved: z.boolean().optional(),
-  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres").optional(),
 });
 
 // Formulario público de registro de escuela nueva (`/registrar-escuela`). La cuenta se crea

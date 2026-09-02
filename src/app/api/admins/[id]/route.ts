@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { adminUpdateSchema } from "@/lib/validations";
 import { requireSuperAdmin } from "@/lib/auth";
@@ -41,7 +40,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   // El rol nunca se puede cambiar desde esta ruta (ni al crear, ni al editar): no hay ningún
   // camino de código que pueda crear o promover un segundo super-admin. Si el cliente manda
   // "role" en el body, se ignora por completo (ni siquiera llega acá, adminUpdateSchema no lo admite).
-  const { displayName, slug, active, approved, password } = parsed.data;
+  // Tampoco se puede cambiar la contraseña de otra cuenta desde acá (mismo criterio, ver
+  // adminUpdateSchema) — cada admin la cambia por su cuenta vía "¿Olvidaste tu contraseña?".
+  const { displayName, slug, active, approved } = parsed.data;
 
   // No permitir que el super-admin se desactive a sí mismo, para evitar quedarse afuera.
   if (id === session.adminId && active === false) {
@@ -49,8 +50,6 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 
   const wasApproving = approved === true && existing.approved === false;
-
-  const passwordHash = password ? await bcrypt.hash(password, 10) : undefined;
 
   let admin;
   try {
@@ -61,7 +60,6 @@ export async function PATCH(request: NextRequest, { params }: Params) {
         ...(slug !== undefined ? { slug } : {}),
         ...(active !== undefined ? { active } : {}),
         ...(approved !== undefined ? { approved } : {}),
-        ...(passwordHash ? { passwordHash } : {}),
       },
       select: adminSelect,
     });

@@ -196,6 +196,9 @@ export default function AdminsPage() {
               <div className="min-w-0">
                 <p className="truncate font-medium">{a.displayName}</p>
                 <p className="truncate text-xs text-muted-foreground">@{a.username}</p>
+                {a.contactEmail && (
+                  <p className="truncate text-xs text-muted-foreground">{a.contactEmail}</p>
+                )}
                 {a.role === "ADMIN" && (
                   <div className="mt-1 flex items-center gap-2">
                     <p className="truncate text-xs text-accent">/escuela/{a.slug}</p>

@@ -69,8 +69,6 @@ export function AdminFormDialog({ open, admin, onClose, onSaved }: AdminFormDial
       if (!admin) {
         body.username = username;
         body.password = password;
-      } else if (password) {
-        body.password = password;
       }
 
       const res = await fetch(admin ? `/api/admins/${admin.id}` : "/api/admins", {
@@ -111,12 +109,20 @@ export function AdminFormDialog({ open, admin, onClose, onSaved }: AdminFormDial
           required
           disabled={Boolean(admin)}
         />
-        <PasswordInput
-          label={admin ? "Nueva contraseña (opcional)" : "Contraseña"}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required={!admin}
-        />
+        {!admin && (
+          <PasswordInput
+            label="Contraseña"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        )}
+        {admin && (
+          <p className="text-xs text-muted-foreground">
+            La contraseña la cambia el propio admin desde &quot;¿Olvidaste tu contraseña?&quot; en el
+            login — no se puede cambiar desde acá.
+          </p>
+        )}
         <Input
           label="Nombre a mostrar"
           value={displayName}
