@@ -126,6 +126,52 @@ export async function sendPasswordResetEmail(data: {
   );
 }
 
+export async function sendEmailChangeCode(data: {
+  contactEmail: string;
+  displayName: string;
+  code: string;
+}): Promise<void> {
+  const config = getEmailConfig();
+  if (!config) return;
+
+  await sendMail(
+    config,
+    data.contactEmail,
+    `Código para confirmar tu nuevo mail — ${data.displayName}`,
+    [
+      `Pediste cambiar el mail de contacto de tu cuenta en Pakua Asistencias.`,
+      ``,
+      `Tu código de confirmación es: ${data.code}`,
+      `Vence en 15 minutos.`,
+      ``,
+      `Si no fuiste vos, ignorá este mail — no se va a hacer ningún cambio sin este código.`,
+    ].join("\n")
+  );
+}
+
+export async function sendPasswordChangeCode(data: {
+  contactEmail: string;
+  displayName: string;
+  code: string;
+}): Promise<void> {
+  const config = getEmailConfig();
+  if (!config) return;
+
+  await sendMail(
+    config,
+    data.contactEmail,
+    `Código para confirmar tu nueva contraseña — ${data.displayName}`,
+    [
+      `Pediste cambiar la contraseña de tu cuenta en Pakua Asistencias.`,
+      ``,
+      `Tu código de confirmación es: ${data.code}`,
+      `Vence en 15 minutos.`,
+      ``,
+      `Si no fuiste vos, ignorá este mail — tu contraseña actual sigue funcionando, no se va a cambiar sin este código.`,
+    ].join("\n")
+  );
+}
+
 export async function notifySchoolRejected(data: {
   contactEmail: string | null;
   displayName: string;

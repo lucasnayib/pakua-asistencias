@@ -40,8 +40,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   // El rol nunca se puede cambiar desde esta ruta (ni al crear, ni al editar): no hay ningún
   // camino de código que pueda crear o promover un segundo super-admin. Si el cliente manda
   // "role" en el body, se ignora por completo (ni siquiera llega acá, adminUpdateSchema no lo admite).
-  // Tampoco se puede cambiar la contraseña de otra cuenta desde acá (mismo criterio, ver
-  // adminUpdateSchema) — cada admin la cambia por su cuenta vía "¿Olvidaste tu contraseña?".
+  // Tampoco se puede cambiar la contraseña ni el mail/teléfono de otra cuenta desde acá
+  // (mismo criterio, ver adminUpdateSchema) — cada admin lo cambia por su cuenta, con
+  // verificación por mail.
   const { displayName, slug, active, approved } = parsed.data;
 
   // No permitir que el super-admin se desactive a sí mismo, para evitar quedarse afuera.

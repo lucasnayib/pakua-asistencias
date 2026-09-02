@@ -73,6 +73,21 @@ export const schoolUnlockSchema = z.object({
   password: z.string().min(1),
 });
 
+export const requestEmailChangeSchema = z.object({
+  newEmail: z.string().trim().email("Email inválido").max(150),
+});
+
+export const requestPasswordChangeSchema = z.object({
+  newPassword: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
+});
+
+export const confirmPendingChangeSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, "El código debe tener 6 dígitos"),
+});
+
 export const forgotPasswordSchema = z.object({
   username: z.string().trim().min(1),
 });
@@ -123,8 +138,10 @@ export const adminCreateSchema = z.object({
   slug: slugSchema,
 });
 
-// Sin campo "password": el super-admin no puede cambiarle la contraseña a otra cuenta
-// desde acá — cada admin la cambia por su cuenta desde "¿Olvidaste tu contraseña?".
+// Sin "password" ni "contactEmail"/"contactPhone": el super-admin no puede cambiarle la
+// contraseña ni el mail/teléfono de contacto a otra cuenta desde acá — eso lo maneja cada
+// admin por su cuenta, con verificación por mail (ver /api/admin/contact-email y
+// /api/admin/password).
 export const adminUpdateSchema = z.object({
   displayName: z.string().trim().min(1).max(100).optional(),
   slug: slugSchema.optional(),

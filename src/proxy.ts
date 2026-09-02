@@ -50,6 +50,8 @@ function isAdminOnlyApiRoute(pathname: string, method: string): boolean {
   if (pathname.startsWith("/api/admins")) return true;
   if (pathname.startsWith("/api/admin/two-factor")) return true;
   if (pathname.startsWith("/api/admin/location")) return true;
+  if (pathname.startsWith("/api/admin/contact-email")) return true;
+  if (pathname.startsWith("/api/admin/password")) return true;
 
   return false;
 }

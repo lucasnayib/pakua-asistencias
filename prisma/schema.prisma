@@ -36,6 +36,15 @@ model Admin {
   longitude              Float?
   attendanceRadiusMeters Int?
 
+  // Cambio pendiente de mail de contacto o de contraseña, esperando el código de
+  // confirmación mandado por mail. Solo uno a la vez por cuenta: pedir uno nuevo pisa el
+  // anterior. pendingChangeValue guarda el mail nuevo en texto plano (para EMAIL) o el
+  // passwordHash ya calculado (para PASSWORD, nunca la contraseña en texto plano).
+  pendingChangeType      String? // "EMAIL" | "PASSWORD"
+  pendingChangeValue     String?
+  pendingChangeCodeHash  String?
+  pendingChangeExpiresAt DateTime?
+
   students    Student[]
   schedules   Schedule[]
   orientadores Orientador[]

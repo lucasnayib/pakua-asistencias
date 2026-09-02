@@ -119,8 +119,8 @@ export function AdminFormDialog({ open, admin, onClose, onSaved }: AdminFormDial
         )}
         {admin && (
           <p className="text-xs text-muted-foreground">
-            La contraseña la cambia el propio admin desde &quot;¿Olvidaste tu contraseña?&quot; en el
-            login — no se puede cambiar desde acá.
+            La contraseña y el mail de contacto los cambia el propio admin desde su panel — no
+            se pueden cambiar desde acá.
           </p>
         )}
         <Input
