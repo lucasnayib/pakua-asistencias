@@ -16,6 +16,25 @@ como método manual de respaldo (por ejemplo, para probar algo puntual en primer
 Windows en esta máquina está configurado para no suspenderse ni hibernar mientras esté
 conectada a corriente, así el servidor queda arriba 24/7.
 
+## Acceso público: https://attendio.lat
+
+La app queda accesible desde cualquier lado (no solo la red local) a través de un túnel
+permanente de **Cloudflare** (`cloudflared`), configurado en `C:\Users\Admin\.cloudflared\config.yml`.
+Igual que PM2, se levanta solo al iniciar Windows (tarea programada "PakuaCloudflaredInicio",
+corre como SYSTEM).
+
+- Ver si el túnel está corriendo: buscar `cloudflared.exe` en el Administrador de tareas, o
+  entrar directamente a `https://attendio.lat` — si carga, está funcionando.
+- Reiniciarlo a mano (Programador de tareas de Windows): buscar "PakuaCloudflaredInicio" →
+  botón derecho → "Ejecutar".
+- El dominio y el DNS se administran desde el dashboard de Cloudflare (cuenta personal de
+  Lucas), zona `attendio.lat`.
+
+Con el dominio real, `COOKIE_SECURE="true"` en el `.env` — esto significa que **el acceso por
+LAN sin el dominio** (`http://192.168.0.234:3000`) ya no mantiene la sesión iniciada (el
+navegador descarta la cookie segura por no ser HTTPS). Para uso normal, entrar siempre por
+`https://attendio.lat`.
+
 ### Ver el estado del servidor
 
 Desde la carpeta del proyecto:
