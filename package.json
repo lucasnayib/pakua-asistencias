@@ -10,7 +10,8 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "backup": "tsx scripts/backup-local.ts"
+    "backup": "tsx scripts/backup-local.ts",
+    "check-subscriptions": "tsx scripts/check-subscriptions.ts"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.8.0",
@@ -23,6 +24,7 @@
     "jose": "^6.2.3",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
+    "mercadopago": "^3.6.0",
     "next": "16.2.10",
     "nodemailer": "^9.0.5",
     "otplib": "^13.5.0",

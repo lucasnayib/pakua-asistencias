@@ -45,6 +45,17 @@ model Admin {
   pendingChangeCodeHash  String?
   pendingChangeExpiresAt DateTime?
 
+  // Suscripción (Mercado Pago). Una escuela tiene como mucho una, así que va directo acá
+  // en vez de un modelo aparte. Solo aplica a role "ADMIN" — el super-admin no factura.
+  subscriptionStatus  String    @default("TRIALING") // TRIALING | ACTIVE | PAST_DUE | SUSPENDED | CANCELED
+  trialEndsAt         DateTime?
+  trialWarningSentAt  DateTime?
+  currentPeriodEnd    DateTime?
+  periodWarningSentAt DateTime?
+  graceEndsAt         DateTime?
+  mpPreapprovalId     String?
+  mpPayerEmail        String?
+
   students    Student[]
   schedules   Schedule[]
   orientadores Orientador[]

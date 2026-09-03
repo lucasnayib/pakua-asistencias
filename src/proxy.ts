@@ -2,15 +2,19 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 import { SESSION_COOKIE } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
-async function getSessionRole(request: NextRequest): Promise<string | null> {
+type SessionRole = { adminId: string; role: string } | null;
+
+async function getSessionRole(request: NextRequest): Promise<SessionRole> {
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   if (!token) return null;
   const secret = process.env.SESSION_SECRET;
   if (!secret) return null;
   try {
     const { payload } = await jwtVerify(token, new TextEncoder().encode(secret));
-    return typeof payload.role === "string" ? payload.role : null;
+    if (typeof payload.role !== "string" || typeof payload.adminId !== "string") return null;
+    return { adminId: payload.adminId, role: payload.role };
   } catch {
     return null;
   }
@@ -52,6 +56,7 @@ function isAdminOnlyApiRoute(pathname: string, method: string): boolean {
   if (pathname.startsWith("/api/admin/location")) return true;
   if (pathname.startsWith("/api/admin/contact-email")) return true;
   if (pathname.startsWith("/api/admin/password")) return true;
+  if (pathname.startsWith("/api/subscription/checkout")) return true;
 
   return false;
 }
@@ -88,22 +93,34 @@ export default async function proxy(request: NextRequest) {
     pathname === "/admin/restablecer-password";
 
   if (pathname.startsWith("/admin") && !isPublicAdminPage) {
-    const role = await getSessionRole(request);
-    if (role === null) {
+    const session = await getSessionRole(request);
+    if (session === null) {
       const loginUrl = new URL("/admin/login", request.url);
       loginUrl.searchParams.set("from", pathname);
       return NextResponse.redirect(loginUrl);
     }
     if (isSuperAdminOnlyRoute(pathname)) {
-      if (role !== "SUPER_ADMIN") {
+      if (session.role !== "SUPER_ADMIN") {
         return NextResponse.redirect(new URL("/admin", request.url));
       }
       return NextResponse.next();
     }
     // El super-admin no tiene escuela: cualquier otra pantalla del panel lo manda de vuelta
     // a la gestión de cuentas, que es lo único a lo que tiene acceso.
-    if (role === "SUPER_ADMIN") {
+    if (session.role === "SUPER_ADMIN") {
       return NextResponse.redirect(new URL("/admin/admins", request.url));
+    }
+    // Suscripción suspendida: se bloquea el panel (no el login), salvo la propia pantalla
+    // de facturación donde el admin puede reactivar pagando. El super-admin no factura,
+    // así que este chequeo va después del bloque de arriba, solo aplica a role "ADMIN".
+    if (process.env.SUBSCRIPTIONS_ENABLED === "true" && pathname !== "/admin/facturacion") {
+      const admin = await prisma.admin.findUnique({
+        where: { id: session.adminId },
+        select: { subscriptionStatus: true },
+      });
+      if (admin?.subscriptionStatus === "SUSPENDED") {
+        return NextResponse.redirect(new URL("/admin/facturacion", request.url));
+      }
     }
     return NextResponse.next();
   }
@@ -113,15 +130,15 @@ export default async function proxy(request: NextRequest) {
     const isSchoolData = isSchoolDataApiRoute(pathname);
 
     if (needsSession || isSchoolData) {
-      const role = await getSessionRole(request);
+      const session = await getSessionRole(request);
 
-      if (needsSession && role === null) {
+      if (needsSession && session === null) {
         return NextResponse.json({ error: "No autorizado" }, { status: 401 });
       }
-      if (isSuperAdminOnlyRoute(pathname) && role !== "SUPER_ADMIN") {
+      if (isSuperAdminOnlyRoute(pathname) && session?.role !== "SUPER_ADMIN") {
         return NextResponse.json({ error: "No tenés permisos para esta acción" }, { status: 403 });
       }
-      if (isSchoolData && role === "SUPER_ADMIN") {
+      if (isSchoolData && session?.role === "SUPER_ADMIN") {
         return NextResponse.json(
           { error: "El super-admin no tiene acceso a datos de escuela" },
           { status: 403 }

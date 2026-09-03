@@ -172,6 +172,55 @@ export async function sendPasswordChangeCode(data: {
   );
 }
 
+export async function sendSubscriptionActivatedEmail(data: {
+  contactEmail: string;
+  displayName: string;
+}): Promise<void> {
+  const config = getEmailConfig();
+  if (!config) return;
+
+  const url = baseUrl();
+  const billingLine = url ? `Ver el estado de tu suscripción: ${url}/admin/facturacion` : null;
+
+  await sendMail(
+    config,
+    data.contactEmail,
+    `Tu suscripción de "${data.displayName}" está activa`,
+    [
+      `¡Listo! Confirmamos tu pago y tu suscripción a Attendio ya está activa.`,
+      ``,
+      ...(billingLine ? [billingLine] : []),
+    ].join("\n")
+  );
+}
+
+export async function sendSubscriptionWarningEmail(data: {
+  contactEmail: string;
+  displayName: string;
+  reason: "TRIAL_ENDING" | "PAYMENT_DUE" | "PAYMENT_FAILED";
+}): Promise<void> {
+  const config = getEmailConfig();
+  if (!config) return;
+
+  const url = baseUrl();
+  const billingLine = url
+    ? `Suscribite acá: ${url}/admin/facturacion`
+    : `Entrá a "Facturación" en el panel para suscribirte.`;
+
+  const MESSAGES: Record<typeof data.reason, string> = {
+    TRIAL_ENDING: `Tu período de prueba en Attendio está por terminar en las próximas 12 horas. Si no te suscribís antes, tu panel va a quedar suspendido.`,
+    PAYMENT_DUE: `Tu próximo cobro de Attendio es en las próximas 12 horas.`,
+    PAYMENT_FAILED: `No pudimos procesar el último cobro de tu suscripción a Attendio. Tenés unos días de gracia antes de que se suspenda tu panel.`,
+  };
+
+  await sendMail(
+    config,
+    data.contactEmail,
+    `Aviso sobre tu suscripción — ${data.displayName}`,
+    [MESSAGES[data.reason], ``, billingLine].join("\n")
+  );
+}
+
 export async function notifySchoolRejected(data: {
   contactEmail: string | null;
   displayName: string;
