@@ -99,14 +99,16 @@ export function AppHeader({ slug }: AppHeaderProps = {}) {
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <Image
-          src="/logo.png"
-          alt="Pakua"
-          width={1554}
-          height={514}
-          priority
-          className="h-8 w-auto dark:invert"
-        />
+        <span className="flex shrink-0 items-center">
+          <Image
+            src="/logo.png"
+            alt="Pakua"
+            width={1554}
+            height={514}
+            priority
+            className="h-8 w-auto dark:invert"
+          />
+        </span>
 
         <nav className="flex flex-1 flex-col gap-1">
           {links.map((link) => {

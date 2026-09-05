@@ -119,7 +119,8 @@ export default function HomePage() {
       <AppHeader />
       <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-16 px-4 py-12">
         <section className="relative grid grid-cols-1 items-center gap-8 md:grid-cols-2">
-          <BaguaMotif className="pointer-events-none absolute -right-24 -top-24 h-[420px] w-[420px] text-accent/[0.07] md:-right-32" />
+          <BaguaMotif className="pointer-events-none absolute -right-24 -top-24 hidden h-[420px] w-[420px] text-accent/[0.07] md:-right-32 md:block" />
+          <BaguaMotif className="pointer-events-none absolute left-1/2 top-0 h-72 w-72 -translate-x-1/2 text-accent/[0.08] md:hidden" />
 
           <div className="relative flex flex-col items-center gap-5 text-center md:items-start md:text-left">
             <div className="flex flex-col items-center gap-3 md:items-start">
