@@ -65,8 +65,11 @@ export function AppHeader({ slug }: AppHeaderProps = {}) {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Link href="/admin" className="text-xs text-muted-foreground hover:underline">
-            Admin
+          <Link
+            href="/admin"
+            className="rounded-lg border border-accent px-4 py-1.5 text-sm font-medium text-accent transition hover:bg-accent hover:text-accent-foreground"
+          >
+            Accedé a tu escuela
           </Link>
         </div>
 
@@ -125,9 +128,9 @@ export function AppHeader({ slug }: AppHeaderProps = {}) {
         <div className="border-t border-border pt-4">
           <Link
             href="/admin"
-            className="block rounded-lg px-3 py-2 text-sm text-muted-foreground transition-all duration-150 hover:bg-surface-2 active:scale-[0.97]"
+            className="block rounded-lg border border-accent px-3 py-2 text-center text-sm font-medium text-accent transition-all duration-150 active:scale-[0.97]"
           >
-            Admin
+            Accedé a tu escuela
           </Link>
         </div>
       </aside>

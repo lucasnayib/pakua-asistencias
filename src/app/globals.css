@@ -52,6 +52,18 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
+/* Deriva suave para los trigramas decorativos de la home — que no queden clavados
+   en un punto fijo de la pantalla. */
+@keyframes trigram-drift {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-18px);
+  }
+}
+
 /* El navegador pinta de celeste los campos que autocompletó (usuario/contraseña
    guardados), ignorando nuestros colores. Se fuerza el fondo con box-shadow (el único
    truco que funciona sobre autofill) para que combine con el tema. */
