@@ -23,6 +23,8 @@ export function StudentDetailsDialog({ open, student, onClose }: StudentDetailsD
 
   if (!student) return null;
 
+  const isGym = student.formacion === "Gym";
+
   return (
     <dialog
       ref={dialogRef}
@@ -42,13 +44,15 @@ export function StudentDetailsDialog({ open, student, onClose }: StudentDetailsD
             <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Formación</dt>
             <dd className="mt-0.5">{student.formacion || "—"}</dd>
           </div>
-          <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Graduación</dt>
-            <dd className="mt-0.5">{student.graduacion || "—"}</dd>
-          </div>
+          {!isGym && (
+            <div>
+              <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Graduación</dt>
+              <dd className="mt-0.5">{student.graduacion || "—"}</dd>
+            </div>
+          )}
           <div>
             <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              ¿Cuándo fue Autorizado?
+              {isGym ? "Fecha de Ingreso" : "¿Cuándo fue Autorizado?"}
             </dt>
             <dd className="mt-0.5">
               {student.evaluationDate ? formatDateEs(student.evaluationDate) : "—"}

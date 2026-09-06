@@ -54,6 +54,13 @@ export function StudentFormDialog({ open, student, orientadores, onClose, onSave
     if (!open && dialog.open) dialog.close();
   }, [open]);
 
+  const isGym = formacion === "Gym";
+
+  function handleFormacionChange(value: string) {
+    setFormacion(value);
+    if (value === "Gym") setGraduacion("");
+  }
+
   function handleDniChange(value: string) {
     const digits = value.replace(/\D/g, "").slice(0, 9);
     setDni(digits.replace(/\B(?=(\d{3})+(?!\d))/g, "."));
@@ -131,7 +138,7 @@ export function StudentFormDialog({ open, student, orientadores, onClose, onSave
 
         <Input label="Nombre" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
         <Input label="Apellido" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
-        <Select label="Formación" value={formacion} onChange={(e) => setFormacion(e.target.value)}>
+        <Select label="Formación" value={formacion} onChange={(e) => handleFormacionChange(e.target.value)}>
           <option value="">Sin especificar</option>
           {FORMACION_OPTIONS.map((opt) => (
             <option key={opt} value={opt}>
@@ -139,14 +146,16 @@ export function StudentFormDialog({ open, student, orientadores, onClose, onSave
             </option>
           ))}
         </Select>
+        {!isGym && (
+          <Input
+            label="Graduación"
+            placeholder='Ej: "Cinto Naranja"'
+            value={graduacion}
+            onChange={(e) => setGraduacion(e.target.value)}
+          />
+        )}
         <Input
-          label="Graduación"
-          placeholder='Ej: "Cinto Naranja"'
-          value={graduacion}
-          onChange={(e) => setGraduacion(e.target.value)}
-        />
-        <Input
-          label="¿Cuándo fue Autorizado?"
+          label={isGym ? "Fecha de Ingreso" : "¿Cuándo fue Autorizado?"}
           type="date"
           value={evaluationDate}
           onChange={(e) => setEvaluationDate(e.target.value)}
