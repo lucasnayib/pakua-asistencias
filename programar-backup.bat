@@ -13,7 +13,7 @@ echo ============================================
 echo Carpeta del proyecto: %PROJECT_DIR%
 echo.
 
-schtasks /Create /TN "%TASK_NAME%" /TR "cmd /c cd /d \"%PROJECT_DIR%\" && npm run backup >> \"%PROJECT_DIR%storage\backup-task.log\" 2>&1" /SC DAILY /ST 03:00 /RL HIGHEST /F
+schtasks /Create /TN "%TASK_NAME%" /TR "\"%PROJECT_DIR%scripts\backup-run.bat\"" /SC DAILY /ST 03:00 /RL HIGHEST /F
 
 if %ERRORLEVEL% EQU 0 (
   echo.
