@@ -51,6 +51,8 @@ next-env.d.ts
 # backups automáticos locales (ver scripts/backup-local.ts)
 /storage/backups/
 /storage/backup.log
+/storage/check-subscriptions.log
+/storage/check-subscriptions-task.log
 
 # uploaded photos (servidas dinámicamente por /api/uploads, no por /public)
 /storage/uploads/students/*
