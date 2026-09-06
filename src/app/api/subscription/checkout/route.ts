@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { PreApprovalPlan } from "mercadopago";
+import { PreApproval } from "mercadopago";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { getMpClient } from "@/lib/mercadopago";
@@ -20,24 +20,33 @@ export async function POST() {
     );
   }
 
-  // No se crea el preapproval acá: para un plan único, el checkout alojado de Mercado Pago
-  // se arma redirigiendo directo al init_point DEL PLAN (no llamando a PreApproval.create,
-  // que exige card_token_id — eso es para autorizar el cobro nosotros mismos, no para el
-  // flujo de checkout alojado). El preapproval real lo crea Mercado Pago recién cuando el
-  // comprador completa el checkout, y ahí nos enteramos por el webhook.
-  let planInitPoint: string;
+  // Se crea el preapproval directo por API (sin card_token_id ni preapproval_plan_id) en vez
+  // de redirigir al init_point fijo del plan: ese link fijo IGNORA por completo los query
+  // params external_reference/payer_email (confirmado contra la API real), así que el webhook
+  // nunca puede saber a qué escuela pertenece el pago. Creándolo así, cada preapproval tiene
+  // su propio init_point de checkout alojado, y sí conserva external_reference.
+  let initPoint: string;
   try {
-    const plan = await new PreApprovalPlan(getMpClient()).get({ preApprovalPlanId: process.env.MP_PLAN_ID! });
-    if (!plan.init_point) throw new Error("El plan no tiene init_point");
-    planInitPoint = plan.init_point;
+    const preapproval = await new PreApproval(getMpClient()).create({
+      body: {
+        payer_email: admin.contactEmail,
+        external_reference: admin.id,
+        back_url: `${process.env.APP_BASE_URL}/admin/facturacion`,
+        reason: "Attendio - Plan Único",
+        auto_recurring: {
+          frequency: 1,
+          frequency_type: "months",
+          transaction_amount: Number(process.env.SUBSCRIPTION_PRICE_ARS ?? "0"),
+          currency_id: "ARS",
+        },
+      },
+    });
+    if (!preapproval.init_point) throw new Error("La suscripción no tiene init_point");
+    initPoint = preapproval.init_point;
   } catch (error) {
-    console.error("[subscription/checkout] Error obteniendo el plan:", error);
+    console.error("[subscription/checkout] Error creando la suscripción:", error);
     return NextResponse.json({ error: "No se pudo iniciar la suscripción" }, { status: 502 });
   }
 
-  const checkoutUrl = new URL(planInitPoint);
-  checkoutUrl.searchParams.set("external_reference", admin.id);
-  checkoutUrl.searchParams.set("payer_email", admin.contactEmail);
-
-  return NextResponse.json({ init_point: checkoutUrl.toString() });
+  return NextResponse.json({ init_point: initPoint });
 }
