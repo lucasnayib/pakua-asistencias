@@ -40,6 +40,11 @@ export type StudentListItem = {
   firstName: string;
   lastName: string;
   photoUrl: string | null;
+  formacion: string | null;
+  graduacion: string | null;
+  evaluationDate: string | null;
+  dni: string | null;
+  orientador: { id: string; firstName: string; lastName: string } | null;
   active: boolean;
   createdAt: string;
   updatedAt: string;

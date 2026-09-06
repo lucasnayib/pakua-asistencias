@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { Spinner } from "@/components/ui/Spinner";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { StudentFormDialog } from "@/components/admin/StudentFormDialog";
+import { StudentDetailsDialog } from "@/components/admin/StudentDetailsDialog";
 import type { StudentListItem } from "@/types";
 
 type ConfirmAction = { type: "deactivate" | "reactivate" | "delete"; student: StudentListItem };
@@ -19,9 +20,12 @@ export default function AlumnosAdminPage() {
   const [showInactive, setShowInactive] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<StudentListItem | null>(null);
+  const [detailsStudent, setDetailsStudent] = useState<StudentListItem | null>(null);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
   const [busy, setBusy] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [orientadores, setOrientadores] = useState<{ id: string; firstName: string; lastName: string }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadStudents = useCallback(() => {
@@ -38,6 +42,12 @@ export default function AlumnosAdminPage() {
   useEffect(() => {
     loadStudents();
   }, [loadStudents]);
+
+  useEffect(() => {
+    fetch("/api/orientadores?includeInactive=1")
+      .then((res) => res.json())
+      .then((data) => setOrientadores(data.orientadores ?? []));
+  }, []);
 
   function openCreate() {
     setEditing(null);
@@ -85,6 +95,34 @@ export default function AlumnosAdminPage() {
     }
   }
 
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const res = await fetch("/api/students/export");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? "No se pudo exportar la lista de alumnos");
+        return;
+      }
+      const blob = await res.blob();
+      const filename =
+        res.headers.get("Content-Disposition")?.match(/filename="(.+)"/)?.[1] ?? "alumnos.xlsx";
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Lista de alumnos exportada");
+    } catch {
+      toast.error("Error de conexión al exportar");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   async function handleImport(file: File) {
     setImporting(true);
     try {
@@ -124,6 +162,9 @@ export default function AlumnosAdminPage() {
           />
           <Button variant="secondary" loading={importing} onClick={() => fileInputRef.current?.click()}>
             Importar Excel
+          </Button>
+          <Button variant="secondary" loading={exporting} onClick={handleExport}>
+            Exportar alumnos
           </Button>
           <Button onClick={openCreate}>Nuevo alumno</Button>
         </div>
@@ -176,6 +217,12 @@ export default function AlumnosAdminPage() {
                 </p>
                 {!s.active && <p className="text-xs text-danger">Dado de baja</p>}
                 <div className="mt-1 flex flex-wrap gap-2 text-xs">
+                  <button
+                    className="text-muted-foreground hover:underline"
+                    onClick={() => setDetailsStudent(s)}
+                  >
+                    Más información
+                  </button>
                   <button className="text-muted-foreground hover:underline" onClick={() => openEdit(s)}>
                     Editar
                   </button>
@@ -210,11 +257,18 @@ export default function AlumnosAdminPage() {
       <StudentFormDialog
         open={formOpen}
         student={editing}
+        orientadores={orientadores}
         onClose={() => setFormOpen(false)}
         onSaved={() => {
           setFormOpen(false);
           loadStudents();
         }}
+      />
+
+      <StudentDetailsDialog
+        open={detailsStudent !== null}
+        student={detailsStudent}
+        onClose={() => setDetailsStudent(null)}
       />
 
       <ConfirmDialog

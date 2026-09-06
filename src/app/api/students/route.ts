@@ -6,6 +6,19 @@ import { getSession, requireAdmin } from "@/lib/auth";
 import { requireSchoolAccess } from "@/lib/school-access";
 import { logChange } from "@/lib/audit";
 
+const orientadorInclude = {
+  orientadores: {
+    include: { orientador: true },
+    orderBy: { createdAt: "asc" as const },
+    take: 1,
+  },
+};
+
+function toStudentResponse(student: { orientadores: { orientador: unknown }[] } & Record<string, unknown>) {
+  const { orientadores, ...rest } = student;
+  return { ...rest, orientador: orientadores[0]?.orientador ?? null };
+}
+
 export async function GET(request: NextRequest) {
   // Con sesión de admin, se usa el tenant de la sesión. Sin sesión (páginas públicas de
   // check-in / historial), se exige adminId como query param — validado con requireSchoolAccess.
@@ -34,10 +47,11 @@ export async function GET(request: NextRequest) {
           }
         : {}),
     },
+    include: orientadorInclude,
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
   });
 
-  return NextResponse.json({ students });
+  return NextResponse.json({ students: students.map(toStudentResponse) });
 }
 
 export async function POST(request: NextRequest) {
@@ -48,10 +62,23 @@ export async function POST(request: NextRequest) {
   const parsed = studentCreateSchema.safeParse({
     firstName: formData.get("firstName"),
     lastName: formData.get("lastName"),
+    formacion: formData.get("formacion") || null,
+    graduacion: formData.get("graduacion") || null,
+    evaluationDate: formData.get("evaluationDate") || null,
+    dni: formData.get("dni") || null,
+    orientadorId: formData.get("orientadorId") || null,
   });
 
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Datos inválidos" }, { status: 400 });
+  }
+
+  const { orientadorId, ...studentData } = parsed.data;
+  if (orientadorId) {
+    const orientador = await prisma.orientador.findUnique({ where: { id: orientadorId, adminId: session.adminId } });
+    if (!orientador) {
+      return NextResponse.json({ error: "Orientador no encontrado" }, { status: 400 });
+    }
   }
 
   const photo = formData.get("photo");
@@ -68,7 +95,13 @@ export async function POST(request: NextRequest) {
   }
 
   const student = await prisma.student.create({
-    data: { ...parsed.data, photoUrl, adminId: session.adminId },
+    data: {
+      ...studentData,
+      photoUrl,
+      adminId: session.adminId,
+      ...(orientadorId ? { orientadores: { create: { orientadorId } } } : {}),
+    },
+    include: orientadorInclude,
   });
 
   await logChange({
@@ -80,5 +113,5 @@ export async function POST(request: NextRequest) {
     detail: `${student.firstName} ${student.lastName}`,
   });
 
-  return NextResponse.json({ student }, { status: 201 });
+  return NextResponse.json({ student: toStudentResponse(student) }, { status: 201 });
 }

@@ -56,25 +56,29 @@ model Admin {
   mpPreapprovalId     String?
   mpPayerEmail        String?
 
-  students    Student[]
-  schedules   Schedule[]
+  students     Student[]
+  schedules    Schedule[]
   orientadores Orientador[]
-  exportLogs  ExportLog[]
+  exportLogs   ExportLog[]
 }
 
 model Student {
-  id           String               @id @default(cuid())
-  adminId      String
-  admin        Admin                @relation(fields: [adminId], references: [id])
-  firstName    String
-  lastName     String
-  photoUrl     String?
-  active       Boolean              @default(true)
-  createdAt    DateTime             @default(now())
-  updatedAt    DateTime             @updatedAt
-  schedules    StudentSchedule[]
-  attendances  Attendance[]
-  orientadores OrientadorStudent[]
+  id             String              @id @default(cuid())
+  adminId        String
+  admin          Admin               @relation(fields: [adminId], references: [id])
+  firstName      String
+  lastName       String
+  photoUrl       String?
+  formacion      String?
+  graduacion     String?
+  evaluationDate String?
+  dni            String?
+  active         Boolean             @default(true)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  schedules      StudentSchedule[]
+  attendances    Attendance[]
+  orientadores   OrientadorStudent[]
 
   @@index([lastName, firstName])
   @@index([adminId])

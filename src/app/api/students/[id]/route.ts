@@ -7,6 +7,19 @@ import { logChange } from "@/lib/audit";
 
 type Params = { params: Promise<{ id: string }> };
 
+const orientadorInclude = {
+  orientadores: {
+    include: { orientador: true },
+    orderBy: { createdAt: "asc" as const },
+    take: 1,
+  },
+};
+
+function toStudentResponse(student: { orientadores: { orientador: unknown }[] } & Record<string, unknown>) {
+  const { orientadores, ...rest } = student;
+  return { ...rest, orientador: orientadores[0]?.orientador ?? null };
+}
+
 export async function PATCH(request: NextRequest, { params }: Params) {
   const session = await requireAdmin();
   if (session instanceof NextResponse) return session;
@@ -19,14 +32,32 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
   const formData = await request.formData();
   const rawActive = formData.get("active");
+  const rawFormacion = formData.get("formacion");
+  const rawGraduacion = formData.get("graduacion");
+  const rawEvaluationDate = formData.get("evaluationDate");
+  const rawDni = formData.get("dni");
+  const rawOrientadorId = formData.get("orientadorId");
   const parsed = studentUpdateSchema.safeParse({
     firstName: formData.get("firstName") ?? undefined,
     lastName: formData.get("lastName") ?? undefined,
+    formacion: rawFormacion === null ? undefined : rawFormacion || null,
+    graduacion: rawGraduacion === null ? undefined : rawGraduacion || null,
+    evaluationDate: rawEvaluationDate === null ? undefined : rawEvaluationDate || null,
+    dni: rawDni === null ? undefined : rawDni || null,
+    orientadorId: rawOrientadorId === null ? undefined : rawOrientadorId || null,
     active: rawActive === null ? undefined : rawActive === "true",
   });
 
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Datos inválidos" }, { status: 400 });
+  }
+
+  const { orientadorId, ...studentData } = parsed.data;
+  if (orientadorId) {
+    const orientador = await prisma.orientador.findUnique({ where: { id: orientadorId, adminId: session.adminId } });
+    if (!orientador) {
+      return NextResponse.json({ error: "Orientador no encontrado" }, { status: 400 });
+    }
   }
 
   const photo = formData.get("photo");
@@ -43,9 +74,17 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     }
   }
 
+  if (orientadorId !== undefined) {
+    await prisma.$transaction([
+      prisma.orientadorStudent.deleteMany({ where: { studentId: id } }),
+      ...(orientadorId ? [prisma.orientadorStudent.create({ data: { studentId: id, orientadorId } })] : []),
+    ]);
+  }
+
   const student = await prisma.student.update({
     where: { id, adminId: session.adminId },
-    data: { ...parsed.data, ...(photoUrl ? { photoUrl } : {}) },
+    data: { ...studentData, ...(photoUrl ? { photoUrl } : {}) },
+    include: orientadorInclude,
   });
 
   await logChange({
@@ -57,7 +96,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     detail: `${student.firstName} ${student.lastName}`,
   });
 
-  return NextResponse.json({ student });
+  return NextResponse.json({ student: toStudentResponse(student) });
 }
 
 export async function DELETE(_request: NextRequest, { params }: Params) {

@@ -4,19 +4,29 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
+import { FORMACION_OPTIONS } from "@/lib/validations";
 import type { StudentListItem } from "@/types";
+
+type OrientadorOption = { id: string; firstName: string; lastName: string };
 
 type StudentFormDialogProps = {
   open: boolean;
   student: StudentListItem | null;
+  orientadores: OrientadorOption[];
   onClose: () => void;
   onSaved: () => void;
 };
 
-export function StudentFormDialog({ open, student, onClose, onSaved }: StudentFormDialogProps) {
+export function StudentFormDialog({ open, student, orientadores, onClose, onSaved }: StudentFormDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [formacion, setFormacion] = useState("");
+  const [graduacion, setGraduacion] = useState("");
+  const [evaluationDate, setEvaluationDate] = useState("");
+  const [dni, setDni] = useState("");
+  const [orientadorId, setOrientadorId] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -26,6 +36,11 @@ export function StudentFormDialog({ open, student, onClose, onSaved }: StudentFo
     if (open) {
       setFirstName(student?.firstName ?? "");
       setLastName(student?.lastName ?? "");
+      setFormacion(student?.formacion ?? "");
+      setGraduacion(student?.graduacion ?? "");
+      setEvaluationDate(student?.evaluationDate ?? "");
+      setDni(student?.dni ?? "");
+      setOrientadorId(student?.orientador?.id ?? "");
       setPhoto(null);
       setPreview(student?.photoUrl ?? null);
       setError(null);
@@ -38,6 +53,11 @@ export function StudentFormDialog({ open, student, onClose, onSaved }: StudentFo
     if (open && !dialog.open) dialog.showModal();
     if (!open && dialog.open) dialog.close();
   }, [open]);
+
+  function handleDniChange(value: string) {
+    const digits = value.replace(/\D/g, "").slice(0, 9);
+    setDni(digits.replace(/\B(?=(\d{3})+(?!\d))/g, "."));
+  }
 
   function handlePhotoChange(file: File | null) {
     setPhoto(file);
@@ -52,6 +72,11 @@ export function StudentFormDialog({ open, student, onClose, onSaved }: StudentFo
       const formData = new FormData();
       formData.set("firstName", firstName);
       formData.set("lastName", lastName);
+      formData.set("formacion", formacion);
+      formData.set("graduacion", graduacion);
+      formData.set("evaluationDate", evaluationDate);
+      formData.set("dni", dni);
+      formData.set("orientadorId", orientadorId);
       if (photo) formData.set("photo", photo);
 
       const res = await fetch(student ? `/api/students/${student.id}` : "/api/students", {
@@ -106,6 +131,40 @@ export function StudentFormDialog({ open, student, onClose, onSaved }: StudentFo
 
         <Input label="Nombre" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
         <Input label="Apellido" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
+        <Select label="Formación" value={formacion} onChange={(e) => setFormacion(e.target.value)}>
+          <option value="">Sin especificar</option>
+          {FORMACION_OPTIONS.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+        </Select>
+        <Input
+          label="Graduación"
+          placeholder='Ej: "Cinto Naranja"'
+          value={graduacion}
+          onChange={(e) => setGraduacion(e.target.value)}
+        />
+        <Input
+          label="¿Cuándo fue Autorizado?"
+          type="date"
+          value={evaluationDate}
+          onChange={(e) => setEvaluationDate(e.target.value)}
+        />
+        <Input
+          label="D.N.I."
+          placeholder="42.358.937"
+          value={dni}
+          onChange={(e) => handleDniChange(e.target.value)}
+        />
+        <Select label="Orientador" value={orientadorId} onChange={(e) => setOrientadorId(e.target.value)}>
+          <option value="">Sin orientador asignado</option>
+          {orientadores.map((o) => (
+            <option key={o.id} value={o.id}>
+              {o.lastName}, {o.firstName}
+            </option>
+          ))}
+        </Select>
 
         {error && <p className="text-sm text-danger">{error}</p>}
 

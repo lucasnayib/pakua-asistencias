@@ -4,14 +4,27 @@ const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 const timeWithSecondsRegex = /^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/;
 
+export const FORMACION_OPTIONS = ["Gym", "Arte Marcial", "Taichi", "Yoga", "Armas de Corte"] as const;
+const formacionSchema = z.union([z.enum(FORMACION_OPTIONS), z.literal("")]).optional().nullable();
+
 export const studentCreateSchema = z.object({
   firstName: z.string().trim().min(1, "El nombre es obligatorio").max(100),
   lastName: z.string().trim().min(1, "El apellido es obligatorio").max(100),
+  formacion: formacionSchema,
+  graduacion: z.string().trim().max(200).optional().nullable(),
+  evaluationDate: z.string().trim().max(20).optional().nullable(),
+  dni: z.string().trim().max(20).optional().nullable(),
+  orientadorId: z.string().trim().min(1).optional().nullable(),
 });
 
 export const studentUpdateSchema = z.object({
   firstName: z.string().trim().min(1).max(100).optional(),
   lastName: z.string().trim().min(1).max(100).optional(),
+  formacion: formacionSchema,
+  graduacion: z.string().trim().max(200).optional().nullable(),
+  evaluationDate: z.string().trim().max(20).optional().nullable(),
+  dni: z.string().trim().max(20).optional().nullable(),
+  orientadorId: z.string().trim().min(1).optional().nullable(),
   active: z.boolean().optional(),
 });
 
