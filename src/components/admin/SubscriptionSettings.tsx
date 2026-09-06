@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 type Props = {
   subscriptionStatus: string;
@@ -11,6 +14,10 @@ type Props = {
   graceEndsAt: string | null;
   priceArs: string | null;
 };
+
+const CHECKOUT_PENDING_KEY = "pakua_checkout_pending";
+const POLL_INTERVAL_MS = 2000;
+const POLL_MAX_ATTEMPTS = 10; // ~20s: el webhook suele tardar unos segundos en llegar
 
 function daysUntil(iso: string): number {
   const diffMs = new Date(iso).getTime() - Date.now();
@@ -36,8 +43,38 @@ export function SubscriptionSettings({
   graceEndsAt,
   priceArs,
 }: Props) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const pollAttempts = useRef(0);
+
+  // Al volver del checkout de Mercado Pago, esta misma página se vuelve a cargar. El
+  // webhook que confirma el pago puede tardar unos segundos en llegar, así que
+  // refrescamos la página cada 2s hasta ver el estado ACTIVE (o hasta agotar los
+  // intentos) y recién ahí avisamos que el pago se confirmó.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (sessionStorage.getItem(CHECKOUT_PENDING_KEY) !== "1") return;
+
+    if (subscriptionStatus === "ACTIVE") {
+      sessionStorage.removeItem(CHECKOUT_PENDING_KEY);
+      toast.success("¡Pago confirmado! Tu suscripción ya está habilitada.");
+      return;
+    }
+
+    if (pollAttempts.current >= POLL_MAX_ATTEMPTS) {
+      sessionStorage.removeItem(CHECKOUT_PENDING_KEY);
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      pollAttempts.current += 1;
+      router.refresh();
+    }, POLL_INTERVAL_MS);
+    return () => clearTimeout(timeout);
+  }, [subscriptionStatus, router]);
 
   async function handleSubscribe() {
     setError(null);
@@ -49,6 +86,7 @@ export function SubscriptionSettings({
         setError(data.error ?? "No se pudo iniciar la suscripción");
         return;
       }
+      sessionStorage.setItem(CHECKOUT_PENDING_KEY, "1");
       window.location.href = data.init_point;
     } catch {
       setError("Error de conexión");
@@ -56,6 +94,27 @@ export function SubscriptionSettings({
       setLoading(false);
     }
   }
+
+  async function handleCancel() {
+    setCancelling(true);
+    try {
+      const res = await fetch("/api/subscription/cancel", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "No se pudo cancelar la suscripción");
+        return;
+      }
+      toast.success("Tu suscripción fue cancelada. No se te va a cobrar de nuevo.");
+      setConfirmCancelOpen(false);
+      router.refresh();
+    } catch {
+      toast.error("Error de conexión");
+    } finally {
+      setCancelling(false);
+    }
+  }
+
+  const canCancel = subscriptionStatus === "ACTIVE" || subscriptionStatus === "PAST_DUE";
 
   return (
     <div className="flex flex-col gap-6">
@@ -110,6 +169,16 @@ export function SubscriptionSettings({
             {error && <p className="mt-2 text-sm text-danger">{error}</p>}
           </>
         )}
+
+        {canCancel && (
+          <button
+            type="button"
+            onClick={() => setConfirmCancelOpen(true)}
+            className="mt-3 block w-full text-center text-sm text-muted-foreground hover:underline"
+          >
+            Cancelar suscripción
+          </button>
+        )}
       </Card>
 
       <Card className="max-w-md p-6">
@@ -122,6 +191,17 @@ export function SubscriptionSettings({
           Pago mensual automático con Mercado Pago. Podés cancelar cuando quieras.
         </p>
       </Card>
+
+      <ConfirmDialog
+        open={confirmCancelOpen}
+        title="Cancelar suscripción"
+        message="Se corta el cobro automático mensual. Vas a seguir teniendo acceso hasta el final del período ya pagado, y después el panel pasa a estado cancelado."
+        confirmLabel="Sí, cancelar"
+        danger
+        loading={cancelling}
+        onConfirm={handleCancel}
+        onCancel={() => setConfirmCancelOpen(false)}
+      />
     </div>
   );
 }

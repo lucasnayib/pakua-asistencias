@@ -127,7 +127,10 @@ function LoginForm() {
   }
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-background px-4">
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-background px-4">
+      <Link href="/" className="block w-full max-w-sm text-sm text-muted-foreground hover:underline">
+        ← Volver al inicio
+      </Link>
       <Card className="w-full max-w-sm p-8">
         <Image
           src="/logo.png"
@@ -164,12 +167,6 @@ function LoginForm() {
           className="mt-4 block text-center text-sm text-muted-foreground hover:underline"
         >
           ¿Olvidaste tu contraseña?
-        </Link>
-        <Link
-          href="/"
-          className="mt-2 block text-center text-sm text-muted-foreground hover:underline"
-        >
-          Ir a toma de asistencia
         </Link>
         <Link
           href="/registrar-escuela"

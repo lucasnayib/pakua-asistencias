@@ -56,7 +56,10 @@ export function RegistrarEscuelaForm({ priceArs, trialDays }: Props) {
 
   if (sent) {
     return (
-      <main className="flex min-h-dvh items-center justify-center bg-background px-4">
+      <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-background px-4">
+        <Link href="/" className="block w-full max-w-sm text-sm text-muted-foreground hover:underline">
+          ← Volver al inicio
+        </Link>
         <Card className="w-full max-w-sm p-8 text-center">
           <Image
             src="/logo.png"
@@ -80,6 +83,9 @@ export function RegistrarEscuelaForm({ priceArs, trialDays }: Props) {
 
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-background px-4 py-10">
+      <Link href="/" className="block w-full max-w-sm text-sm text-muted-foreground hover:underline">
+        ← Volver al inicio
+      </Link>
       <Card className="w-full max-w-sm border-accent/30 bg-accent/5 p-6 text-center">
         <p className="text-xs font-medium uppercase tracking-wide text-accent">Plan único</p>
         {priceArs ? (
