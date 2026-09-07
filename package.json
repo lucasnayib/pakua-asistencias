@@ -11,7 +11,8 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "backup": "tsx scripts/backup-local.ts",
-    "check-subscriptions": "tsx scripts/check-subscriptions.ts"
+    "check-subscriptions": "tsx scripts/check-subscriptions.ts",
+    "deactivate-inactive-students": "tsx scripts/deactivate-inactive-students.ts"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.8.0",

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isItineranciasOpen, isItineranciasSchool } from "@/lib/itinerancias";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -22,6 +23,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       ? await prisma.admin.count({ where: { role: "ADMIN", approved: false } })
       : 0;
 
+  const itineranciasEnabled = isItineranciasSchool(admin?.slug) && isItineranciasOpen();
+
   return (
     <div className="flex min-h-dvh flex-col md:flex-row">
       <AdminSidebar
@@ -29,6 +32,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         role={session.role}
         schoolSlug={admin?.slug}
         pendingAdminCount={pendingAdminCount}
+        itineranciasEnabled={itineranciasEnabled}
       />
       <main className="flex-1 overflow-y-auto p-4 md:p-8">{children}</main>
     </div>

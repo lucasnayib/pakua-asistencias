@@ -9,6 +9,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { StudentFormDialog } from "@/components/admin/StudentFormDialog";
 import { StudentDetailsDialog } from "@/components/admin/StudentDetailsDialog";
+import { InactivityDeactivationSettings } from "@/components/admin/InactivityDeactivationSettings";
 import type { StudentListItem } from "@/types";
 
 type ConfirmAction = { type: "deactivate" | "reactivate" | "delete"; student: StudentListItem };
@@ -169,6 +170,15 @@ export default function AlumnosAdminPage() {
           <Button onClick={openCreate}>Nuevo alumno</Button>
         </div>
       </div>
+
+      <details className="group rounded-xl border border-border">
+        <summary className="cursor-pointer select-none list-none p-4 text-sm font-medium text-muted-foreground hover:text-foreground">
+          Configuración: baja automática por inactividad
+        </summary>
+        <div className="border-t border-border p-4">
+          <InactivityDeactivationSettings />
+        </div>
+      </details>
 
       <div className="flex flex-wrap items-end gap-3">
         <Input

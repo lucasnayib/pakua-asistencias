@@ -69,6 +69,46 @@ export type SchoolListItem = {
   slug: string;
 };
 
+export type ItineranciaCategory = "EVALUACION" | "SEMINARIO" | "CURSO" | "OTRO";
+
+export type ItineranciaActivityListItem = {
+  id: string;
+  title: string;
+  description: string | null;
+  category: ItineranciaCategory;
+  date: string;
+  startTime: string;
+  endTime: string;
+  createdAt: string;
+  updatedAt: string;
+  _count: { studentRegistrations: number; orientadorRegistrations: number };
+};
+
+export type ItineranciaPerson = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  photoUrl: string | null;
+};
+
+export type ItineranciaPublicActivity = {
+  id: string;
+  title: string;
+  description: string | null;
+  category: ItineranciaCategory;
+  date: string;
+  startTime: string;
+  endTime: string;
+  registeredStudentIds: string[];
+  registeredOrientadorIds: string[];
+};
+
+export type ItineranciaPublicResponse = {
+  activities: ItineranciaPublicActivity[];
+  students: ItineranciaPerson[];
+  orientadores: ItineranciaPerson[];
+};
+
 export type OrientadorListItem = {
   id: string;
   firstName: string;

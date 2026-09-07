@@ -30,11 +30,13 @@ export function AdminSidebar({
   role,
   schoolSlug,
   pendingAdminCount = 0,
+  itineranciasEnabled = false,
 }: {
   displayName: string;
   role: string;
   schoolSlug?: string | null;
   pendingAdminCount?: number;
+  itineranciasEnabled?: boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -42,7 +44,12 @@ export function AdminSidebar({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // El super-admin no tiene acceso a datos de escuela: solo ve la gestión de cuentas.
-  const links = role === "SUPER_ADMIN" ? SUPER_ADMIN_LINKS : LINKS;
+  const links =
+    role === "SUPER_ADMIN"
+      ? SUPER_ADMIN_LINKS
+      : itineranciasEnabled
+        ? [...LINKS, { href: "/admin/itinerancias", label: "Itinerancias" }]
+        : LINKS;
 
   // Cerrar el menú al cambiar de página (incluye navegación programática, no solo clicks).
   useEffect(() => {

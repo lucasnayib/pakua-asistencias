@@ -96,6 +96,44 @@ npm run backup
 
 Estos backups quedan guardados **en el mismo disco** del servidor. Si esa computadora se rompe, se pierde o se la roban, los backups se pierden con ella. Para cubrir ese caso hace falta además una copia fuera de esa máquina (por ejemplo, subiéndola a Google Drive) — todavía no está configurado; es el siguiente paso pendiente cuando se quiera cerrar ese riesgo del todo.
 
+## Baja automática de alumnos por inactividad
+
+Cada admin puede activar, desde el panel ("Alumnos" → "Configuración: baja automática por
+inactividad"), que se dé de baja solo a cualquier alumno que ya tuvo alguna asistencia
+registrada y después pasa un plazo (en días, lo elige cada escuela) sin ninguna asistencia
+nueva. Un alumno que nunca tuvo ninguna asistencia no se ve afectado. Cuando pasa, se manda un
+mail al admin con la lista de quiénes se dieron de baja ese día; siempre se puede reactivar a
+mano desde el panel.
+
+Esto corre todos los días a las 3:15 AM (tarea programada de Windows), igual que el backup.
+
+## Itinerancias
+
+Sección exclusiva de una sola escuela (evento trimestral: marzo, junio, septiembre y
+diciembre), donde se publican actividades (evaluaciones, seminarios, cursos) y los alumnos y
+orientadores se anotan ellos mismos desde su celular. Automática: tanto el panel ("Itinerancias"
+en el menú del admin de esa escuela) como la página pública se abren y cierran solas según el
+mes calendario — nadie tiene que activarlas a mano, y fuera de esos 4 meses quedan ocultas.
+
+Para habilitarla:
+
+1. En el `.env` del servidor, completar `ITINERANCIAS_SCHOOL_SLUG` con el slug de la escuela
+   (el que aparece en su URL, `attendio.lat/escuela/<slug>`) y reiniciar el servidor
+   (`pm2 restart pakua-asistencias`).
+2. Ya en uno de los 4 meses abiertos, el admin de esa escuela entra a "Itinerancias" en el
+   panel y define un **código de acceso propio** (distinto de la contraseña de la escuela) —
+   ese es el que se reparte a alumnos y orientadores para que entren a
+   `attendio.lat/escuela/<slug>/itinerancias` desde su teléfono. La inscripción a una actividad
+   es definitiva: una vez confirmada, solo el admin la puede deshacer desde el panel.
+
+### Activar el chequeo automático (una sola vez, en el servidor)
+
+1. Clic derecho sobre `programar-baja-inactividad.bat` → **Ejecutar como administrador**.
+2. Confirmar que dice "Tarea creada" al final.
+
+Si no se activa esta tarea programada, la configuración de cada admin queda guardada pero no
+se aplica sola — es solo el interruptor, el que la hace efectiva es este cron diario.
+
 ## Backup manual completo (todas las escuelas)
 
 Desde el panel, con la cuenta de **super-admin**, en "Copias de seguridad" hay un botón para descargar la base completa (todas las escuelas juntas) en cualquier momento. Guardar ese archivo en un lugar seguro fuera de la computadora del servidor (ej. un pendrive, otra compu). Solo el super-admin puede hacer esto — un admin de una escuela individual no tiene acceso, porque ese archivo contiene los datos de todas las escuelas, no solo la propia.

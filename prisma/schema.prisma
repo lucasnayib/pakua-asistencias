@@ -56,10 +56,22 @@ model Admin {
   mpPreapprovalId     String?
   mpPayerEmail        String?
 
-  students     Student[]
-  schedules    Schedule[]
-  orientadores Orientador[]
-  exportLogs   ExportLog[]
+  // Baja automática por inactividad: si un alumno con al menos una asistencia registrada
+  // pasa este número de días sin ninguna asistencia nueva, se lo da de baja solo (active =
+  // false), igual que si un admin lo hubiera dado de baja a mano. null = desactivado (default).
+  inactivityDeactivationDays Int?
+
+  // Itinerancias (evento trimestral, exclusivo de una escuela vía ITINERANCIAS_SCHOOL_SLUG):
+  // código propio para que alumnos/orientadores entren solo a esa sección desde su celular,
+  // sin usar la contraseña real de la escuela. Hasheado igual que passwordHash. null = todavía
+  // no lo configuraron.
+  itineranciaAccessCodeHash String?
+
+  students              Student[]
+  schedules             Schedule[]
+  orientadores          Orientador[]
+  exportLogs            ExportLog[]
+  itineranciaActivities ItineranciaActivity[]
 }
 
 model Student {
@@ -76,9 +88,10 @@ model Student {
   active         Boolean             @default(true)
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
-  schedules      StudentSchedule[]
-  attendances    Attendance[]
-  orientadores   OrientadorStudent[]
+  schedules                StudentSchedule[]
+  attendances              Attendance[]
+  orientadores             OrientadorStudent[]
+  itineranciaRegistrations ItineranciaStudentRegistration[]
 
   @@index([lastName, firstName])
   @@index([adminId])
@@ -97,6 +110,8 @@ model Orientador {
   createdAt DateTime            @default(now())
   updatedAt DateTime            @updatedAt
   students  OrientadorStudent[]
+
+  itineranciaRegistrations ItineranciaOrientadorRegistration[]
 
   @@index([lastName, firstName])
   @@index([adminId])
@@ -176,6 +191,48 @@ model ExportLog {
   createdAt     DateTime @default(now())
 
   @@index([adminId])
+}
+
+model ItineranciaActivity {
+  id          String   @id @default(cuid())
+  adminId     String
+  admin       Admin    @relation(fields: [adminId], references: [id])
+  title       String
+  description String?
+  category    String // "EVALUACION" | "SEMINARIO" | "CURSO" | "OTRO"
+  date        String // "YYYY-MM-DD"
+  startTime   String // "HH:mm"
+  endTime     String // "HH:mm"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  studentRegistrations    ItineranciaStudentRegistration[]
+  orientadorRegistrations ItineranciaOrientadorRegistration[]
+
+  @@index([adminId])
+  @@index([date])
+}
+
+model ItineranciaStudentRegistration {
+  id         String              @id @default(cuid())
+  activityId String
+  activity   ItineranciaActivity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  studentId  String
+  student    Student             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  createdAt  DateTime            @default(now())
+
+  @@unique([activityId, studentId])
+}
+
+model ItineranciaOrientadorRegistration {
+  id           String              @id @default(cuid())
+  activityId   String
+  activity     ItineranciaActivity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  orientadorId String
+  orientador   Orientador          @relation(fields: [orientadorId], references: [id], onDelete: Cascade)
+  createdAt    DateTime            @default(now())
+
+  @@unique([activityId, orientadorId])
 }
 
 model AuditLog {

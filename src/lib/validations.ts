@@ -77,6 +77,10 @@ export const locationSettingsSchema = z.object({
   attendanceRadiusMeters: z.number().int().min(10).max(5000).nullable(),
 });
 
+export const inactivitySettingsSchema = z.object({
+  inactivityDeactivationDays: z.number().int().min(1).max(365).nullable(),
+});
+
 export const geocodeAddressSchema = z.object({
   address: z.string().trim().min(3, "Ingresá una dirección").max(300),
 });
@@ -88,6 +92,36 @@ export const loginSchema = z.object({
 
 export const schoolUnlockSchema = z.object({
   password: z.string().min(1),
+});
+
+export const itineranciaUnlockSchema = z.object({
+  code: z.string().min(1),
+});
+
+export const itineranciaAccessCodeSchema = z.object({
+  code: z.string().trim().min(4, "El código debe tener al menos 4 caracteres").max(50).nullable(),
+});
+
+export const itineranciaCategorySchema = z.enum(["EVALUACION", "SEMINARIO", "CURSO", "OTRO"]);
+
+export const itineranciaActivityUpsertSchema = z
+  .object({
+    title: z.string().trim().min(1, "El título es obligatorio").max(150),
+    description: z.string().trim().max(2000).optional().nullable(),
+    category: itineranciaCategorySchema,
+    date: z.string().regex(dateRegex, "Fecha inválida (YYYY-MM-DD)"),
+    startTime: z.string().regex(timeRegex, "Hora de inicio inválida (HH:mm)"),
+    endTime: z.string().regex(timeRegex, "Hora de fin inválida (HH:mm)"),
+  })
+  .refine((data) => data.endTime > data.startTime, {
+    message: "La hora de fin debe ser posterior a la hora de inicio",
+    path: ["endTime"],
+  });
+
+export const itineranciaRegisterSchema = z.object({
+  activityId: z.string().min(1),
+  personType: z.enum(["STUDENT", "ORIENTADOR"]),
+  personId: z.string().min(1),
 });
 
 export const requestEmailChangeSchema = z.object({

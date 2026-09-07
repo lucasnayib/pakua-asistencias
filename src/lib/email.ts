@@ -221,6 +221,36 @@ export async function sendSubscriptionWarningEmail(data: {
   );
 }
 
+export async function sendInactiveStudentsDeactivatedEmail(data: {
+  contactEmail: string;
+  displayName: string;
+  days: number;
+  students: { firstName: string; lastName: string }[];
+}): Promise<void> {
+  const config = getEmailConfig();
+  if (!config) return;
+  if (data.students.length === 0) return;
+
+  const url = baseUrl();
+  const panelLine = url ? `Ver el listado completo: ${url}/admin/alumnos` : null;
+  const names = data.students.map((s) => `- ${s.firstName} ${s.lastName}`);
+
+  await sendMail(
+    config,
+    data.contactEmail,
+    `${data.students.length} alumno(s) dado(s) de baja por inactividad — ${data.displayName}`,
+    [
+      `Tenés activada la baja automática por inactividad (${data.days} días sin asistencia).`,
+      `Hoy se dieron de baja solos los siguientes alumnos, por no registrar ninguna asistencia en ese plazo:`,
+      ``,
+      ...names,
+      ``,
+      `Podés reactivarlos en cualquier momento desde el panel, en "Alumnos".`,
+      ...(panelLine ? [``, panelLine] : []),
+    ].join("\n")
+  );
+}
+
 export async function notifySchoolRejected(data: {
   contactEmail: string | null;
   displayName: string;
