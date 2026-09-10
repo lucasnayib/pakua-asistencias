@@ -6,7 +6,7 @@ import { requireItineranciaAdminAccess } from "@/lib/itinerancias";
 import { logChange } from "@/lib/audit";
 
 const registrationCounts = {
-  _count: { select: { studentRegistrations: true, orientadorRegistrations: true } },
+  _count: { select: { studentRegistrations: true } },
 } as const;
 
 export async function GET() {

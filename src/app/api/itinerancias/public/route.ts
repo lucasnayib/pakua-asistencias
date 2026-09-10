@@ -17,21 +17,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Itinerancias no está disponible ahora" }, { status: 404 });
   }
 
-  const [activities, students, orientadores] = await Promise.all([
+  const [activities, students] = await Promise.all([
     prisma.itineranciaActivity.findMany({
       where: { adminId },
       include: {
         studentRegistrations: { select: { studentId: true } },
-        orientadorRegistrations: { select: { orientadorId: true } },
       },
       orderBy: [{ date: "asc" }, { startTime: "asc" }],
     }),
     prisma.student.findMany({
-      where: { adminId, active: true },
-      select: { id: true, firstName: true, lastName: true, photoUrl: true },
-      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-    }),
-    prisma.orientador.findMany({
       where: { adminId, active: true },
       select: { id: true, firstName: true, lastName: true, photoUrl: true },
       orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
@@ -48,9 +42,7 @@ export async function GET(request: NextRequest) {
       startTime: a.startTime,
       endTime: a.endTime,
       registeredStudentIds: a.studentRegistrations.map((r) => r.studentId),
-      registeredOrientadorIds: a.orientadorRegistrations.map((r) => r.orientadorId),
     })),
     students,
-    orientadores,
   });
 }

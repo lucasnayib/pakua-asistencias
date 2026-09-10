@@ -81,7 +81,7 @@ export type ItineranciaActivityListItem = {
   endTime: string;
   createdAt: string;
   updatedAt: string;
-  _count: { studentRegistrations: number; orientadorRegistrations: number };
+  _count: { studentRegistrations: number };
 };
 
 export type ItineranciaPerson = {
@@ -100,13 +100,11 @@ export type ItineranciaPublicActivity = {
   startTime: string;
   endTime: string;
   registeredStudentIds: string[];
-  registeredOrientadorIds: string[];
 };
 
 export type ItineranciaPublicResponse = {
   activities: ItineranciaPublicActivity[];
   students: ItineranciaPerson[];
-  orientadores: ItineranciaPerson[];
 };
 
 export type OrientadorListItem = {

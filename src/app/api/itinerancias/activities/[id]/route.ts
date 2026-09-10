@@ -8,7 +8,7 @@ import { logChange } from "@/lib/audit";
 type Params = { params: Promise<{ id: string }> };
 
 const registrationCounts = {
-  _count: { select: { studentRegistrations: true, orientadorRegistrations: true } },
+  _count: { select: { studentRegistrations: true } },
 } as const;
 
 export async function PATCH(request: NextRequest, { params }: Params) {

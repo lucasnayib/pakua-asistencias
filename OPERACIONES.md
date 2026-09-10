@@ -110,8 +110,8 @@ Esto corre todos los días a las 3:15 AM (tarea programada de Windows), igual qu
 ## Itinerancias
 
 Sección exclusiva de una sola escuela (evento trimestral: marzo, junio, septiembre y
-diciembre), donde se publican actividades (evaluaciones, seminarios, cursos) y los alumnos y
-orientadores se anotan ellos mismos desde su celular. Automática: tanto el panel ("Itinerancias"
+diciembre), donde se publican actividades (evaluaciones, seminarios, cursos) y los alumnos se
+anotan ellos mismos desde su celular. Automática: tanto el panel ("Itinerancias"
 en el menú del admin de esa escuela) como la página pública se abren y cierran solas según el
 mes calendario — nadie tiene que activarlas a mano, y fuera de esos 4 meses quedan ocultas.
 
@@ -122,7 +122,7 @@ Para habilitarla:
    (`pm2 restart pakua-asistencias`).
 2. Ya en uno de los 4 meses abiertos, el admin de esa escuela entra a "Itinerancias" en el
    panel y define un **código de acceso propio** (distinto de la contraseña de la escuela) —
-   ese es el que se reparte a alumnos y orientadores para que entren a
+   ese es el que se reparte a los alumnos para que entren a
    `attendio.lat/escuela/<slug>/itinerancias` desde su teléfono. La inscripción a una actividad
    es definitiva: una vez confirmada, solo el admin la puede deshacer desde el panel.
 

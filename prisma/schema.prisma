@@ -62,9 +62,9 @@ model Admin {
   inactivityDeactivationDays Int?
 
   // Itinerancias (evento trimestral, exclusivo de una escuela vía ITINERANCIAS_SCHOOL_SLUG):
-  // código propio para que alumnos/orientadores entren solo a esa sección desde su celular,
-  // sin usar la contraseña real de la escuela. Hasheado igual que passwordHash. null = todavía
-  // no lo configuraron.
+  // código propio para que los alumnos entren solo a esa sección desde su celular, sin usar
+  // la contraseña real de la escuela. Hasheado igual que passwordHash. null = todavía no lo
+  // configuraron.
   itineranciaAccessCodeHash String?
 
   students              Student[]
@@ -110,8 +110,6 @@ model Orientador {
   createdAt DateTime            @default(now())
   updatedAt DateTime            @updatedAt
   students  OrientadorStudent[]
-
-  itineranciaRegistrations ItineranciaOrientadorRegistration[]
 
   @@index([lastName, firstName])
   @@index([adminId])
@@ -206,8 +204,7 @@ model ItineranciaActivity {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  studentRegistrations    ItineranciaStudentRegistration[]
-  orientadorRegistrations ItineranciaOrientadorRegistration[]
+  studentRegistrations ItineranciaStudentRegistration[]
 
   @@index([adminId])
   @@index([date])
@@ -222,17 +219,6 @@ model ItineranciaStudentRegistration {
   createdAt  DateTime            @default(now())
 
   @@unique([activityId, studentId])
-}
-
-model ItineranciaOrientadorRegistration {
-  id           String              @id @default(cuid())
-  activityId   String
-  activity     ItineranciaActivity @relation(fields: [activityId], references: [id], onDelete: Cascade)
-  orientadorId String
-  orientador   Orientador          @relation(fields: [orientadorId], references: [id], onDelete: Cascade)
-  createdAt    DateTime            @default(now())
-
-  @@unique([activityId, orientadorId])
 }
 
 model AuditLog {

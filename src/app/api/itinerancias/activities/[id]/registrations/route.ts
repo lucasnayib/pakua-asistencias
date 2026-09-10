@@ -11,7 +11,6 @@ async function loadActivity(id: string, adminId: string) {
     where: { id, adminId },
     include: {
       studentRegistrations: { include: { student: true }, orderBy: { student: { lastName: "asc" } } },
-      orientadorRegistrations: { include: { orientador: true }, orderBy: { orientador: { lastName: "asc" } } },
     },
   });
 }
@@ -31,7 +30,6 @@ export async function GET(_request: NextRequest, { params }: Params) {
 
   return NextResponse.json({
     students: activity.studentRegistrations.map((r) => r.student),
-    orientadores: activity.orientadorRegistrations.map((r) => r.orientador),
   });
 }
 
@@ -50,17 +48,12 @@ export async function DELETE(request: NextRequest, { params }: Params) {
   }
 
   const body = await request.json().catch(() => null);
-  const personType = body?.personType;
-  const personId = body?.personId;
-  if ((personType !== "STUDENT" && personType !== "ORIENTADOR") || typeof personId !== "string" || !personId) {
+  const studentId = body?.studentId;
+  if (typeof studentId !== "string" || !studentId) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
 
-  if (personType === "STUDENT") {
-    await prisma.itineranciaStudentRegistration.deleteMany({ where: { activityId: id, studentId: personId } });
-  } else {
-    await prisma.itineranciaOrientadorRegistration.deleteMany({ where: { activityId: id, orientadorId: personId } });
-  }
+  await prisma.itineranciaStudentRegistration.deleteMany({ where: { activityId: id, studentId } });
 
   await logChange({
     actor: session.displayName,
@@ -68,7 +61,7 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     action: "REMOVE_ITINERANCIA_REGISTRATION",
     entity: "ItineranciaActivity",
     entityId: id,
-    detail: `${personType} ${personId}`,
+    detail: studentId,
   });
 
   return NextResponse.json({ ok: true });

@@ -6,9 +6,9 @@ import { isItineranciasOpen, isItineranciasSchool } from "@/lib/itinerancias";
 import { logChange } from "@/lib/audit";
 
 /**
- * Inscripción pública a una actividad de Itinerancias. Solo POST: es irrevocable desde este
- * lado (ver plan) — la única forma de deshacerla es la corrección manual del admin en
- * /api/itinerancias/activities/[id]/registrations.
+ * Inscripción pública de un alumno a una actividad de Itinerancias. Solo POST: es irrevocable
+ * desde este lado (ver plan) — la única forma de deshacerla es la corrección manual del admin
+ * en /api/itinerancias/activities/[id]/registrations.
  */
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Datos inválidos" }, { status: 400 });
   }
-  const { activityId, personType, personId } = parsed.data;
+  const { activityId, studentId } = parsed.data;
 
   const activity = await prisma.itineranciaActivity.findUnique({ where: { id: activityId } });
   if (!activity) {
@@ -31,43 +31,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Itinerancias no está disponible ahora" }, { status: 404 });
   }
 
-  if (personType === "STUDENT") {
-    const student = await prisma.student.findUnique({ where: { id: personId } });
-    if (!student || student.adminId !== activity.adminId || !student.active) {
-      return NextResponse.json({ error: "Alumno no encontrado" }, { status: 404 });
-    }
-    try {
-      await prisma.itineranciaStudentRegistration.create({ data: { activityId, studentId: personId } });
-    } catch {
-      return NextResponse.json({ error: "Ya estabas anotado a esta actividad" }, { status: 409 });
-    }
-    await logChange({
-      actor: "alumno",
-      adminId: activity.adminId,
-      action: "REGISTER_ITINERANCIA",
-      entity: "ItineranciaActivity",
-      entityId: activityId,
-      detail: `${student.firstName} ${student.lastName} — ${activity.title}`,
-    });
-  } else {
-    const orientador = await prisma.orientador.findUnique({ where: { id: personId } });
-    if (!orientador || orientador.adminId !== activity.adminId || !orientador.active) {
-      return NextResponse.json({ error: "Orientador no encontrado" }, { status: 404 });
-    }
-    try {
-      await prisma.itineranciaOrientadorRegistration.create({ data: { activityId, orientadorId: personId } });
-    } catch {
-      return NextResponse.json({ error: "Ya estabas anotado a esta actividad" }, { status: 409 });
-    }
-    await logChange({
-      actor: "orientador",
-      adminId: activity.adminId,
-      action: "REGISTER_ITINERANCIA",
-      entity: "ItineranciaActivity",
-      entityId: activityId,
-      detail: `${orientador.firstName} ${orientador.lastName} — ${activity.title}`,
-    });
+  const student = await prisma.student.findUnique({ where: { id: studentId } });
+  if (!student || student.adminId !== activity.adminId || !student.active) {
+    return NextResponse.json({ error: "Alumno no encontrado" }, { status: 404 });
   }
+
+  try {
+    await prisma.itineranciaStudentRegistration.create({ data: { activityId, studentId } });
+  } catch {
+    return NextResponse.json({ error: "Ya estabas anotado a esta actividad" }, { status: 409 });
+  }
+
+  await logChange({
+    actor: "alumno",
+    adminId: activity.adminId,
+    action: "REGISTER_ITINERANCIA",
+    entity: "ItineranciaActivity",
+    entityId: activityId,
+    detail: `${student.firstName} ${student.lastName} — ${activity.title}`,
+  });
 
   return NextResponse.json({ ok: true }, { status: 201 });
 }

@@ -120,8 +120,7 @@ export const itineranciaActivityUpsertSchema = z
 
 export const itineranciaRegisterSchema = z.object({
   activityId: z.string().min(1),
-  personType: z.enum(["STUDENT", "ORIENTADOR"]),
-  personId: z.string().min(1),
+  studentId: z.string().min(1),
 });
 
 export const requestEmailChangeSchema = z.object({

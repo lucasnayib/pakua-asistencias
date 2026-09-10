@@ -54,7 +54,7 @@ export function ItineranciaAccessCodeSettings() {
       <h2 className="text-lg font-semibold">Código de acceso a Itinerancias</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         {hasCode
-          ? "Ya hay un código configurado. Los alumnos y orientadores lo usan para entrar a Itinerancias desde su celular — es distinto de la contraseña de la escuela."
+          ? "Ya hay un código configurado. Los alumnos lo usan para entrar a Itinerancias desde su celular — es distinto de la contraseña de la escuela."
           : "Todavía no configuraste un código. Sin uno, nadie puede entrar a Itinerancias desde su celular."}
       </p>
       <form onSubmit={handleSubmit} className="mt-4 flex items-end gap-2">

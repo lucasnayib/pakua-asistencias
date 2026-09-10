@@ -9,6 +9,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ItineranciaAccessCodeSettings } from "@/components/admin/ItineranciaAccessCodeSettings";
 import { ItineranciaActivityFormDialog } from "@/components/admin/ItineranciaActivityFormDialog";
 import { ItineranciaRegistrationsDialog } from "@/components/admin/ItineranciaRegistrationsDialog";
+import { ItineranciaCalendarView } from "@/components/admin/ItineranciaCalendarView";
 import { formatDateEs, formatTimeRange } from "@/lib/time";
 import type { ItineranciaActivityListItem } from "@/types";
 
@@ -19,9 +20,12 @@ const CATEGORY_LABELS: Record<string, string> = {
   OTRO: "Otro",
 };
 
+type ViewMode = "list" | "calendar";
+
 export function ItineranciasAdminClient() {
   const [activities, setActivities] = useState<ItineranciaActivityListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<ItineranciaActivityListItem | null>(null);
   const [registrationsFor, setRegistrationsFor] = useState<ItineranciaActivityListItem | null>(null);
@@ -74,15 +78,37 @@ export function ItineranciasAdminClient() {
         <h1 className="text-2xl font-semibold">Itinerancias</h1>
         <p className="text-sm text-muted-foreground">
           Actividades de este período: evaluaciones, seminarios, cursos y otras propuestas para
-          que alumnos y orientadores se anoten desde su celular.
+          que los alumnos se anoten desde su celular.
         </p>
       </div>
 
       <ItineranciaAccessCodeSettings />
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">Actividades</h2>
-        <Button onClick={openCreate}>Nueva actividad</Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex rounded-lg border border-border p-1">
+            <button
+              type="button"
+              onClick={() => setViewMode("list")}
+              className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                viewMode === "list" ? "bg-accent text-accent-foreground" : "text-foreground hover:bg-surface-2"
+              }`}
+            >
+              Lista
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("calendar")}
+              className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                viewMode === "calendar" ? "bg-accent text-accent-foreground" : "text-foreground hover:bg-surface-2"
+              }`}
+            >
+              Calendario
+            </button>
+          </div>
+          <Button onClick={openCreate}>Nueva actividad</Button>
+        </div>
       </div>
 
       {loading ? (
@@ -93,6 +119,8 @@ export function ItineranciasAdminClient() {
         <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
           Todavía no creaste ninguna actividad.
         </p>
+      ) : viewMode === "calendar" ? (
+        <ItineranciaCalendarView activities={activities} onEdit={openEdit} />
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {activities.map((a) => (
@@ -107,8 +135,7 @@ export function ItineranciasAdminClient() {
                 {formatDateEs(a.date)} · {formatTimeRange(a.startTime, a.endTime)}
               </p>
               <p className="text-xs text-muted-foreground">
-                {a._count.studentRegistrations} alumno(s), {a._count.orientadorRegistrations} orientador(es)
-                anotados
+                {a._count.studentRegistrations} alumno(s) anotados
               </p>
               <div className="mt-1 flex flex-wrap gap-2 text-xs">
                 <button className="text-muted-foreground hover:underline" onClick={() => openEdit(a)}>

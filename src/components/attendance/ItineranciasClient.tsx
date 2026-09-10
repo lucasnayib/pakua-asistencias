@@ -6,6 +6,7 @@ import { AppHeader } from "@/components/layout/AppHeader";
 import { StudentCard } from "@/components/students/StudentCard";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Card } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
 import { formatDateEs, formatTimeRange } from "@/lib/time";
 import type { ItineranciaPerson, ItineranciaPublicActivity, ItineranciaPublicResponse } from "@/types";
@@ -23,13 +24,13 @@ type ItineranciasClientProps = {
 
 type PendingRegistration = {
   activity: ItineranciaPublicActivity;
-  person: ItineranciaPerson;
-  personType: "STUDENT" | "ORIENTADOR";
+  student: ItineranciaPerson;
 };
 
 export function ItineranciasClient({ adminId }: ItineranciasClientProps) {
   const [data, setData] = useState<ItineranciaPublicResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
   const [pending, setPending] = useState<PendingRegistration | null>(null);
   const [confirming, setConfirming] = useState(false);
 
@@ -47,11 +48,7 @@ export function ItineranciasClient({ adminId }: ItineranciasClientProps) {
       const res = await fetch("/api/itinerancias/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          activityId: pending.activity.id,
-          personType: pending.personType,
-          personId: pending.person.id,
-        }),
+        body: JSON.stringify({ activityId: pending.activity.id, studentId: pending.student.id }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -64,22 +61,12 @@ export function ItineranciasClient({ adminId }: ItineranciasClientProps) {
           ...current,
           activities: current.activities.map((a) =>
             a.id === pending.activity.id
-              ? {
-                  ...a,
-                  registeredStudentIds:
-                    pending.personType === "STUDENT"
-                      ? [...a.registeredStudentIds, pending.person.id]
-                      : a.registeredStudentIds,
-                  registeredOrientadorIds:
-                    pending.personType === "ORIENTADOR"
-                      ? [...a.registeredOrientadorIds, pending.person.id]
-                      : a.registeredOrientadorIds,
-                }
+              ? { ...a, registeredStudentIds: [...a.registeredStudentIds, pending.student.id] }
               : a
           ),
         };
       });
-      toast.success(`Inscripción confirmada: ${pending.person.firstName} ${pending.person.lastName}`);
+      toast.success(`Inscripción confirmada: ${pending.student.firstName} ${pending.student.lastName}`);
       setPending(null);
     } finally {
       setConfirming(false);
@@ -99,7 +86,12 @@ export function ItineranciasClient({ adminId }: ItineranciasClientProps) {
 
   const activities = data?.activities ?? [];
   const students = data?.students ?? [];
-  const orientadores = data?.orientadores ?? [];
+
+  const query = search.trim().toLowerCase();
+  const matches =
+    query.length === 0
+      ? []
+      : students.filter((s) => `${s.firstName} ${s.lastName}`.toLowerCase().includes(query));
 
   return (
     <>
@@ -108,14 +100,30 @@ export function ItineranciasClient({ adminId }: ItineranciasClientProps) {
         <div>
           <h1 className="text-2xl font-semibold">Itinerancias</h1>
           <p className="text-sm text-muted-foreground">
-            Tocá tu nombre en la actividad a la que querés anotarte. La inscripción es
+            Buscá tu nombre y tocalo en la actividad a la que querés anotarte. La inscripción es
             definitiva: no se puede deshacer sola.
           </p>
         </div>
 
+        <Input
+          label="Buscar mi nombre"
+          placeholder="Nombre o apellido…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="max-w-sm"
+        />
+
         {activities.length === 0 ? (
           <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
             Todavía no hay actividades publicadas.
+          </p>
+        ) : query.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+            Escribí tu nombre arriba para buscarte y anotarte a una actividad.
+          </p>
+        ) : matches.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+            No encontramos a nadie con ese nombre.
           </p>
         ) : (
           activities.map((activity) => (
@@ -134,22 +142,17 @@ export function ItineranciasClient({ adminId }: ItineranciasClientProps) {
               </div>
 
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                {[
-                  ...students.map((s) => ({ person: s, type: "STUDENT" as const })),
-                  ...orientadores.map((o) => ({ person: o, type: "ORIENTADOR" as const })),
-                ].map(({ person, type }) => {
-                  const registeredIds =
-                    type === "STUDENT" ? activity.registeredStudentIds : activity.registeredOrientadorIds;
-                  const registered = registeredIds.includes(person.id);
+                {matches.map((student) => {
+                  const registered = activity.registeredStudentIds.includes(student.id);
                   return (
                     <StudentCard
-                      key={`${type}-${person.id}`}
-                      firstName={person.firstName}
-                      lastName={person.lastName}
-                      photoUrl={person.photoUrl}
+                      key={student.id}
+                      firstName={student.firstName}
+                      lastName={student.lastName}
+                      photoUrl={student.photoUrl}
                       present={registered}
                       disabled={registered}
-                      onClick={() => setPending({ activity, person, personType: type })}
+                      onClick={() => setPending({ activity, student })}
                     />
                   );
                 })}
@@ -164,7 +167,7 @@ export function ItineranciasClient({ adminId }: ItineranciasClientProps) {
         title="Confirmar inscripción"
         message={
           pending
-            ? `¿Confirmás la inscripción de ${pending.person.firstName} ${pending.person.lastName} a "${pending.activity.title}"? No se puede deshacer.`
+            ? `¿Confirmás la inscripción de ${pending.student.firstName} ${pending.student.lastName} a "${pending.activity.title}"? No se puede deshacer.`
             : ""
         }
         confirmLabel="Confirmar"
