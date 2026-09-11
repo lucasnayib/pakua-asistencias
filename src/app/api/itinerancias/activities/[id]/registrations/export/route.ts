@@ -3,12 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { requireItineranciaAdminAccess } from "@/lib/itinerancias";
 import { buildStudentsExcelBuffer } from "@/lib/export/students-excel";
+import { buildItineranciaPlanillaPdfBuffer } from "@/lib/export/itinerancia-planilla-pdf";
 import { logChange } from "@/lib/audit";
 import { slugify } from "@/lib/slug";
 
 type Params = { params: Promise<{ id: string }> };
 
-export async function GET(_request: NextRequest, { params }: Params) {
+export async function GET(request: NextRequest, { params }: Params) {
   const session = await requireAdmin();
   if (session instanceof NextResponse) return session;
 
@@ -44,13 +45,21 @@ export async function GET(_request: NextRequest, { params }: Params) {
       graduacion: r.student.graduacion,
       evaluationDate: r.student.evaluationDate,
       dni: r.student.dni,
+      birthDate: r.student.birthDate,
       orientadorName: orientador ? `${orientador.lastName}, ${orientador.firstName}` : null,
       active: r.student.active,
     };
   });
 
-  const buffer = await buildStudentsExcelBuffer(rows);
-  const filename = `itinerancia_${slugify(activity.title)}.xlsx`;
+  const format = request.nextUrl.searchParams.get("format");
+  const isPlanilla = format === "planilla";
+
+  const buffer = isPlanilla
+    ? await buildItineranciaPlanillaPdfBuffer(rows, activity.date)
+    : await buildStudentsExcelBuffer(rows);
+  const filename = isPlanilla
+    ? `planilla_${slugify(activity.title)}.pdf`
+    : `itinerancia_${slugify(activity.title)}.xlsx`;
 
   await logChange({
     actor: session.displayName,
@@ -64,7 +73,9 @@ export async function GET(_request: NextRequest, { params }: Params) {
   return new NextResponse(new Uint8Array(buffer), {
     status: 200,
     headers: {
-      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "Content-Type": isPlanilla
+        ? "application/pdf"
+        : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "Content-Disposition": `attachment; filename="${filename}"`,
     },
   });

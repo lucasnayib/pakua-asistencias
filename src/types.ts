@@ -44,6 +44,7 @@ export type StudentListItem = {
   graduacion: string | null;
   evaluationDate: string | null;
   dni: string | null;
+  birthDate: string | null;
   orientador: { id: string; firstName: string; lastName: string } | null;
   active: boolean;
   createdAt: string;

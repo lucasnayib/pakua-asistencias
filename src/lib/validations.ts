@@ -14,6 +14,7 @@ export const studentCreateSchema = z.object({
   graduacion: z.string().trim().max(200).optional().nullable(),
   evaluationDate: z.string().trim().max(20).optional().nullable(),
   dni: z.string().trim().max(20).optional().nullable(),
+  birthDate: z.string().trim().max(20).optional().nullable(),
   orientadorId: z.string().trim().min(1).optional().nullable(),
 });
 
@@ -24,6 +25,7 @@ export const studentUpdateSchema = z.object({
   graduacion: z.string().trim().max(200).optional().nullable(),
   evaluationDate: z.string().trim().max(20).optional().nullable(),
   dni: z.string().trim().max(20).optional().nullable(),
+  birthDate: z.string().trim().max(20).optional().nullable(),
   orientadorId: z.string().trim().min(1).optional().nullable(),
   active: z.boolean().optional(),
 });

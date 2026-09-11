@@ -26,6 +26,7 @@ export function StudentFormDialog({ open, student, orientadores, onClose, onSave
   const [graduacion, setGraduacion] = useState("");
   const [evaluationDate, setEvaluationDate] = useState("");
   const [dni, setDni] = useState("");
+  const [birthDate, setBirthDate] = useState("");
   const [orientadorId, setOrientadorId] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -40,6 +41,7 @@ export function StudentFormDialog({ open, student, orientadores, onClose, onSave
       setGraduacion(student?.graduacion ?? "");
       setEvaluationDate(student?.evaluationDate ?? "");
       setDni(student?.dni ?? "");
+      setBirthDate(student?.birthDate ?? "");
       setOrientadorId(student?.orientador?.id ?? "");
       setPhoto(null);
       setPreview(student?.photoUrl ?? null);
@@ -83,6 +85,7 @@ export function StudentFormDialog({ open, student, orientadores, onClose, onSave
       formData.set("graduacion", graduacion);
       formData.set("evaluationDate", evaluationDate);
       formData.set("dni", dni);
+      formData.set("birthDate", birthDate);
       formData.set("orientadorId", orientadorId);
       if (photo) formData.set("photo", photo);
 
@@ -165,6 +168,12 @@ export function StudentFormDialog({ open, student, orientadores, onClose, onSave
           placeholder="42.358.937"
           value={dni}
           onChange={(e) => handleDniChange(e.target.value)}
+        />
+        <Input
+          label="Fecha de Nacimiento"
+          type="date"
+          value={birthDate}
+          onChange={(e) => setBirthDate(e.target.value)}
         />
         <Select label="Orientador" value={orientadorId} onChange={(e) => setOrientadorId(e.target.value)}>
           <option value="">Sin orientador asignado</option>

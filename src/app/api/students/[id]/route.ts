@@ -36,6 +36,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   const rawGraduacion = formData.get("graduacion");
   const rawEvaluationDate = formData.get("evaluationDate");
   const rawDni = formData.get("dni");
+  const rawBirthDate = formData.get("birthDate");
   const rawOrientadorId = formData.get("orientadorId");
   const parsed = studentUpdateSchema.safeParse({
     firstName: formData.get("firstName") ?? undefined,
@@ -44,6 +45,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     graduacion: rawGraduacion === null ? undefined : rawGraduacion || null,
     evaluationDate: rawEvaluationDate === null ? undefined : rawEvaluationDate || null,
     dni: rawDni === null ? undefined : rawDni || null,
+    birthDate: rawBirthDate === null ? undefined : rawBirthDate || null,
     orientadorId: rawOrientadorId === null ? undefined : rawOrientadorId || null,
     active: rawActive === null ? undefined : rawActive === "true",
   });

@@ -8,6 +8,7 @@ export type StudentExportRow = {
   graduacion: string | null;
   evaluationDate: string | null;
   dni: string | null;
+  birthDate: string | null;
   orientadorName: string | null;
   active: boolean;
 };

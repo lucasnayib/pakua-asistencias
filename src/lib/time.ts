@@ -44,6 +44,37 @@ export function dayOfWeekFromISODate(isoDate: string): number {
   return new Date(year, (month ?? 1) - 1, day ?? 1).getDay();
 }
 
+/** Edad en años cumplidos a una fecha de referencia, a partir de dos "YYYY-MM-DD". */
+export function ageFromISODate(birthIsoDate: string, referenceIsoDate: string): number | null {
+  const [by, bm, bd] = birthIsoDate.split("-").map(Number);
+  const [ry, rm, rd] = referenceIsoDate.split("-").map(Number);
+  if (!by || !bm || !bd || !ry || !rm || !rd) return null;
+  let age = ry - by;
+  if (rm < bm || (rm === bm && rd < bd)) age -= 1;
+  return age >= 0 ? age : null;
+}
+
+/** Meses completos entre dos "YYYY-MM-DD" (fromIsoDate hasta toIsoDate). */
+export function monthsBetweenISODates(fromIsoDate: string, toIsoDate: string): number | null {
+  const [fy, fm, fd] = fromIsoDate.split("-").map(Number);
+  const [ty, tm, td] = toIsoDate.split("-").map(Number);
+  if (!fy || !fm || !fd || !ty || !tm || !td) return null;
+  let months = (ty - fy) * 12 + (tm - fm);
+  if (td < fd) months -= 1;
+  return months >= 0 ? months : null;
+}
+
+/** Días entre dos "YYYY-MM-DD" (fromIsoDate hasta toIsoDate). */
+export function daysBetweenISODates(fromIsoDate: string, toIsoDate: string): number | null {
+  const [fy, fm, fd] = fromIsoDate.split("-").map(Number);
+  const [ty, tm, td] = toIsoDate.split("-").map(Number);
+  if (!fy || !fm || !fd || !ty || !tm || !td) return null;
+  const from = new Date(fy, fm - 1, fd);
+  const to = new Date(ty, tm - 1, td);
+  const days = Math.round((to.getTime() - from.getTime()) / 86400000);
+  return days >= 0 ? days : null;
+}
+
 /** Fecha/hora local del dispositivo, no depende de la zona horaria del servidor. */
 export function getLocalNow(date: Date = new Date()) {
   return {

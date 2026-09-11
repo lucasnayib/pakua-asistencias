@@ -150,6 +150,12 @@ export function ItineranciasAdminClient() {
                 >
                   Exportar
                 </a>
+                <a
+                  className="text-muted-foreground hover:underline"
+                  href={`/api/itinerancias/activities/${a.id}/registrations/export?format=planilla`}
+                >
+                  Planilla (PDF)
+                </a>
                 <button className="text-danger hover:underline" onClick={() => setDeleting(a)}>
                   Eliminar
                 </button>
