@@ -108,6 +108,24 @@ export type ItineranciaPublicResponse = {
   students: ItineranciaPerson[];
 };
 
+export type ItineranciaAttendanceStudent = ItineranciaPerson & {
+  attended: boolean;
+};
+
+export type ItineranciaAttendanceActivity = {
+  id: string;
+  title: string;
+  category: ItineranciaCategory;
+  date: string;
+  startTime: string;
+  endTime: string;
+  students: ItineranciaAttendanceStudent[];
+};
+
+export type ItineranciaAttendanceResponse = {
+  activities: ItineranciaAttendanceActivity[];
+};
+
 export type OrientadorListItem = {
   id: string;
   firstName: string;

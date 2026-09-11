@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { AppHeader } from "@/components/layout/AppHeader";
 import { StudentCard } from "@/components/students/StudentCard";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Card } from "@/components/ui/Card";
@@ -75,12 +74,9 @@ export function ItineranciasClient({ adminId }: ItineranciasClientProps) {
 
   if (loading) {
     return (
-      <>
-        <AppHeader />
-        <main className="flex flex-1 items-center justify-center gap-2 p-8 text-sm text-muted-foreground">
-          <Spinner className="h-4 w-4" /> Cargando…
-        </main>
-      </>
+      <div className="flex flex-1 items-center justify-center gap-2 p-8 text-sm text-muted-foreground">
+        <Spinner className="h-4 w-4" /> Cargando…
+      </div>
     );
   }
 
@@ -94,9 +90,7 @@ export function ItineranciasClient({ adminId }: ItineranciasClientProps) {
       : students.filter((s) => `${s.firstName} ${s.lastName}`.toLowerCase().includes(query));
 
   return (
-    <>
-      <AppHeader />
-      <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 p-4 sm:p-6">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 p-4 sm:p-6">
         <div>
           <h1 className="text-2xl font-semibold">Itinerancias</h1>
           <p className="text-sm text-muted-foreground">
@@ -160,7 +154,6 @@ export function ItineranciasClient({ adminId }: ItineranciasClientProps) {
             </Card>
           ))
         )}
-      </main>
 
       <ConfirmDialog
         open={pending !== null}
@@ -175,6 +168,6 @@ export function ItineranciasClient({ adminId }: ItineranciasClientProps) {
         onConfirm={handleConfirm}
         onCancel={() => setPending(null)}
       />
-    </>
+    </div>
   );
 }

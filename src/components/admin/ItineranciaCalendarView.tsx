@@ -1,10 +1,13 @@
 import { dayName, dayOfWeekFromISODate, formatDateEs, formatTimeRange } from "@/lib/time";
 import type { ItineranciaActivityListItem } from "@/types";
 
-const START_HOUR = 8;
-const END_HOUR = 22;
+// Cubre el día completo: muchas actividades de Itinerancias caen de madrugada o pasada la
+// medianoche (00hs-01hs, 22hs-23hs, etc.), y con un rango recortado (p. ej. 8 a 22) esas horas
+// quedaban recortadas contra el borde y se veían amontonadas/superpuestas aunque no lo estuvieran.
+const START_HOUR = 0;
+const END_HOUR = 24;
 const TOTAL_MINUTES = (END_HOUR - START_HOUR) * 60;
-const HOUR_HEIGHT = 56; // px
+const HOUR_HEIGHT = 44; // px
 const TOTAL_HEIGHT = (END_HOUR - START_HOUR) * HOUR_HEIGHT;
 const HOURS = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => START_HOUR + i);
 
@@ -38,7 +41,10 @@ function layoutDate(activities: ItineranciaActivityListItem[]): Block[] {
   const laneEndMinute: number[] = [];
   const raw = sorted.map((activity) => {
     const start = clampMinutes(minutesFromStart(activity.startTime));
-    const end = clampMinutes(minutesFromStart(activity.endTime));
+    const rawEnd = minutesFromStart(activity.endTime);
+    // "00:00" como hora de fin (o cualquier fin <= inicio) significa medianoche, es decir, el
+    // final del día en curso — no una hora "negativa" del día siguiente.
+    const end = clampMinutes(rawEnd <= start ? TOTAL_MINUTES : rawEnd);
     let lane = laneEndMinute.findIndex((endMinute) => endMinute <= start);
     if (lane === -1) {
       lane = laneEndMinute.length;

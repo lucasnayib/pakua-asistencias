@@ -218,6 +218,10 @@ model ItineranciaStudentRegistration {
   studentId  String
   student    Student             @relation(fields: [studentId], references: [id], onDelete: Cascade)
   createdAt  DateTime            @default(now())
+  // Auto-check-in del propio alumno el día de la actividad (igual que Attendance, pero acá la
+  // inscripción y la asistencia comparten la misma fila en vez de dos modelos separados). null =
+  // inscripto pero todavía no se marcó presente.
+  attendedAt DateTime?
 
   @@unique([activityId, studentId])
 }

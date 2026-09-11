@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { isItineranciasOpen, isItineranciasSchool } from "@/lib/itinerancias";
 import { getUnlockedItineranciaAdminId } from "@/lib/itinerancia-access";
 import { ItineranciaUnlockGate } from "@/components/attendance/ItineranciaUnlockGate";
-import { ItineranciasClient } from "@/components/attendance/ItineranciasClient";
+import { ItineranciasHome } from "@/components/attendance/ItineranciasHome";
 import { AppHeader } from "@/components/layout/AppHeader";
 
 type Params = { params: Promise<{ slug: string }> };
@@ -44,5 +44,5 @@ export default async function ItineranciasPage({ params }: Params) {
     return <ItineranciaUnlockGate slug={slug} schoolName={school.displayName} />;
   }
 
-  return <ItineranciasClient adminId={school.id} />;
+  return <ItineranciasHome adminId={school.id} />;
 }
