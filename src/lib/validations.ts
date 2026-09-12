@@ -4,7 +4,7 @@ const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 const timeWithSecondsRegex = /^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/;
 
-export const FORMACION_OPTIONS = ["Gym", "Arte Marcial", "Taichi", "Yoga", "Armas de Corte"] as const;
+export const FORMACION_OPTIONS = ["Gym", "Arte Marcial", "Taichi", "Yoga", "Armas de Corte", "Jr"] as const;
 const formacionSchema = z.union([z.enum(FORMACION_OPTIONS), z.literal("")]).optional().nullable();
 
 export const studentCreateSchema = z.object({
