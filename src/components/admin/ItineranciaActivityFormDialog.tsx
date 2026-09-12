@@ -4,13 +4,19 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import type { ItineranciaActivityListItem, ItineranciaCategory } from "@/types";
+import type { ItineranciaActivityListItem, ItineranciaCategory, ItineranciaLocation } from "@/types";
 
 const CATEGORY_OPTIONS: { value: ItineranciaCategory; label: string }[] = [
   { value: "EVALUACION", label: "Evaluación" },
   { value: "SEMINARIO", label: "Seminario" },
   { value: "CURSO", label: "Curso" },
-  { value: "OTRO", label: "Otro" },
+  { value: "COMPENSATORIOS", label: "Compensatorios" },
+  { value: "CLASES_ESPECIALES", label: "Clases Especiales" },
+];
+
+const LOCATION_OPTIONS: { value: ItineranciaLocation; label: string }[] = [
+  { value: "CORDOBA", label: "Córdoba" },
+  { value: "ALTA_GRACIA", label: "Alta Gracia" },
 ];
 
 type ItineranciaActivityFormDialogProps = {
@@ -30,6 +36,7 @@ export function ItineranciaActivityFormDialog({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<ItineranciaCategory>("EVALUACION");
+  const [location, setLocation] = useState<ItineranciaLocation>("CORDOBA");
   const [date, setDate] = useState("");
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("10:00");
@@ -41,6 +48,7 @@ export function ItineranciaActivityFormDialog({
       setTitle(activity?.title ?? "");
       setDescription(activity?.description ?? "");
       setCategory(activity?.category ?? "EVALUACION");
+      setLocation(activity?.location ?? "CORDOBA");
       setDate(activity?.date ?? "");
       setStartTime(activity?.startTime ?? "09:00");
       setEndTime(activity?.endTime ?? "10:00");
@@ -65,7 +73,15 @@ export function ItineranciaActivityFormDialog({
         {
           method: activity ? "PATCH" : "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title, description: description || null, category, date, startTime, endTime }),
+          body: JSON.stringify({
+            title,
+            description: description || null,
+            category,
+            location,
+            date,
+            startTime,
+            endTime,
+          }),
         }
       );
       const data = await res.json();
@@ -104,6 +120,21 @@ export function ItineranciaActivityFormDialog({
             className="h-10 rounded-lg border border-border bg-surface px-3 text-sm"
           >
             {CATEGORY_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex flex-col gap-1.5 text-sm">
+          <span className="font-medium">Sede</span>
+          <select
+            value={location}
+            onChange={(e) => setLocation(e.target.value as ItineranciaLocation)}
+            className="h-10 rounded-lg border border-border bg-surface px-3 text-sm"
+          >
+            {LOCATION_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>

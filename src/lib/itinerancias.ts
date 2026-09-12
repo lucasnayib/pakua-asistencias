@@ -14,7 +14,13 @@ export function isItineranciasSchool(slug: string | null | undefined): boolean {
   return !!target && slug === target;
 }
 
-export const ITINERANCIA_CATEGORIES = ["EVALUACION", "SEMINARIO", "CURSO", "OTRO"] as const;
+export const ITINERANCIA_CATEGORIES = [
+  "EVALUACION",
+  "SEMINARIO",
+  "CURSO",
+  "COMPENSATORIOS",
+  "CLASES_ESPECIALES",
+] as const;
 export type ItineranciaCategory = (typeof ITINERANCIA_CATEGORIES)[number];
 
 import { NextResponse } from "next/server";

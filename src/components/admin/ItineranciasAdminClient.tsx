@@ -17,7 +17,13 @@ const CATEGORY_LABELS: Record<string, string> = {
   EVALUACION: "Evaluación",
   SEMINARIO: "Seminario",
   CURSO: "Curso",
-  OTRO: "Otro",
+  COMPENSATORIOS: "Compensatorios",
+  CLASES_ESPECIALES: "Clases Especiales",
+};
+
+const LOCATION_LABELS: Record<string, string> = {
+  CORDOBA: "Córdoba",
+  ALTA_GRACIA: "Alta Gracia",
 };
 
 type ViewMode = "list" | "calendar";
@@ -134,6 +140,7 @@ export function ItineranciasAdminClient() {
               <p className="text-xs text-muted-foreground">
                 {formatDateEs(a.date)} · {formatTimeRange(a.startTime, a.endTime)}
               </p>
+              {a.location && <p className="text-xs text-muted-foreground">{LOCATION_LABELS[a.location] ?? a.location}</p>}
               <p className="text-xs text-muted-foreground">
                 {a._count.studentRegistrations} alumno(s) anotados
               </p>

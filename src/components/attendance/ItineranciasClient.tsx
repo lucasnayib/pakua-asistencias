@@ -19,7 +19,13 @@ const CATEGORY_LABELS: Record<string, string> = {
   EVALUACION: "Evaluación",
   SEMINARIO: "Seminario",
   CURSO: "Curso",
-  OTRO: "Otro",
+  COMPENSATORIOS: "Compensatorios",
+  CLASES_ESPECIALES: "Clases Especiales",
+};
+
+const LOCATION_LABELS: Record<string, string> = {
+  CORDOBA: "Córdoba",
+  ALTA_GRACIA: "Alta Gracia",
 };
 
 type CategoryFilter = ItineranciaCategory | "TODAS";
@@ -29,7 +35,8 @@ const CATEGORY_FILTERS: { id: CategoryFilter; label: string }[] = [
   { id: "CURSO", label: "Curso" },
   { id: "SEMINARIO", label: "Seminario" },
   { id: "EVALUACION", label: "Evaluación" },
-  { id: "OTRO", label: "Otro" },
+  { id: "COMPENSATORIOS", label: "Compensatorios" },
+  { id: "CLASES_ESPECIALES", label: "Clases Especiales" },
 ];
 
 type ItineranciasClientProps = {
@@ -70,18 +77,23 @@ export function ItineranciasClient({ adminId }: ItineranciasClientProps) {
         toast.error(body.error ?? "No se pudo registrar la inscripción");
         return;
       }
+      const registeredActivityIds: string[] = body.registeredActivityIds ?? [pending.activity.id];
       setData((current) => {
         if (!current) return current;
         return {
           ...current,
           activities: current.activities.map((a) =>
-            a.id === pending.activity.id
+            registeredActivityIds.includes(a.id)
               ? { ...a, registeredStudentIds: [...a.registeredStudentIds, pending.student.id] }
               : a
           ),
         };
       });
-      toast.success(`Inscripción confirmada: ${pending.student.firstName} ${pending.student.lastName}`);
+      toast.success(
+        registeredActivityIds.length > 1
+          ? `Inscripción confirmada: ${pending.student.firstName} ${pending.student.lastName} (en las ${registeredActivityIds.length} actividades "${pending.activity.title}")`
+          : `Inscripción confirmada: ${pending.student.firstName} ${pending.student.lastName}`
+      );
       setPending(null);
     } finally {
       setConfirming(false);
@@ -170,6 +182,7 @@ export function ItineranciasClient({ adminId }: ItineranciasClientProps) {
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {formatDateEs(activity.date)} · {formatTimeRange(activity.startTime, activity.endTime)}
+                  {activity.location && <> · {LOCATION_LABELS[activity.location] ?? activity.location}</>}
                 </p>
                 {activity.description && <p className="mt-1 text-sm">{activity.description}</p>}
               </div>

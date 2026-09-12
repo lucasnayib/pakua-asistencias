@@ -15,7 +15,13 @@ const CATEGORY_LABELS: Record<string, string> = {
   EVALUACION: "Evaluación",
   SEMINARIO: "Seminario",
   CURSO: "Curso",
-  OTRO: "Otro",
+  COMPENSATORIOS: "Compensatorios",
+  CLASES_ESPECIALES: "Clases Especiales",
+};
+
+const LOCATION_LABELS: Record<string, string> = {
+  CORDOBA: "Córdoba",
+  ALTA_GRACIA: "Alta Gracia",
 };
 
 function minutesFromStart(time: string): number {
@@ -138,6 +144,9 @@ export function ItineranciaCalendarView({ activities, onEdit }: ItineranciaCalen
                     {CATEGORY_LABELS[activity.category] ?? activity.category} ·{" "}
                     {formatTimeRange(activity.startTime, activity.endTime)}
                   </p>
+                  {activity.location && (
+                    <p className="truncate text-muted-foreground">{LOCATION_LABELS[activity.location] ?? activity.location}</p>
+                  )}
                 </button>
               ))}
             </div>

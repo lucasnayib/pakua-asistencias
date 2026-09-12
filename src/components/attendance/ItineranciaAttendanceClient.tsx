@@ -13,7 +13,13 @@ const CATEGORY_LABELS: Record<string, string> = {
   EVALUACION: "Evaluación",
   SEMINARIO: "Seminario",
   CURSO: "Curso",
-  OTRO: "Otro",
+  COMPENSATORIOS: "Compensatorios",
+  CLASES_ESPECIALES: "Clases Especiales",
+};
+
+const LOCATION_LABELS: Record<string, string> = {
+  CORDOBA: "Córdoba",
+  ALTA_GRACIA: "Alta Gracia",
 };
 
 type ItineranciaAttendanceClientProps = {
@@ -143,7 +149,10 @@ export function ItineranciaAttendanceClient({ adminId }: ItineranciaAttendanceCl
                   {CATEGORY_LABELS[activity.category] ?? activity.category}
                 </span>
               </div>
-              <p className="text-sm text-muted-foreground">{formatTimeRange(activity.startTime, activity.endTime)}</p>
+              <p className="text-sm text-muted-foreground">
+                {formatTimeRange(activity.startTime, activity.endTime)}
+                {activity.location && <> · {LOCATION_LABELS[activity.location] ?? activity.location}</>}
+              </p>
             </div>
 
             {activity.students.length === 0 ? (

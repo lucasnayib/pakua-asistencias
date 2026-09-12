@@ -51,5 +51,24 @@ export async function POST(request: Request) {
     detail: `${student.firstName} ${student.lastName} — ${activity.title}`,
   });
 
-  return NextResponse.json({ ok: true }, { status: 201 });
+  // Inscripción automática a todas las demás actividades con EXACTAMENTE el mismo título (p.
+  // ej. la misma clase dictada en Córdoba y en Alta Gracia): se anotan las que compartan
+  // nombre, ignorando las que ya tuviera (no debería pasar, pero por si acaso) sin romper la
+  // inscripción principal si alguna falla.
+  const siblings = await prisma.itineranciaActivity.findMany({
+    where: { adminId: activity.adminId, title: activity.title, id: { not: activityId } },
+    select: { id: true },
+  });
+
+  const registeredActivityIds = [activityId];
+  for (const sibling of siblings) {
+    try {
+      await prisma.itineranciaStudentRegistration.create({ data: { activityId: sibling.id, studentId } });
+      registeredActivityIds.push(sibling.id);
+    } catch {
+      // ya estaba anotado a esa actividad puntual; no es un error para el flujo principal
+    }
+  }
+
+  return NextResponse.json({ ok: true, registeredActivityIds }, { status: 201 });
 }

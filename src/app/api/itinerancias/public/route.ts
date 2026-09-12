@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
       title: a.title,
       description: a.description,
       category: a.category,
+      location: a.location,
       date: a.date,
       startTime: a.startTime,
       endTime: a.endTime,

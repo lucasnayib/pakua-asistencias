@@ -104,13 +104,22 @@ export const itineranciaAccessCodeSchema = z.object({
   code: z.string().trim().min(4, "El código debe tener al menos 4 caracteres").max(50).nullable(),
 });
 
-export const itineranciaCategorySchema = z.enum(["EVALUACION", "SEMINARIO", "CURSO", "OTRO"]);
+export const itineranciaCategorySchema = z.enum([
+  "EVALUACION",
+  "SEMINARIO",
+  "CURSO",
+  "COMPENSATORIOS",
+  "CLASES_ESPECIALES",
+]);
+
+export const itineranciaLocationSchema = z.enum(["CORDOBA", "ALTA_GRACIA"]);
 
 export const itineranciaActivityUpsertSchema = z
   .object({
     title: z.string().trim().min(1, "El título es obligatorio").max(150),
     description: z.string().trim().max(2000).optional().nullable(),
     category: itineranciaCategorySchema,
+    location: itineranciaLocationSchema,
     date: z.string().regex(dateRegex, "Fecha inválida (YYYY-MM-DD)"),
     startTime: z.string().regex(timeRegex, "Hora de inicio inválida (HH:mm)"),
     endTime: z.string().regex(timeRegex, "Hora de fin inválida (HH:mm)"),

@@ -34,13 +34,95 @@ const LABEL_WIDTH = 40;
 const DNI_LABEL_WIDTH = 60;
 const RIGHT_MARGIN = 4;
 
+// Orden de graduación, de menos a más graduado. Cada uno de los 7 cintos de color ocupa un
+// bloque de 5 valores (0 a 4 puntas del color del cinto siguiente); los 3 grados de Negro van
+// justo después del bloque de Rojo. `graduacion` es texto libre (sin lista fija en la ficha del
+// alumno), así que se interpreta por palabras clave en vez de un enum.
+const BELT_KEYWORDS = ["BLANC", "AMARILL", "NARANJ", "VERDE", "GRIS", "AZUL", "ROJ"];
+
+function normalizeGraduacion(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toUpperCase();
+}
+
+function countPuntas(normalized: string): number {
+  // Formato corto: "2P" (dígito + P, ej. "Cinto Naranja 2P"). Se acepta también la forma larga
+  // "2 puntas" por si queda algún dato viejo con ese formato.
+  const short = normalized.match(/(\d)\s*P\b/);
+  if (short) return Math.min(4, Math.max(1, Number(short[1])));
+  const long = normalized.match(/(\d)\s*PUNTA/);
+  if (long) return Math.min(4, Math.max(1, Number(long[1])));
+  return normalized.includes("PUNTA") ? 1 : 0;
+}
+
+/** Mapea el texto libre de graduación a un ranking numérico (-1 = desconocida, va primero). */
+function graduacionRank(graduacion: string | null): number {
+  if (!graduacion) return -1;
+  const n = normalizeGraduacion(graduacion);
+  // Los 7 cintos de color se chequean ANTES que "negro": un texto como "Rojo 3 puntas negras"
+  // contiene "NEGR" (de "negras") pero el cinto real es Rojo, no Negro.
+  for (let i = 0; i < BELT_KEYWORDS.length; i++) {
+    if (n.includes(BELT_KEYWORDS[i])) return i * 5 + countPuntas(n);
+  }
+  if (n.includes("NEGR")) {
+    // Los cintos negros se identifican por grado ("Negro 1°", "Negro 2° Grado", "Negro 3°"),
+    // no por "dan". No usan puntas.
+    if (n.includes("3") || n.includes("TERCER")) return 7 * 5 + 2; // Negro 3°
+    if (n.includes("2") || n.includes("SEGUND")) return 7 * 5 + 1; // Negro 2°
+    return 7 * 5; // Negro 1° (default si no especifica grado)
+  }
+  return -1; // texto no reconocible → antes de Blanco
+}
+
 function orientadorInitials(orientadorName: string | null): string {
   if (!orientadorName) return "";
   // orientadorName viene como "Apellido, Nombre"
   const [lastName, firstName] = orientadorName.split(",").map((s) => s.trim());
-  const first = firstName?.[0] ?? "";
-  const last = lastName?.[0] ?? "";
+  // .toUpperCase() por apellidos que empiezan en minúscula (ej. "del Castaño") — sin esto la
+  // inicial quedaba en minúscula y no combinaba bien con la del nombre.
+  const first = firstName?.[0]?.toUpperCase() ?? "";
+  const last = lastName?.[0]?.toUpperCase() ?? "";
   return first && last ? `${first}${last}` : "";
+}
+
+// Cabecera de página, renglón "Orientador:" — calibrado contra la plantilla real (la etiqueta
+// impresa termina justo antes de x=100; y=165 alinea el baseline de este texto con el de esa
+// etiqueta, en el mismo renglón, sin invadir el renglón de arriba ni la tabla de abajo).
+const ORIENTADOR_LEGEND_X = 100;
+const ORIENTADOR_LEGEND_Y = 165;
+const ORIENTADOR_LEGEND_MAX_WIDTH = 565 - ORIENTADOR_LEGEND_X - RIGHT_MARGIN;
+const ORIENTADOR_LEGEND_MIN_SIZE = 5;
+
+/** Referencia de iniciales -> nombre completo, para las O de todos los alumnos de la página
+ * ("MM= Molina Matias"). Si dos orientadores distintos comparten iniciales, se listan ambos. */
+function orientadorLegendText(font: PDFFont, pageRows: StudentExportRow[]): string {
+  const namesByInitials = new Map<string, Set<string>>();
+  for (const row of pageRows) {
+    const initials = orientadorInitials(row.orientadorName);
+    if (!initials || !row.orientadorName) continue;
+    const displayName = row.orientadorName.replace(", ", " ");
+    if (!namesByInitials.has(initials)) namesByInitials.set(initials, new Set());
+    namesByInitials.get(initials)!.add(displayName);
+  }
+
+  const entries: string[] = [];
+  for (const [initials, names] of [...namesByInitials.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+    for (const name of names) entries.push(`${initials}= ${name}`);
+  }
+  if (entries.length === 0) return "";
+
+  let text = entries.join("   ");
+  // Si no entra ni al tamaño mínimo, se van sacando entradas del final hasta que entre.
+  while (
+    entries.length > 1 &&
+    font.widthOfTextAtSize(text, ORIENTADOR_LEGEND_MIN_SIZE) > ORIENTADOR_LEGEND_MAX_WIDTH
+  ) {
+    entries.pop();
+    text = `${entries.join("   ")}…`;
+  }
+  return text;
 }
 
 /** Reduce el tamaño de fuente hasta que el texto entre en maxWidth (o hasta minSize). */
@@ -187,7 +269,20 @@ export async function buildItineranciaPlanillaPdfBuffer(
   const embeddedTemplatePage = await outDoc.embedPage(templatePage);
   const todayIso = getLocalNow().date;
 
-  const pageCount = Math.max(1, Math.ceil(rows.length / STUDENTS_PER_PAGE));
+  // Orden por graduación (de menos a más graduado); dentro de la misma graduación, por edad
+  // ascendente. Copia para no mutar el array recibido, que puede compartirse con otro llamador.
+  const sortedRows = [...rows].sort((a, b) => {
+    const rankDiff = graduacionRank(a.graduacion) - graduacionRank(b.graduacion);
+    if (rankDiff !== 0) return rankDiff;
+    const ageA = a.birthDate ? ageFromISODate(a.birthDate, activityDate) : null;
+    const ageB = b.birthDate ? ageFromISODate(b.birthDate, activityDate) : null;
+    if (ageA === null && ageB === null) return 0;
+    if (ageA === null) return 1;
+    if (ageB === null) return -1;
+    return ageA - ageB;
+  });
+
+  const pageCount = Math.max(1, Math.ceil(sortedRows.length / STUDENTS_PER_PAGE));
 
   for (let p = 0; p < pageCount; p++) {
     const page = outDoc.addPage([templatePage.getWidth(), pageHeight]);
@@ -201,11 +296,26 @@ export async function buildItineranciaPlanillaPdfBuffer(
       color: rgb(0.1, 0.1, 0.1),
     });
 
-    const pageRows = rows.slice(p * STUDENTS_PER_PAGE, p * STUDENTS_PER_PAGE + STUDENTS_PER_PAGE);
+    const pageRows = sortedRows.slice(p * STUDENTS_PER_PAGE, p * STUDENTS_PER_PAGE + STUDENTS_PER_PAGE);
+
+    const legendText = orientadorLegendText(font, pageRows);
+    if (legendText) {
+      const legendSize = fittingFontSize(font, legendText, ORIENTADOR_LEGEND_MAX_WIDTH, 8, ORIENTADOR_LEGEND_MIN_SIZE);
+      page.drawText(legendText, {
+        x: ORIENTADOR_LEGEND_X,
+        y: pageHeight - ORIENTADOR_LEGEND_Y,
+        size: legendSize,
+        font,
+        color: rgb(0.1, 0.1, 0.1),
+      });
+    }
+
     pageRows.forEach((row, i) => {
-      const colIndex = i % COLS_PER_PAGE;
-      const blockIndex = Math.floor(i / COLS_PER_PAGE);
-      if (blockIndex >= ROWS_PER_PAGE) return;
+      // Llenado de abajo hacia arriba, de derecha a izquierda: el primero del orden (graduación
+      // más baja) cae en la esquina inferior derecha de la página.
+      const colIndex = COLS_PER_PAGE - 1 - (i % COLS_PER_PAGE);
+      const blockIndex = ROWS_PER_PAGE - 1 - Math.floor(i / COLS_PER_PAGE);
+      if (blockIndex < 0) return;
       drawSlot(page, font, pageHeight, colIndex, blockIndex, row, activityDate, todayIso);
     });
   }

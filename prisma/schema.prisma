@@ -198,7 +198,8 @@ model ItineranciaActivity {
   admin       Admin    @relation(fields: [adminId], references: [id])
   title       String
   description String?
-  category    String // "EVALUACION" | "SEMINARIO" | "CURSO" | "OTRO"
+  category    String // "EVALUACION" | "SEMINARIO" | "CURSO" | "COMPENSATORIOS" | "CLASES_ESPECIALES"
+  location    String? // "CORDOBA" | "ALTA_GRACIA" — null en actividades creadas antes de este campo
   date        String // "YYYY-MM-DD"
   startTime   String // "HH:mm"
   endTime     String // "HH:mm"

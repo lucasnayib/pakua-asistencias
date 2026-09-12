@@ -70,13 +70,16 @@ export type SchoolListItem = {
   slug: string;
 };
 
-export type ItineranciaCategory = "EVALUACION" | "SEMINARIO" | "CURSO" | "OTRO";
+export type ItineranciaCategory = "EVALUACION" | "SEMINARIO" | "CURSO" | "COMPENSATORIOS" | "CLASES_ESPECIALES";
+
+export type ItineranciaLocation = "CORDOBA" | "ALTA_GRACIA";
 
 export type ItineranciaActivityListItem = {
   id: string;
   title: string;
   description: string | null;
   category: ItineranciaCategory;
+  location: ItineranciaLocation | null;
   date: string;
   startTime: string;
   endTime: string;
@@ -97,6 +100,7 @@ export type ItineranciaPublicActivity = {
   title: string;
   description: string | null;
   category: ItineranciaCategory;
+  location: ItineranciaLocation | null;
   date: string;
   startTime: string;
   endTime: string;
@@ -116,6 +120,7 @@ export type ItineranciaAttendanceActivity = {
   id: string;
   title: string;
   category: ItineranciaCategory;
+  location: ItineranciaLocation | null;
   date: string;
   startTime: string;
   endTime: string;
