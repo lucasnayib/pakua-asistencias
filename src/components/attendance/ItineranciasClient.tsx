@@ -8,7 +8,12 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
 import { formatDateEs, formatTimeRange } from "@/lib/time";
-import type { ItineranciaPerson, ItineranciaPublicActivity, ItineranciaPublicResponse } from "@/types";
+import type {
+  ItineranciaCategory,
+  ItineranciaPerson,
+  ItineranciaPublicActivity,
+  ItineranciaPublicResponse,
+} from "@/types";
 
 const CATEGORY_LABELS: Record<string, string> = {
   EVALUACION: "Evaluación",
@@ -16,6 +21,16 @@ const CATEGORY_LABELS: Record<string, string> = {
   CURSO: "Curso",
   OTRO: "Otro",
 };
+
+type CategoryFilter = ItineranciaCategory | "TODAS";
+
+const CATEGORY_FILTERS: { id: CategoryFilter; label: string }[] = [
+  { id: "TODAS", label: "Todas" },
+  { id: "CURSO", label: "Curso" },
+  { id: "SEMINARIO", label: "Seminario" },
+  { id: "EVALUACION", label: "Evaluación" },
+  { id: "OTRO", label: "Otro" },
+];
 
 type ItineranciasClientProps = {
   adminId: string;
@@ -30,6 +45,7 @@ export function ItineranciasClient({ adminId }: ItineranciasClientProps) {
   const [data, setData] = useState<ItineranciaPublicResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("TODAS");
   const [pending, setPending] = useState<PendingRegistration | null>(null);
   const [confirming, setConfirming] = useState(false);
 
@@ -80,8 +96,10 @@ export function ItineranciasClient({ adminId }: ItineranciasClientProps) {
     );
   }
 
-  const activities = data?.activities ?? [];
+  const allActivities = data?.activities ?? [];
   const students = data?.students ?? [];
+  const activities =
+    categoryFilter === "TODAS" ? allActivities : allActivities.filter((a) => a.category === categoryFilter);
 
   const query = search.trim().toLowerCase();
   const matches =
@@ -107,9 +125,30 @@ export function ItineranciasClient({ adminId }: ItineranciasClientProps) {
           className="max-w-sm"
         />
 
-        {activities.length === 0 ? (
+        <div className="flex flex-wrap gap-1.5">
+          {CATEGORY_FILTERS.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setCategoryFilter(f.id)}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                categoryFilter === f.id
+                  ? "bg-accent text-accent-foreground"
+                  : "bg-surface-2 text-foreground hover:bg-surface-2/80"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+
+        {allActivities.length === 0 ? (
           <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
             Todavía no hay actividades publicadas.
+          </p>
+        ) : activities.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+            No hay actividades de esta categoría.
           </p>
         ) : query.length === 0 ? (
           <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
