@@ -36,7 +36,9 @@ export async function GET(request: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Actividad no encontrada" }, { status: 404 });
   }
 
-  const rows = activity.studentRegistrations.map((r) => {
+  const registrations = activity.studentRegistrations;
+
+  function toExportRow(r: (typeof registrations)[number]) {
     const orientador = r.student.orientadores[0]?.orientador;
     return {
       firstName: r.student.firstName,
@@ -49,10 +51,17 @@ export async function GET(request: NextRequest, { params }: Params) {
       orientadorName: orientador ? `${orientador.lastName}, ${orientador.firstName}` : null,
       active: r.student.active,
     };
-  });
+  }
 
   const format = request.nextUrl.searchParams.get("format");
   const isPlanilla = format === "planilla";
+
+  // El Excel sigue listando a todos los inscriptos (sirve como control de quién se anotó); la
+  // planilla evaluatoria en PDF, en cambio, es la que se usa en el evento para evaluar — solo
+  // tiene sentido con los alumnos que efectivamente se presentaron (marcaron asistencia).
+  const rows = isPlanilla
+    ? registrations.filter((r) => r.attendedAt !== null).map(toExportRow)
+    : registrations.map(toExportRow);
 
   const buffer = isPlanilla
     ? await buildItineranciaPlanillaPdfBuffer(rows, activity.date)
@@ -67,7 +76,7 @@ export async function GET(request: NextRequest, { params }: Params) {
     action: "EXPORT_ITINERANCIA_REGISTRATIONS",
     entity: "ItineranciaActivity",
     entityId: activity.id,
-    detail: `${activity.title} (${rows.length} inscriptos)`,
+    detail: `${activity.title} (${rows.length} ${isPlanilla ? "presentes" : "inscriptos"})`,
   });
 
   return new NextResponse(new Uint8Array(buffer), {
