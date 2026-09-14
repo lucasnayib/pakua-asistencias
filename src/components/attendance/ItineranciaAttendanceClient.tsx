@@ -5,8 +5,10 @@ import { toast } from "sonner";
 import { StudentCard } from "@/components/students/StudentCard";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Card } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
-import { formatTimeRange } from "@/lib/time";
+import { formatTimeRange, getLocalNow } from "@/lib/time";
+import { getCurrentLocation } from "@/lib/geolocation-client";
 import type { ItineranciaAttendanceActivity, ItineranciaAttendanceResponse, ItineranciaAttendanceStudent } from "@/types";
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -32,6 +34,12 @@ type PendingUnmark = {
 };
 
 export function ItineranciaAttendanceClient({ adminId }: ItineranciaAttendanceClientProps) {
+  // Se calcula en el dispositivo del alumno, no en el servidor: si se calculara en el server, el
+  // resultado dependería de su zona horaria (UTC en producción) y no de la del alumno, mostrando
+  // "las clases de mañana" cerca de la medianoche. Mismo criterio que ya usa "Clases anteriores"
+  // para la asistencia normal.
+  const todayIso = getLocalNow().date;
+  const [date, setDate] = useState(todayIso);
   const [data, setData] = useState<ItineranciaAttendanceResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [pendingId, setPendingId] = useState<string | null>(null);
@@ -39,19 +47,37 @@ export function ItineranciaAttendanceClient({ adminId }: ItineranciaAttendanceCl
   const [removing, setRemoving] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/itinerancias/attendance?adminId=${adminId}`, { cache: "no-store" })
+    setLoading(true);
+    fetch(`/api/itinerancias/attendance?adminId=${adminId}&date=${date}`, { cache: "no-store" })
       .then((res) => res.json())
       .then(setData)
       .finally(() => setLoading(false));
-  }, [adminId]);
+  }, [adminId, date]);
 
   async function markPresent(activity: ItineranciaAttendanceActivity, student: ItineranciaAttendanceStudent) {
     setPendingId(student.id);
     try {
+      // Solo hace falta ubicación al marcar presente EN EL MOMENTO (viendo el día de hoy); para
+      // una corrección de un día anterior el servidor ni la exige, así que no tiene sentido
+      // pedirla acá.
+      let location: { latitude: number; longitude: number } | null = null;
+      if (activity.requiresLocation && date === todayIso) {
+        try {
+          location = await getCurrentLocation();
+        } catch (locationError) {
+          toast.error(locationError instanceof Error ? locationError.message : "No se pudo obtener tu ubicación");
+          return;
+        }
+      }
       const res = await fetch("/api/itinerancias/attendance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ activityId: activity.id, studentId: student.id }),
+        body: JSON.stringify({
+          activityId: activity.id,
+          studentId: student.id,
+          clientDate: getLocalNow().date,
+          ...(location ? { latitude: location.latitude, longitude: location.longitude } : {}),
+        }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -81,7 +107,11 @@ export function ItineranciaAttendanceClient({ adminId }: ItineranciaAttendanceCl
       const res = await fetch("/api/itinerancias/attendance", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ activityId: unmarkTarget.activity.id, studentId: unmarkTarget.student.id }),
+        body: JSON.stringify({
+          activityId: unmarkTarget.activity.id,
+          studentId: unmarkTarget.student.id,
+          clientDate: getLocalNow().date,
+        }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -116,28 +146,35 @@ export function ItineranciaAttendanceClient({ adminId }: ItineranciaAttendanceCl
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex flex-1 items-center justify-center gap-2 p-8 text-sm text-muted-foreground">
-        <Spinner className="h-4 w-4" /> Cargando…
-      </div>
-    );
-  }
-
   const activities = data?.activities ?? [];
+  const isToday = date === todayIso;
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 p-4 sm:p-6">
       <div>
         <h1 className="text-2xl font-semibold">Asistencia — Itinerancias</h1>
         <p className="text-sm text-muted-foreground">
-          Tocá tu nombre en la actividad de hoy para marcar tu asistencia.
+          Tocá tu nombre en la actividad para marcar tu asistencia. Si te olvidaste de marcarla
+          un día anterior, elegí esa fecha abajo.
         </p>
       </div>
 
-      {activities.length === 0 ? (
+      <Input
+        type="date"
+        label="Fecha"
+        value={date}
+        max={todayIso}
+        onChange={(e) => setDate(e.target.value)}
+        className="w-auto"
+      />
+
+      {loading ? (
+        <div className="flex flex-1 items-center justify-center gap-2 p-8 text-sm text-muted-foreground">
+          <Spinner className="h-4 w-4" /> Cargando…
+        </div>
+      ) : activities.length === 0 ? (
         <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          No hay actividades de Itinerancias hoy.
+          {isToday ? "No hay actividades de Itinerancias hoy." : "No hubo actividades de Itinerancias ese día."}
         </p>
       ) : (
         activities.map((activity) => (

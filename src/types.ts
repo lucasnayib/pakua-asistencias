@@ -101,6 +101,7 @@ export type ItineranciaPublicActivity = {
   description: string | null;
   category: ItineranciaCategory;
   location: ItineranciaLocation | null;
+  requiresLocation: boolean;
   date: string;
   startTime: string;
   endTime: string;
@@ -121,6 +122,7 @@ export type ItineranciaAttendanceActivity = {
   title: string;
   category: ItineranciaCategory;
   location: ItineranciaLocation | null;
+  requiresLocation: boolean;
   date: string;
   startTime: string;
   endTime: string;

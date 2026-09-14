@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireItineranciaAccess } from "@/lib/itinerancia-access";
-import { isItineranciasOpen, isItineranciasSchool } from "@/lib/itinerancias";
+import { isItineranciasOpen, isItineranciasSchool, itineranciaRequiresLocation } from "@/lib/itinerancias";
 
 export async function GET(request: NextRequest) {
   const adminId = request.nextUrl.searchParams.get("adminId");
@@ -12,7 +12,10 @@ export async function GET(request: NextRequest) {
   const access = await requireItineranciaAccess(adminId);
   if (access instanceof NextResponse) return access;
 
-  const admin = await prisma.admin.findUnique({ where: { id: adminId }, select: { slug: true } });
+  const admin = await prisma.admin.findUnique({
+    where: { id: adminId },
+    select: { slug: true, latitude: true, longitude: true, attendanceRadiusMeters: true },
+  });
   if (!isItineranciasSchool(admin?.slug) || !isItineranciasOpen()) {
     return NextResponse.json({ error: "Itinerancias no está disponible ahora" }, { status: 404 });
   }
@@ -39,6 +42,7 @@ export async function GET(request: NextRequest) {
       description: a.description,
       category: a.category,
       location: a.location,
+      requiresLocation: itineranciaRequiresLocation(admin!, a.location),
       date: a.date,
       startTime: a.startTime,
       endTime: a.endTime,

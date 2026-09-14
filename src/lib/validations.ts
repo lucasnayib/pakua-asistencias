@@ -129,9 +129,25 @@ export const itineranciaActivityUpsertSchema = z
     path: ["endTime"],
   });
 
+// latitude/longitude: solo se exigen si la actividad es de sede Córdoba y la escuela tiene
+// configurada una restricción de ubicación (ver Admin.latitude/longitude/attendanceRadiusMeters,
+// la misma que ya usa la asistencia normal) — la validación real ocurre en el servidor.
 export const itineranciaRegisterSchema = z.object({
   activityId: z.string().min(1),
   studentId: z.string().min(1),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
+});
+
+// clientDate: fecha "de hoy" calculada en el dispositivo del alumno (no en el servidor), para
+// no depender de la zona horaria del server al validar que la actividad no sea futura — ver
+// getLocalNow() en @/lib/time, ya usado con el mismo propósito en el check-in de clases normales.
+export const itineranciaAttendanceMarkSchema = z.object({
+  activityId: z.string().min(1),
+  studentId: z.string().min(1),
+  clientDate: z.string().regex(dateRegex, "Fecha inválida (YYYY-MM-DD)"),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
 });
 
 export const requestEmailChangeSchema = z.object({

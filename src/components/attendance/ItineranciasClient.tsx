@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
 import { formatDateEs, formatTimeRange } from "@/lib/time";
+import { getCurrentLocation } from "@/lib/geolocation-client";
 import type {
   ItineranciaCategory,
   ItineranciaPerson,
@@ -67,10 +68,23 @@ export function ItineranciasClient({ adminId }: ItineranciasClientProps) {
     if (!pending) return;
     setConfirming(true);
     try {
+      let location: { latitude: number; longitude: number } | null = null;
+      if (pending.activity.requiresLocation) {
+        try {
+          location = await getCurrentLocation();
+        } catch (locationError) {
+          toast.error(locationError instanceof Error ? locationError.message : "No se pudo obtener tu ubicación");
+          return;
+        }
+      }
       const res = await fetch("/api/itinerancias/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ activityId: pending.activity.id, studentId: pending.student.id }),
+        body: JSON.stringify({
+          activityId: pending.activity.id,
+          studentId: pending.student.id,
+          ...(location ? { latitude: location.latitude, longitude: location.longitude } : {}),
+        }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {

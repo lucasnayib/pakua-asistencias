@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { StudentCard } from "@/components/students/StudentCard";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { getLocalNow } from "@/lib/time";
+import { getCurrentLocation } from "@/lib/geolocation-client";
 import type { RosterStudent } from "@/types";
 
 type RosterViewProps = {
@@ -13,31 +14,6 @@ type RosterViewProps = {
   initialRoster: RosterStudent[];
   requiresLocation: boolean;
 };
-
-/** Envuelve navigator.geolocation en una promesa, con mensajes de error entendibles. */
-function getCurrentLocation(): Promise<{ latitude: number; longitude: number }> {
-  return new Promise((resolve, reject) => {
-    if (!("geolocation" in navigator)) {
-      reject(new Error("Este navegador no soporta geolocalización"));
-      return;
-    }
-    if (typeof window !== "undefined" && !window.isSecureContext) {
-      reject(new Error("La ubicación solo funciona por HTTPS o en localhost"));
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (position) => resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude }),
-      (error) => {
-        if (error.code === error.PERMISSION_DENIED) {
-          reject(new Error("Necesitás dar permiso de ubicación para marcar asistencia"));
-        } else {
-          reject(new Error("No se pudo obtener tu ubicación"));
-        }
-      },
-      { enableHighAccuracy: true, timeout: 15_000 }
-    );
-  });
-}
 
 export function RosterView({ scheduleId, date, initialRoster, requiresLocation }: RosterViewProps) {
   const [roster, setRoster] = useState(initialRoster);

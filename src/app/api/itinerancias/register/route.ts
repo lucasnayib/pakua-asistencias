@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { itineranciaRegisterSchema } from "@/lib/validations";
 import { requireItineranciaAccess } from "@/lib/itinerancia-access";
-import { isItineranciasOpen, isItineranciasSchool } from "@/lib/itinerancias";
+import {
+  checkItineranciaLocation,
+  isItineranciasOpen,
+  isItineranciasSchool,
+  itineranciaRequiresLocation,
+} from "@/lib/itinerancias";
 import { logChange } from "@/lib/audit";
 
 /**
@@ -16,7 +21,7 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Datos inválidos" }, { status: 400 });
   }
-  const { activityId, studentId } = parsed.data;
+  const { activityId, studentId, latitude, longitude } = parsed.data;
 
   const activity = await prisma.itineranciaActivity.findUnique({ where: { id: activityId } });
   if (!activity) {
@@ -26,9 +31,17 @@ export async function POST(request: Request) {
   const access = await requireItineranciaAccess(activity.adminId);
   if (access instanceof NextResponse) return access;
 
-  const admin = await prisma.admin.findUnique({ where: { id: activity.adminId }, select: { slug: true } });
+  const admin = await prisma.admin.findUnique({
+    where: { id: activity.adminId },
+    select: { slug: true, latitude: true, longitude: true, attendanceRadiusMeters: true },
+  });
   if (!isItineranciasSchool(admin?.slug) || !isItineranciasOpen()) {
     return NextResponse.json({ error: "Itinerancias no está disponible ahora" }, { status: 404 });
+  }
+
+  if (admin && itineranciaRequiresLocation(admin, activity.location)) {
+    const locationError = checkItineranciaLocation(admin, latitude, longitude);
+    if (locationError) return NextResponse.json({ error: locationError.error }, { status: locationError.status });
   }
 
   const student = await prisma.student.findUnique({ where: { id: studentId } });
@@ -57,11 +70,16 @@ export async function POST(request: Request) {
   // inscripción principal si alguna falla.
   const siblings = await prisma.itineranciaActivity.findMany({
     where: { adminId: activity.adminId, title: activity.title, id: { not: activityId } },
-    select: { id: true },
+    select: { id: true, location: true },
   });
 
   const registeredActivityIds = [activityId];
   for (const sibling of siblings) {
+    // Si la hermana es de sede Córdoba, respeta la misma restricción de ubicación — de lo
+    // contrario alguien podría esquivarla anotándose primero a la instancia de otra sede.
+    if (admin && itineranciaRequiresLocation(admin, sibling.location) && checkItineranciaLocation(admin, latitude, longitude)) {
+      continue;
+    }
     try {
       await prisma.itineranciaStudentRegistration.create({ data: { activityId: sibling.id, studentId } });
       registeredActivityIds.push(sibling.id);
