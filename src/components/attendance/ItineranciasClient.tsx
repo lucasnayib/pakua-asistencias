@@ -40,6 +40,8 @@ const CATEGORY_FILTERS: { id: CategoryFilter; label: string }[] = [
   { id: "CLASES_ESPECIALES", label: "Clases Especiales" },
 ];
 
+const REFRESH_MS = 30_000;
+
 type ItineranciasClientProps = {
   adminId: string;
 };
@@ -58,10 +60,28 @@ export function ItineranciasClient({ adminId }: ItineranciasClientProps) {
   const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/itinerancias/public?adminId=${adminId}`, { cache: "no-store" })
-      .then((res) => res.json())
-      .then(setData)
-      .finally(() => setLoading(false));
+    let cancelled = false;
+
+    async function load(isInitial: boolean) {
+      if (isInitial) setLoading(true);
+      try {
+        const res = await fetch(`/api/itinerancias/public?adminId=${adminId}`, { cache: "no-store" });
+        const json = await res.json();
+        if (!cancelled) setData(json);
+      } finally {
+        if (isInitial && !cancelled) setLoading(false);
+      }
+    }
+
+    load(true);
+    // Refresca sola cada 30s: esta pantalla suele quedar abierta en el celular del alumno, y si
+    // el admin quita una inscripción desde otra pestaña/dispositivo, sin esto seguiría viéndose
+    // la lista vieja hasta recargar a mano.
+    const interval = setInterval(() => load(false), REFRESH_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, [adminId]);
 
   async function handleConfirm() {

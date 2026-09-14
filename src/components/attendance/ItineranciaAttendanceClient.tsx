@@ -24,6 +24,8 @@ const LOCATION_LABELS: Record<string, string> = {
   ALTA_GRACIA: "Alta Gracia",
 };
 
+const REFRESH_MS = 30_000;
+
 type ItineranciaAttendanceClientProps = {
   adminId: string;
 };
@@ -47,11 +49,28 @@ export function ItineranciaAttendanceClient({ adminId }: ItineranciaAttendanceCl
   const [removing, setRemoving] = useState(false);
 
   useEffect(() => {
-    setLoading(true);
-    fetch(`/api/itinerancias/attendance?adminId=${adminId}&date=${date}`, { cache: "no-store" })
-      .then((res) => res.json())
-      .then(setData)
-      .finally(() => setLoading(false));
+    let cancelled = false;
+
+    async function load(isInitial: boolean) {
+      if (isInitial) setLoading(true);
+      try {
+        const res = await fetch(`/api/itinerancias/attendance?adminId=${adminId}&date=${date}`, { cache: "no-store" });
+        const json = await res.json();
+        if (!cancelled) setData(json);
+      } finally {
+        if (isInitial && !cancelled) setLoading(false);
+      }
+    }
+
+    load(true);
+    // Refresca sola cada 30s: esta pantalla suele quedar abierta en el celular del alumno, y si
+    // el admin quita una inscripción desde otra pestaña/dispositivo, sin esto seguiría viéndose
+    // la lista vieja hasta recargar a mano.
+    const interval = setInterval(() => load(false), REFRESH_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, [adminId, date]);
 
   async function markPresent(activity: ItineranciaAttendanceActivity, student: ItineranciaAttendanceStudent) {
