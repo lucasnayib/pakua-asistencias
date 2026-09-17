@@ -2,6 +2,8 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { isSubscriptionSuspended } from "@/lib/subscription";
 
 /**
  * Acceso público a Itinerancias, separado por completo del desbloqueo de asistencia
@@ -82,18 +84,31 @@ export async function requireItineranciaAccess(
   targetAdminId: string
 ): Promise<{ adminId: string } | NextResponse> {
   const session = await getSession();
-  if (session && session.role === "ADMIN" && session.adminId === targetAdminId) {
-    return { adminId: session.adminId };
-  }
-
   const store = await cookies();
   const token = store.get(ITINERANCIA_UNLOCK_COOKIE)?.value;
-  if (token) {
+
+  let hasAccess = session && session.role === "ADMIN" && session.adminId === targetAdminId;
+  if (!hasAccess && token) {
     const payload = await verifyItineranciaUnlockToken(token);
-    if (payload && payload.adminId === targetAdminId) {
-      return { adminId: payload.adminId };
-    }
+    hasAccess = !!payload && payload.adminId === targetAdminId;
   }
 
-  return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  if (!hasAccess) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
+
+  // Mismo criterio que requireSchoolAccess(): se revalida en cada request para que una
+  // suspensión mientras ya hay cookie/sesión vigente corte el acceso de inmediato.
+  const admin = await prisma.admin.findUnique({
+    where: { id: targetAdminId },
+    select: { subscriptionStatus: true },
+  });
+  if (admin && isSubscriptionSuspended(admin.subscriptionStatus)) {
+    return NextResponse.json(
+      { error: "Esta escuela tiene la suscripción suspendida. Contactá al administrador." },
+      { status: 403 }
+    );
+  }
+
+  return { adminId: targetAdminId };
 }

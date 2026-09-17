@@ -2,8 +2,10 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { isItineranciasOpen, isItineranciasSchool } from "@/lib/itinerancias";
 import { getUnlockedItineranciaAdminId } from "@/lib/itinerancia-access";
+import { isSubscriptionSuspended } from "@/lib/subscription";
 import { ItineranciaUnlockGate } from "@/components/attendance/ItineranciaUnlockGate";
 import { ItineranciasHome } from "@/components/attendance/ItineranciasHome";
+import { SchoolSuspendedNotice } from "@/components/attendance/SchoolSuspendedNotice";
 import { AppHeader } from "@/components/layout/AppHeader";
 
 type Params = { params: Promise<{ slug: string }> };
@@ -18,10 +20,14 @@ export default async function ItineranciasPage({ params }: Params) {
 
   const school = await prisma.admin.findFirst({
     where: { slug, active: true, role: "ADMIN" },
-    select: { id: true, displayName: true },
+    select: { id: true, displayName: true, subscriptionStatus: true },
   });
   if (!school) {
     notFound();
+  }
+
+  if (isSubscriptionSuspended(school.subscriptionStatus)) {
+    return <SchoolSuspendedNotice schoolName={school.displayName} />;
   }
 
   if (!isItineranciasOpen()) {

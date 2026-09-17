@@ -6,6 +6,7 @@ import { setItineranciaUnlockCookie } from "@/lib/itinerancia-access";
 import { isItineranciasOpen, isItineranciasSchool } from "@/lib/itinerancias";
 import { checkRateLimit, recordFailedAttempt, resetRateLimit } from "@/lib/rate-limit";
 import { logChange } from "@/lib/audit";
+import { isSubscriptionSuspended } from "@/lib/subscription";
 
 type Params = { params: Promise<{ slug: string }> };
 
@@ -45,6 +46,14 @@ export async function POST(request: NextRequest, { params }: Params) {
   if (!valid) {
     recordFailedAttempt(rateLimitKey);
     return NextResponse.json({ error: "Código incorrecto" }, { status: 401 });
+  }
+
+  if (isSubscriptionSuspended(admin.subscriptionStatus)) {
+    resetRateLimit(rateLimitKey);
+    return NextResponse.json(
+      { error: "SUSPENDED", message: "Esta escuela tiene la suscripción suspendida." },
+      { status: 403 }
+    );
   }
 
   resetRateLimit(rateLimitKey);

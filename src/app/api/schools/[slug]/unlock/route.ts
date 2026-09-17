@@ -5,6 +5,7 @@ import { schoolUnlockSchema } from "@/lib/validations";
 import { setSchoolUnlockCookie } from "@/lib/school-access";
 import { checkRateLimit, recordFailedAttempt, resetRateLimit } from "@/lib/rate-limit";
 import { logChange } from "@/lib/audit";
+import { isSubscriptionSuspended } from "@/lib/subscription";
 
 type Params = { params: Promise<{ slug: string }> };
 
@@ -47,6 +48,14 @@ export async function POST(request: NextRequest, { params }: Params) {
   if (!valid) {
     recordFailedAttempt(slug);
     return NextResponse.json({ error: "Contraseña incorrecta" }, { status: 401 });
+  }
+
+  if (isSubscriptionSuspended(admin.subscriptionStatus)) {
+    resetRateLimit(slug);
+    return NextResponse.json(
+      { error: "SUSPENDED", message: "Esta escuela tiene la suscripción suspendida." },
+      { status: 403 }
+    );
   }
 
   resetRateLimit(slug);

@@ -2,6 +2,8 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { isSubscriptionSuspended } from "@/lib/subscription";
 
 export const SCHOOL_UNLOCK_COOKIE = "pakua_school_unlock";
 const UNLOCK_DURATION_SECONDS = 24 * 60 * 60; // 24 horas
@@ -85,18 +87,32 @@ export async function requireSchoolAccess(
   targetAdminId: string
 ): Promise<{ adminId: string } | NextResponse> {
   const session = await getSession();
-  if (session && session.role === "ADMIN" && session.adminId === targetAdminId) {
-    return { adminId: session.adminId };
-  }
-
   const store = await cookies();
   const token = store.get(SCHOOL_UNLOCK_COOKIE)?.value;
-  if (token) {
+
+  let hasAccess = session && session.role === "ADMIN" && session.adminId === targetAdminId;
+  if (!hasAccess && token) {
     const payload = await verifySchoolUnlockToken(token);
-    if (payload && payload.adminId === targetAdminId) {
-      return { adminId: payload.adminId };
-    }
+    hasAccess = !!payload && payload.adminId === targetAdminId;
   }
 
-  return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  if (!hasAccess) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
+
+  // Se revalida acá (no solo al desbloquear) para que una escuela que se suspende mientras
+  // ya hay una cookie de desbloqueo vigente (dura 24hs) o una sesión de admin abierta pierda
+  // el acceso de inmediato, no recién cuando esa cookie/sesión expire.
+  const admin = await prisma.admin.findUnique({
+    where: { id: targetAdminId },
+    select: { subscriptionStatus: true },
+  });
+  if (admin && isSubscriptionSuspended(admin.subscriptionStatus)) {
+    return NextResponse.json(
+      { error: "Esta escuela tiene la suscripción suspendida. Contactá al administrador." },
+      { status: 403 }
+    );
+  }
+
+  return { adminId: targetAdminId };
 }

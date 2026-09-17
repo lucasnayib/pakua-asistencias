@@ -35,6 +35,12 @@ export function SchoolUnlockGate({ slug, schoolName }: SchoolUnlockGateProps) {
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
+        if (data?.error === "SUSPENDED") {
+          // La página server-side vuelve a evaluar isSubscriptionSuspended() y muestra el
+          // aviso correspondiente en vez de este formulario.
+          router.refresh();
+          return;
+        }
         setError(data?.error ?? "No se pudo desbloquear");
         return;
       }

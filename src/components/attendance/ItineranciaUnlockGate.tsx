@@ -33,6 +33,10 @@ export function ItineranciaUnlockGate({ slug, schoolName }: ItineranciaUnlockGat
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
+        if (data?.error === "SUSPENDED") {
+          router.refresh();
+          return;
+        }
         setError(data?.error ?? "No se pudo desbloquear");
         return;
       }
