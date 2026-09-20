@@ -56,6 +56,7 @@ next-env.d.ts
 /storage/check-subscriptions-task.log
 /storage/deactivate-inactive-students.log
 /storage/deactivate-inactive-students-task.log
+/storage/cloudflared.log
 
 # uploaded photos (servidas dinámicamente por /api/uploads, no por /public)
 /storage/uploads/students/*
