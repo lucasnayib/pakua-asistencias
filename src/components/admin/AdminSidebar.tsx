@@ -197,18 +197,25 @@ export function AdminSidebar({
       <div
         onClick={() => setMobileOpen(false)}
         aria-hidden="true"
-        className={`fixed inset-0 z-30 bg-black/50 transition-opacity duration-300 md:hidden ${
+        className={`fixed inset-0 z-30 bg-black/50 transition-opacity duration-[350ms] motion-reduce:transition-none! md:hidden ${
           mobileOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
         }`}
       />
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-72 max-w-[85vw] shrink-0 flex-col overflow-hidden rounded-r-2xl border-r border-border bg-surface shadow-drawer transition-transform duration-300 ease-in-out md:sticky md:top-0 md:z-20 md:h-dvh md:max-w-none md:translate-x-0 md:rounded-none md:shadow-none md:transition-none ${
+        className={`fixed inset-y-0 left-0 z-40 w-72 max-w-[85vw] shrink-0 overflow-hidden rounded-r-2xl border-r border-border bg-surface shadow-drawer transition-transform duration-[350ms] ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none! md:sticky md:top-0 md:z-20 md:h-dvh md:max-w-none md:translate-x-0 md:rounded-none md:shadow-none md:transition-[width] ${
           collapsed ? "md:w-[4.5rem]" : ""
         } ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
+        {/* Las dos versiones (contraída y completa) están siempre montadas y se funden entre sí
+            mientras el ancho de la barra se anima; la que no se ve queda invisible (sin foco). */}
+
         {/* Versión contraída (solo md+): columna angosta con íconos y tooltips. */}
-        <div className={`hidden min-h-0 flex-1 flex-col items-center ${collapsed ? "md:flex" : ""}`}>
+        <div
+          className={`absolute inset-y-0 left-0 hidden w-[4.5rem] flex-col items-center transition-[opacity,visibility] duration-200 ease-out motion-reduce:transition-none! md:flex ${
+            collapsed ? "visible opacity-100 delay-100" : "invisible opacity-0"
+          }`}
+        >
           <div className="flex w-full shrink-0 flex-col items-center gap-2 border-b border-border py-3">
             <button
               type="button"
@@ -227,7 +234,7 @@ export function AdminSidebar({
             </div>
           </div>
 
-          <nav className="flex w-full flex-1 flex-col items-center gap-1 overflow-y-auto px-2 py-2">
+          <nav className="scrollbar-themed flex w-full flex-1 flex-col items-center gap-1 overflow-y-auto px-2 py-2">
             {primaryLinks.map((item) => (
               <RailLink key={item.href} item={item} active={isActive(item.href)} />
             ))}
@@ -269,7 +276,11 @@ export function AdminSidebar({
         </div>
 
         {/* Versión completa: es la única en mobile, y en md+ cuando la barra no está contraída. */}
-        <div className={`flex min-h-0 flex-1 flex-col ${collapsed ? "md:hidden" : ""}`}>
+        <div
+          className={`absolute inset-y-0 left-0 flex w-full flex-col transition-[opacity,visibility] duration-200 ease-out motion-reduce:transition-none! md:w-72 ${
+            collapsed ? "md:invisible md:opacity-0" : "md:delay-100"
+          }`}
+        >
           <div className="hidden items-start justify-between px-5 pt-5 md:flex">
             <div>
               <Image
@@ -303,7 +314,7 @@ export function AdminSidebar({
             </div>
           </div>
 
-          <nav className="flex-1 overflow-y-auto px-3 py-4 md:py-3">
+          <nav className="scrollbar-themed flex-1 overflow-y-auto px-3 py-4 md:py-3">
             {primaryLinks.length > 0 && (
               <div className="mb-2 flex flex-col gap-2">
                 {primaryLinks.map((item) => {

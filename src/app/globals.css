@@ -61,6 +61,13 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
+/* La barra de scroll nativa es blanca (con flechas) y desentona en el tema oscuro: esta la
+   deja fina, sin flechas y del color del borde del tema. */
+.scrollbar-themed {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
 /* Deriva suave para los trigramas decorativos de la home — que no queden clavados
    en un punto fijo de la pantalla. */
 @keyframes trigram-drift {
