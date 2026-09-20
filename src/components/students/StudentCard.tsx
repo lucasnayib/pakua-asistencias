@@ -21,7 +21,7 @@ export function StudentCard({ firstName, lastName, photoUrl, present, onClick, d
     >
       <span
         className={`relative flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border-4 transition-all sm:h-36 sm:w-36 ${
-          present ? "border-success shadow-[0_0_0_4px_rgba(34,197,94,0.15)]" : "border-border"
+          present ? "border-success shadow-[0_0_0_4px_rgba(89,212,153,0.15)]" : "border-border"
         }`}
       >
         {photoUrl ? (

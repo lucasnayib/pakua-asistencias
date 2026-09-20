@@ -35,7 +35,7 @@ export function AppHeader({ slug }: AppHeaderProps = {}) {
 
   return (
     <>
-      <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-surface/90 px-4 py-3 backdrop-blur sm:px-6">
+      <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-surface/90 px-4 py-3 backdrop-blur-[48px] sm:px-6">
         <span className="flex shrink-0 items-center">
           <Image
             src="/logo.png"
@@ -95,7 +95,7 @@ export function AppHeader({ slug }: AppHeaderProps = {}) {
       />
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-72 max-w-[85vw] flex-col gap-6 overflow-y-auto bg-surface p-6 shadow-2xl transition-transform duration-300 ease-in-out md:hidden ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-72 max-w-[85vw] flex-col gap-6 overflow-y-auto bg-surface p-6 shadow-drawer transition-transform duration-300 ease-in-out md:hidden ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >

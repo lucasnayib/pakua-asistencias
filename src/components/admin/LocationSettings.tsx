@@ -1,10 +1,11 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
+import { Switch } from "@/components/ui/Switch";
 
 type Props = {
   initialLatitude: number | null;
@@ -12,16 +13,47 @@ type Props = {
   initialRadius: number | null;
 };
 
+/**
+ * La lat/long no se muestran ni se editan a mano: la única forma de fijar la ubicación es
+ * buscando una dirección (geocode), que guarda las coordenadas resueltas en este estado interno
+ * sin exponerlas en la UI. El switch solo refleja/activa "hay una ubicación guardada o no".
+ */
 export function LocationSettings({ initialLatitude, initialLongitude, initialRadius }: Props) {
-  const [latitude, setLatitude] = useState(initialLatitude !== null ? String(initialLatitude) : "");
-  const [longitude, setLongitude] = useState(initialLongitude !== null ? String(initialLongitude) : "");
+  const [latitude, setLatitude] = useState(initialLatitude);
+  const [longitude, setLongitude] = useState(initialLongitude);
   const [radius, setRadius] = useState(initialRadius !== null ? String(initialRadius) : "150");
-  const [locating, setLocating] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [enabled, setEnabled] = useState(initialLatitude !== null && initialLongitude !== null);
   const [address, setAddress] = useState("");
-  const [geocoding, setGeocoding] = useState(false);
   const [resolvedAddress, setResolvedAddress] = useState<string | null>(null);
-  const enabled = initialLatitude !== null && initialLongitude !== null && initialRadius !== null;
+  const [geocoding, setGeocoding] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  async function saveLocation(lat: number, lng: number): Promise<boolean> {
+    setSaving(true);
+    try {
+      const rad = radius.trim() === "" ? 150 : Number(radius);
+      const res = await fetch("/api/admin/location", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ latitude: lat, longitude: lng, attendanceRadiusMeters: rad }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "No se pudo guardar");
+        return false;
+      }
+      setLatitude(lat);
+      setLongitude(lng);
+      setEnabled(true);
+      toast.success("Ubicación guardada");
+      return true;
+    } catch {
+      toast.error("Error de conexión");
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function searchAddress() {
     if (!address.trim()) {
@@ -41,10 +73,8 @@ export function LocationSettings({ initialLatitude, initialLongitude, initialRad
         toast.error(data.error ?? "No se pudo buscar la dirección");
         return;
       }
-      setLatitude(String(data.latitude));
-      setLongitude(String(data.longitude));
-      setResolvedAddress(data.formattedAddress);
-      toast.success("Dirección encontrada");
+      const ok = await saveLocation(data.latitude, data.longitude);
+      if (ok) setResolvedAddress(data.formattedAddress);
     } catch {
       toast.error("Error de conexión");
     } finally {
@@ -52,89 +82,59 @@ export function LocationSettings({ initialLatitude, initialLongitude, initialRad
     }
   }
 
-  function useCurrentLocation() {
-    if (!("geolocation" in navigator)) {
-      toast.error("Este navegador no soporta geolocalización");
+  async function handleToggle(next: boolean) {
+    if (!next) {
+      setSaving(true);
+      try {
+        const res = await fetch("/api/admin/location", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ latitude: null, longitude: null, attendanceRadiusMeters: null }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          toast.error(data.error ?? "No se pudo desactivar");
+          return;
+        }
+        setEnabled(false);
+        setLatitude(null);
+        setLongitude(null);
+        toast.success("Restricción de ubicación desactivada");
+      } catch {
+        toast.error("Error de conexión");
+      } finally {
+        setSaving(false);
+      }
       return;
     }
-    setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLatitude(String(position.coords.latitude));
-        setLongitude(String(position.coords.longitude));
-        setLocating(false);
-        toast.success("Ubicación actual cargada");
-      },
-      (error) => {
-        setLocating(false);
-        if (error.code === error.PERMISSION_DENIED) {
-          toast.error("Le negaste el permiso de ubicación al navegador");
-        } else {
-          toast.error("No se pudo obtener tu ubicación actual");
-        }
-      },
-      { enableHighAccuracy: true, timeout: 15_000 }
-    );
+
+    if (latitude === null || longitude === null) {
+      toast.error("Buscá y confirmá una dirección primero");
+      return;
+    }
+    await saveLocation(latitude, longitude);
   }
 
-  async function handleSave(e: FormEvent) {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      const lat = latitude.trim() === "" ? null : Number(latitude);
-      const lng = longitude.trim() === "" ? null : Number(longitude);
-      const rad = radius.trim() === "" ? null : Number(radius);
-      const res = await fetch("/api/admin/location", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ latitude: lat, longitude: lng, attendanceRadiusMeters: rad }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error ?? "No se pudo guardar");
-        return;
-      }
-      toast.success("Ubicación guardada");
-    } catch {
-      toast.error("Error de conexión");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleDisable() {
-    setSaving(true);
-    try {
-      const res = await fetch("/api/admin/location", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ latitude: null, longitude: null, attendanceRadiusMeters: null }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error ?? "No se pudo desactivar");
-        return;
-      }
-      setLatitude("");
-      setLongitude("");
-      toast.success("Restricción de ubicación desactivada");
-    } catch {
-      toast.error("Error de conexión");
-    } finally {
-      setSaving(false);
-    }
+  async function handleRadiusSave() {
+    if (latitude === null || longitude === null) return;
+    await saveLocation(latitude, longitude);
   }
 
   return (
     <Card className="max-w-md p-6">
-      <h2 className="text-lg font-semibold">Restricción por ubicación</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        {enabled
-          ? "Activada: solo se puede marcar asistencia estando dentro del radio configurado."
-          : "Desactivada: cualquiera puede marcar asistencia sin restricción de ubicación."}
-      </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold">Restricción por ubicación</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {enabled
+              ? "Activada: solo se puede marcar asistencia estando dentro del radio configurado."
+              : "Desactivada: cualquiera puede marcar asistencia sin restricción de ubicación."}
+          </p>
+        </div>
+        <Switch checked={enabled} onChange={handleToggle} disabled={saving} label="Activar" />
+      </div>
 
-      <form onSubmit={handleSave} className="mt-4 flex flex-col gap-4">
+      <div className="mt-4 flex flex-col gap-4">
         <div className="flex flex-col gap-1">
           <div className="flex items-end gap-2">
             <div className="flex-1">
@@ -155,48 +155,26 @@ export function LocationSettings({ initialLatitude, initialLongitude, initialRad
               Buscar
             </Button>
           </div>
-          {resolvedAddress && (
-            <p className="text-xs text-muted-foreground">Encontrado: {resolvedAddress}</p>
-          )}
+          {resolvedAddress && <p className="text-xs text-muted-foreground">Encontrado: {resolvedAddress}</p>}
         </div>
 
-        <Button type="button" variant="secondary" loading={locating} onClick={useCurrentLocation}>
-          Usar mi ubicación actual
-        </Button>
-
-        <Input
-          label="Latitud"
-          value={latitude}
-          onChange={(e) => setLatitude(e.target.value)}
-          inputMode="decimal"
-          placeholder="-31.4201"
-        />
-        <Input
-          label="Longitud"
-          value={longitude}
-          onChange={(e) => setLongitude(e.target.value)}
-          inputMode="decimal"
-          placeholder="-64.1888"
-        />
-        <Input
-          label="Radio permitido (metros)"
-          value={radius}
-          onChange={(e) => setRadius(e.target.value)}
-          inputMode="numeric"
-          placeholder="150"
-        />
-
-        <div className="flex gap-2">
-          <Button type="submit" loading={saving} className="flex-1">
-            Guardar
-          </Button>
+        <div className="flex items-end gap-2">
+          <div className="flex-1">
+            <Input
+              label="Radio permitido (metros)"
+              value={radius}
+              onChange={(e) => setRadius(e.target.value)}
+              inputMode="numeric"
+              placeholder="150"
+            />
+          </div>
           {enabled && (
-            <Button type="button" variant="danger" disabled={saving} onClick={handleDisable}>
-              Desactivar
+            <Button type="button" variant="secondary" loading={saving} onClick={handleRadiusSave}>
+              Guardar radio
             </Button>
           )}
         </div>
-      </form>
+      </div>
     </Card>
   );
 }

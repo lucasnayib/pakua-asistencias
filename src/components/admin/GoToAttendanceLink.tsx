@@ -8,10 +8,12 @@ import { useRouter } from "next/navigation";
 export function GoToAttendanceLink({
   href,
   className,
+  title,
   children,
 }: {
   href: string;
   className?: string;
+  title?: string;
   children: ReactNode;
 }) {
   const router = useRouter();
@@ -27,7 +29,7 @@ export function GoToAttendanceLink({
   }
 
   return (
-    <a href={href} onClick={handleClick} className={className}>
+    <a href={href} onClick={handleClick} className={className} title={title}>
       {children}
     </a>
   );

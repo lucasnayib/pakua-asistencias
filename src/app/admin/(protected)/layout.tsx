@@ -1,5 +1,7 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
+import { SIDEBAR_COLLAPSED_COOKIE } from "@/lib/admin-sidebar";
 import { prisma } from "@/lib/prisma";
 import { isItineranciasOpen, isItineranciasSchool } from "@/lib/itinerancias";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
@@ -25,14 +27,20 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const itineranciasEnabled = isItineranciasSchool(admin?.slug) && isItineranciasOpen();
 
+  // La preferencia de barra contraída se guarda en una cookie (no en localStorage) para que
+  // el servidor renderice ya el estado correcto y no haya un parpadeo al cargar la página.
+  const sidebarCollapsed = (await cookies()).get(SIDEBAR_COLLAPSED_COOKIE)?.value === "1";
+
   return (
     <div className="flex min-h-dvh flex-col md:flex-row">
       <AdminSidebar
         displayName={session.displayName}
+        username={session.username}
         role={session.role}
         schoolSlug={admin?.slug}
         pendingAdminCount={pendingAdminCount}
         itineranciasEnabled={itineranciasEnabled}
+        defaultCollapsed={sidebarCollapsed}
       />
       <main className="flex-1 overflow-y-auto p-4 md:p-8">{children}</main>
     </div>

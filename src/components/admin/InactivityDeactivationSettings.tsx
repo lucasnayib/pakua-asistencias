@@ -5,11 +5,12 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
+import { Switch } from "@/components/ui/Switch";
 
 export function InactivityDeactivationSettings() {
   const [loading, setLoading] = useState(true);
   const [enabled, setEnabled] = useState(false);
-  const [days, setDays] = useState("14");
+  const [days, setDays] = useState("30");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -71,10 +72,9 @@ export function InactivityDeactivationSettings() {
         si lo dieras de baja a mano. Se te avisa por mail cada vez que pase.
       </p>
 
-      <label className="mt-4 flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={enabled} onChange={(e) => handleToggle(e.target.checked)} />
-        Activar baja automática
-      </label>
+      <div className="mt-4">
+        <Switch checked={enabled} onChange={handleToggle} disabled={saving} label="Activar baja automática" />
+      </div>
 
       {enabled && (
         <form onSubmit={handleSubmit} className="mt-4 flex items-end gap-2">
