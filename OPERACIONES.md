@@ -66,6 +66,37 @@ npm run build
 pm2 restart pakua-asistencias
 ```
 
+## Envío de mails (Resend)
+
+Los mails automáticos (aviso de escuela nueva, recuperar contraseña, avisos de suscripción, baja
+por inactividad, etc.) se mandan con **Resend** (https://resend.com), no con Gmail — una cuenta
+de Gmail no es confiable para mandar mails automáticos desde una app: Google termina bloqueando
+el envío o los mails caen en spam.
+
+### Configurar (una sola vez)
+
+1. Crear una cuenta en https://resend.com.
+2. En Resend, ir a **Domains → Add Domain** y agregar `attendio.lat`.
+3. Resend muestra 2-3 registros de DNS para "verificar" el dominio — copiarlos uno por uno al DNS
+   de Cloudflare (mismo dashboard de Cloudflare mencionado arriba, zona `attendio.lat`, sección
+   DNS → Add record). Puede tardar unos minutos en propagarse; Resend avisa cuando quedó
+   verificado.
+4. En Resend, ir a **API Keys → Create API Key** y copiar la key generada (empieza con `re_`).
+5. En el `.env` del servidor, completar:
+   - `RESEND_API_KEY` con la key del paso anterior.
+   - `EMAIL_FROM` con el remitente, por ejemplo `"Pakua Asistencias <notificaciones@attendio.lat>"`
+     — tiene que usar el dominio verificado en el paso 3.
+6. Reiniciar el servidor: `pm2 restart pakua-asistencias`.
+
+Si se dejan `RESEND_API_KEY` o `EMAIL_FROM` vacíos, la app sigue funcionando igual — simplemente
+no se manda ningún mail (mismo comportamiento que antes, cuando faltaban las variables de Gmail).
+
+### Si un mail no llega
+
+En los logs del servidor (`pm2 logs pakua-asistencias`) queda un renglón "No se pudo enviar el
+mail" con el detalle del error, si Resend lo rechazó por algún motivo (por ejemplo, dominio
+todavía no verificado).
+
 ## Backups automáticos
 
 Todos los días a las 3:00 AM se guarda una copia de la base de datos completa en la carpeta `storage/backups/`, con nombre `pakua-backup-AAAAMMDD-HHMM.db`. Se conservan los últimos **30 días**; las copias más viejas se borran solas en cada corrida.

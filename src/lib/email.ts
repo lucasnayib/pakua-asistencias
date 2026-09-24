@@ -1,8 +1,8 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
 type EmailConfig = {
-  user: string;
-  appPassword: string;
+  apiKey: string;
+  from: string;
   notificationsTo: string;
 };
 
@@ -11,11 +11,11 @@ type EmailConfig = {
  * el envío de mail simplemente se salta (no rompe el flujo que lo llama).
  */
 function getEmailConfig(): EmailConfig | null {
-  const user = process.env.EMAIL_SMTP_USER;
-  const appPassword = process.env.EMAIL_SMTP_APP_PASSWORD;
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.EMAIL_FROM;
   const notificationsTo = process.env.EMAIL_ADMIN_NOTIFICATIONS;
-  if (!user || !appPassword || !notificationsTo) return null;
-  return { user, appPassword, notificationsTo };
+  if (!apiKey || !from || !notificationsTo) return null;
+  return { apiKey, from, notificationsTo };
 }
 
 function baseUrl(): string | null {
@@ -23,18 +23,28 @@ function baseUrl(): string | null {
   return url ? url.replace(/\/+$/, "") : null;
 }
 
+// Perezoso, mismo motivo que getMpClient() en mercadopago.ts: no crashear el build si todavía
+// no hay RESEND_API_KEY cargado (por ejemplo, en un checkout limpio sin .env configurado).
+let client: Resend | null = null;
+
+function getResendClient(apiKey: string): Resend {
+  if (!client) {
+    client = new Resend(apiKey);
+  }
+  return client;
+}
+
 async function sendMail(config: EmailConfig, to: string, subject: string, text: string): Promise<void> {
   try {
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: { user: config.user, pass: config.appPassword },
-    });
-    await transporter.sendMail({
-      from: `"Pakua Asistencias" <${config.user}>`,
+    const { error } = await getResendClient(config.apiKey).emails.send({
+      from: config.from,
       to,
       subject,
       text,
     });
+    if (error) {
+      console.error("No se pudo enviar el mail:", error);
+    }
   } catch (error) {
     console.error("No se pudo enviar el mail:", error);
   }

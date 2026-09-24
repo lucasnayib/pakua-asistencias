@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { PasswordInput } from "@/components/ui/PasswordInput";
@@ -53,7 +54,7 @@ export function SchoolUnlockGate({ slug, schoolName }: SchoolUnlockGateProps) {
   }
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-background px-4">
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-background px-4">
       <Card className="w-full max-w-sm p-8">
         <h1 className="mb-1 text-center text-xl font-semibold">{schoolName}</h1>
         <p className="mb-6 text-center text-sm text-muted-foreground">
@@ -74,6 +75,9 @@ export function SchoolUnlockGate({ slug, schoolName }: SchoolUnlockGateProps) {
           </Button>
         </form>
       </Card>
+      <Link href="/" className="block w-full max-w-sm text-sm text-muted-foreground hover:underline">
+        ← Volver al inicio
+      </Link>
     </main>
   );
 }
