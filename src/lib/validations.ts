@@ -34,12 +34,14 @@ export const graduationHistoryCreateSchema = z.object({
   graduacion: z.string().trim().min(1, "La graduación es obligatoria").max(200),
   authorizedAt: z.string().trim().max(20).optional().nullable(),
   delivered: z.boolean().optional().default(false),
+  deliveredAt: z.string().trim().max(20).optional().nullable(),
 });
 
 export const graduationHistoryUpdateSchema = z.object({
   graduacion: z.string().trim().min(1, "La graduación es obligatoria").max(200).optional(),
   authorizedAt: z.string().trim().max(20).optional().nullable(),
   delivered: z.boolean().optional(),
+  deliveredAt: z.string().trim().max(20).optional().nullable(),
 });
 
 export const scheduleSchema = z.object({

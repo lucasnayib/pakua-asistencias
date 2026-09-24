@@ -38,6 +38,7 @@ export async function GET() {
       graduacion: h.graduacion,
       authorizedAt: h.authorizedAt,
       delivered: h.delivered,
+      deliveredAt: h.deliveredAt,
     }))
   );
 

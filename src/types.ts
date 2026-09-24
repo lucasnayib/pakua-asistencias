@@ -40,6 +40,7 @@ export type StudentGraduationHistoryItem = {
   graduacion: string;
   authorizedAt: string | null;
   delivered: boolean;
+  deliveredAt: string | null;
   createdAt: string;
 };
 

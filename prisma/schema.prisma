@@ -110,6 +110,7 @@ model StudentGraduationHistory {
   graduacion   String
   authorizedAt String? // "YYYY-MM-DD", mismo formato string que Student.evaluationDate
   delivered    Boolean  @default(false)
+  deliveredAt  String? // "YYYY-MM-DD" — se pide al marcar "entregado", null mientras esté pendiente
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

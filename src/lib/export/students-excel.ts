@@ -19,6 +19,7 @@ export type StudentGraduationHistoryExportRow = {
   graduacion: string;
   authorizedAt: string | null;
   delivered: boolean;
+  deliveredAt: string | null;
 };
 
 export async function buildStudentsExcelBuffer(
@@ -63,11 +64,12 @@ export async function buildStudentsExcelBuffer(
     { header: "Graduación", key: "graduacion", width: 24 },
     { header: "Fecha Autorizado", key: "authorizedAt", width: 20 },
     { header: "Entregado", key: "delivered", width: 14 },
+    { header: "Fecha de Entrega", key: "deliveredAt", width: 20 },
   ];
 
   historySheet.getRow(1).font = { bold: true };
   historySheet.getRow(1).alignment = { vertical: "middle" };
-  historySheet.autoFilter = { from: "A1", to: "D1" };
+  historySheet.autoFilter = { from: "A1", to: "E1" };
   historySheet.views = [{ state: "frozen", ySplit: 1 }];
 
   for (const row of historyRows) {
@@ -76,6 +78,7 @@ export async function buildStudentsExcelBuffer(
       graduacion: row.graduacion,
       authorizedAt: row.authorizedAt ? formatDateEs(row.authorizedAt) : "",
       delivered: row.delivered ? "Sí" : "Pendiente",
+      deliveredAt: row.deliveredAt ? formatDateEs(row.deliveredAt) : "",
     });
   }
 

@@ -19,7 +19,7 @@ const studentInclude = {
 
 type StudentWithRelations = {
   orientadores: { orientador: unknown }[];
-  graduationHistory: { id: string; graduacion: string; authorizedAt: string | null; delivered: boolean; createdAt: Date }[];
+  graduationHistory: { id: string; graduacion: string; authorizedAt: string | null; delivered: boolean; deliveredAt: string | null; createdAt: Date }[];
 } & Record<string, unknown>;
 
 function toStudentResponse(student: StudentWithRelations) {
@@ -32,6 +32,7 @@ function toStudentResponse(student: StudentWithRelations) {
       graduacion: h.graduacion,
       authorizedAt: h.authorizedAt,
       delivered: h.delivered,
+      deliveredAt: h.deliveredAt,
       createdAt: h.createdAt,
     })),
   };

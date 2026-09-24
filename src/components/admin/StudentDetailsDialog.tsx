@@ -25,6 +25,7 @@ export function StudentDetailsDialog({ open, student, onClose, onChanged }: Stud
   const [formGraduacion, setFormGraduacion] = useState("");
   const [formAuthorizedAt, setFormAuthorizedAt] = useState("");
   const [formDelivered, setFormDelivered] = useState(false);
+  const [formDeliveredAt, setFormDeliveredAt] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
@@ -56,15 +57,19 @@ export function StudentDetailsDialog({ open, student, onClose, onChanged }: Stud
     setFormGraduacion("");
     setFormAuthorizedAt("");
     setFormDelivered(false);
+    setFormDeliveredAt("");
     setFormError(null);
     setFormOpen(true);
   }
 
-  function openEditForm(entry: StudentGraduationHistoryItem) {
+  function openEditForm(entry: StudentGraduationHistoryItem, opts?: { forceDelivered?: boolean }) {
     setEditingEntry(entry);
     setFormGraduacion(entry.graduacion);
     setFormAuthorizedAt(entry.authorizedAt ?? "");
-    setFormDelivered(entry.delivered);
+    setFormDelivered(opts?.forceDelivered ? true : entry.delivered);
+    // Al marcar "entregado" desde cero (forceDelivered) se pide la fecha de nuevo, en vez de
+    // arrastrar una fecha vieja que ya no aplica.
+    setFormDeliveredAt(opts?.forceDelivered ? "" : (entry.deliveredAt ?? ""));
     setFormError(null);
     setFormOpen(true);
   }
@@ -85,6 +90,8 @@ export function StudentDetailsDialog({ open, student, onClose, onChanged }: Stud
         graduacion: formGraduacion,
         authorizedAt: formAuthorizedAt || null,
         delivered: formDelivered,
+        // Sin "entregado" no tiene sentido conservar una fecha de entrega.
+        deliveredAt: formDelivered ? formDeliveredAt || null : null,
       };
       const res = await fetch(
         editingEntry
@@ -117,14 +124,17 @@ export function StudentDetailsDialog({ open, student, onClose, onChanged }: Stud
     }
   }
 
-  async function handleToggleDelivered(entry: StudentGraduationHistoryItem) {
+  // Pasar a "pendiente" no necesita fecha, se aplica directo. Pasar a "entregado" sí la
+  // necesita, así que ese caso no toca la API acá: abre el formulario a pedir la fecha
+  // (ver el onClick del Switch, más abajo) y se guarda desde ahí.
+  async function handleMarkNotDelivered(entry: StudentGraduationHistoryItem) {
     if (!student) return;
     setTogglingId(entry.id);
     try {
       const res = await fetch(`/api/students/${student.id}/graduation-history/${entry.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ delivered: !entry.delivered }),
+        body: JSON.stringify({ delivered: false, deliveredAt: null }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -136,6 +146,14 @@ export function StudentDetailsDialog({ open, student, onClose, onChanged }: Stud
       onChanged();
     } finally {
       setTogglingId(null);
+    }
+  }
+
+  function handleSwitchToggle(entry: StudentGraduationHistoryItem) {
+    if (entry.delivered) {
+      handleMarkNotDelivered(entry);
+    } else {
+      openEditForm(entry, { forceDelivered: true });
     }
   }
 
@@ -235,11 +253,13 @@ export function StudentDetailsDialog({ open, student, onClose, onChanged }: Stud
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
                         <span className={`text-xs ${entry.delivered ? "text-success" : "text-muted-foreground"}`}>
-                          {entry.delivered ? "Entregado ✓" : "Pendiente"}
+                          {entry.delivered
+                            ? `Entregado ✓${entry.deliveredAt ? ` ${formatDateEs(entry.deliveredAt)}` : ""}`
+                            : "Pendiente"}
                         </span>
                         <Switch
                           checked={entry.delivered}
-                          onChange={() => handleToggleDelivered(entry)}
+                          onChange={() => handleSwitchToggle(entry)}
                           disabled={togglingId === entry.id}
                         />
                         <button
@@ -278,6 +298,16 @@ export function StudentDetailsDialog({ open, student, onClose, onChanged }: Stud
                     onChange={(e) => setFormAuthorizedAt(e.target.value)}
                   />
                   <Switch checked={formDelivered} onChange={setFormDelivered} label="Entregado" />
+                  {formDelivered && (
+                    <Input
+                      label="¿Cuándo fue entregado?"
+                      type="date"
+                      value={formDeliveredAt}
+                      onChange={(e) => setFormDeliveredAt(e.target.value)}
+                      required
+                      autoFocus
+                    />
+                  )}
                   {formError && <p className="text-xs text-danger">{formError}</p>}
                   <div className="mt-1 flex justify-end gap-2">
                     <Button type="button" variant="ghost" size="sm" onClick={closeForm} disabled={saving}>
