@@ -42,7 +42,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         itineranciasEnabled={itineranciasEnabled}
         defaultCollapsed={sidebarCollapsed}
       />
-      <main className="flex-1 overflow-y-auto p-4 md:p-8">{children}</main>
+      {/* Sin scroll propio: antes esta caja se recortaba a la altura de la pantalla y generaba
+          su propia barra angosta, separada de la barra grande del navegador. Ahora el contenido
+          alto simplemente hace crecer la página, y el sidebar (sticky) se mantiene fijo con el
+          único scroll, el de la página entera. */}
+      <main className="flex-1 p-4 md:p-8">{children}</main>
     </div>
   );
 }

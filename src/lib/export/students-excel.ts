@@ -13,7 +13,18 @@ export type StudentExportRow = {
   active: boolean;
 };
 
-export async function buildStudentsExcelBuffer(rows: StudentExportRow[]): Promise<Buffer> {
+export type StudentGraduationHistoryExportRow = {
+  studentFirstName: string;
+  studentLastName: string;
+  graduacion: string;
+  authorizedAt: string | null;
+  delivered: boolean;
+};
+
+export async function buildStudentsExcelBuffer(
+  rows: StudentExportRow[],
+  historyRows: StudentGraduationHistoryExportRow[]
+): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Pakua — Sistema de Asistencias";
   workbook.created = new Date();
@@ -43,6 +54,28 @@ export async function buildStudentsExcelBuffer(rows: StudentExportRow[]): Promis
       dni: row.dni ? `D.N.I. ${row.dni}` : "",
       orientadorName: row.orientadorName ?? "",
       active: row.active ? "Activo" : "Dado de baja",
+    });
+  }
+
+  const historySheet = workbook.addWorksheet("Graduaciones anteriores");
+  historySheet.columns = [
+    { header: "Apellido y Nombre", key: "fullName", width: 32 },
+    { header: "Graduación", key: "graduacion", width: 24 },
+    { header: "Fecha Autorizado", key: "authorizedAt", width: 20 },
+    { header: "Entregado", key: "delivered", width: 14 },
+  ];
+
+  historySheet.getRow(1).font = { bold: true };
+  historySheet.getRow(1).alignment = { vertical: "middle" };
+  historySheet.autoFilter = { from: "A1", to: "D1" };
+  historySheet.views = [{ state: "frozen", ySplit: 1 }];
+
+  for (const row of historyRows) {
+    historySheet.addRow({
+      fullName: `${row.studentLastName}, ${row.studentFirstName}`,
+      graduacion: row.graduacion,
+      authorizedAt: row.authorizedAt ? formatDateEs(row.authorizedAt) : "",
+      delivered: row.delivered ? "Sí" : "Pendiente",
     });
   }
 

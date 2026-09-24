@@ -30,6 +30,18 @@ export const studentUpdateSchema = z.object({
   active: z.boolean().optional(),
 });
 
+export const graduationHistoryCreateSchema = z.object({
+  graduacion: z.string().trim().min(1, "La graduación es obligatoria").max(200),
+  authorizedAt: z.string().trim().max(20).optional().nullable(),
+  delivered: z.boolean().optional().default(false),
+});
+
+export const graduationHistoryUpdateSchema = z.object({
+  graduacion: z.string().trim().min(1, "La graduación es obligatoria").max(200).optional(),
+  authorizedAt: z.string().trim().max(20).optional().nullable(),
+  delivered: z.boolean().optional(),
+});
+
 export const scheduleSchema = z.object({
   name: z.string().trim().max(100).optional().nullable(),
   startTime: z.string().regex(timeRegex, "Hora de inicio inválida (HH:mm)"),

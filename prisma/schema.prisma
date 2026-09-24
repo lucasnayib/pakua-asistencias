@@ -93,9 +93,27 @@ model Student {
   attendances              Attendance[]
   orientadores             OrientadorStudent[]
   itineranciaRegistrations ItineranciaStudentRegistration[]
+  graduationHistory        StudentGraduationHistory[]
 
   @@index([lastName, firstName])
   @@index([adminId])
+}
+
+// Historial de graduaciones (cintos) anteriores de un alumno. Se completa solo cuando se
+// cambia la graduación actual desde el formulario de edición (guardando la anterior), y
+// también a mano desde la ficha del alumno, para poder cargar el historial previo a esta
+// función o corregir algo.
+model StudentGraduationHistory {
+  id           String   @id @default(cuid())
+  studentId    String
+  student      Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  graduacion   String
+  authorizedAt String? // "YYYY-MM-DD", mismo formato string que Student.evaluationDate
+  delivered    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([studentId])
 }
 
 model Orientador {

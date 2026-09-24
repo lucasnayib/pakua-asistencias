@@ -63,9 +63,11 @@ export async function GET(request: NextRequest, { params }: Params) {
     ? registrations.filter((r) => r.attendedAt !== null).map(toExportRow)
     : registrations.map(toExportRow);
 
+  // Esta exportación es el roster de inscriptos a UNA actividad puntual, no el listado de
+  // alumnos de la escuela — el historial de graduaciones no aplica acá, por eso va vacío.
   const buffer = isPlanilla
     ? await buildItineranciaPlanillaPdfBuffer(rows, activity.date)
-    : await buildStudentsExcelBuffer(rows);
+    : await buildStudentsExcelBuffer(rows, []);
   const filename = isPlanilla
     ? `planilla_${slugify(activity.title)}.pdf`
     : `itinerancia_${slugify(activity.title)}.xlsx`;

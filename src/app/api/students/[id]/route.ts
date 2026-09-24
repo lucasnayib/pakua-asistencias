@@ -7,17 +7,35 @@ import { logChange } from "@/lib/audit";
 
 type Params = { params: Promise<{ id: string }> };
 
-const orientadorInclude = {
+const studentInclude = {
   orientadores: {
     include: { orientador: true },
     orderBy: { createdAt: "asc" as const },
     take: 1,
   },
+  graduationHistory: {
+    orderBy: [{ authorizedAt: "desc" as const }, { createdAt: "desc" as const }],
+  },
 };
 
-function toStudentResponse(student: { orientadores: { orientador: unknown }[] } & Record<string, unknown>) {
-  const { orientadores, ...rest } = student;
-  return { ...rest, orientador: orientadores[0]?.orientador ?? null };
+type StudentWithRelations = {
+  orientadores: { orientador: unknown }[];
+  graduationHistory: { id: string; graduacion: string; authorizedAt: string | null; delivered: boolean; createdAt: Date }[];
+} & Record<string, unknown>;
+
+function toStudentResponse(student: StudentWithRelations) {
+  const { orientadores, graduationHistory, ...rest } = student;
+  return {
+    ...rest,
+    orientador: orientadores[0]?.orientador ?? null,
+    graduationHistory: graduationHistory.map((h) => ({
+      id: h.id,
+      graduacion: h.graduacion,
+      authorizedAt: h.authorizedAt,
+      delivered: h.delivered,
+      createdAt: h.createdAt,
+    })),
+  };
 }
 
 export async function PATCH(request: NextRequest, { params }: Params) {
@@ -76,17 +94,39 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     }
   }
 
-  if (orientadorId !== undefined) {
-    await prisma.$transaction([
-      prisma.orientadorStudent.deleteMany({ where: { studentId: id } }),
-      ...(orientadorId ? [prisma.orientadorStudent.create({ data: { studentId: id, orientadorId } })] : []),
-    ]);
-  }
+  // Si la graduación actual cambia a un valor distinto y no vacío, la anterior (con la fecha
+  // que tenía) se guarda sola en el historial, marcada como no entregada todavía — nunca se
+  // asume que el cinto viejo ya se entregó, eso se corrige a mano desde la ficha del alumno.
+  const shouldSnapshotGraduacion =
+    studentData.graduacion !== undefined &&
+    !!studentData.graduacion &&
+    !!existing.graduacion &&
+    studentData.graduacion !== existing.graduacion;
 
-  const student = await prisma.student.update({
-    where: { id, adminId: session.adminId },
-    data: { ...studentData, ...(photoUrl ? { photoUrl } : {}) },
-    include: orientadorInclude,
+  const student = await prisma.$transaction(async (tx) => {
+    if (orientadorId !== undefined) {
+      await tx.orientadorStudent.deleteMany({ where: { studentId: id } });
+      if (orientadorId) {
+        await tx.orientadorStudent.create({ data: { studentId: id, orientadorId } });
+      }
+    }
+
+    if (shouldSnapshotGraduacion) {
+      await tx.studentGraduationHistory.create({
+        data: {
+          studentId: id,
+          graduacion: existing.graduacion!,
+          authorizedAt: existing.evaluationDate,
+          delivered: false,
+        },
+      });
+    }
+
+    return tx.student.update({
+      where: { id, adminId: session.adminId },
+      data: { ...studentData, ...(photoUrl ? { photoUrl } : {}) },
+      include: studentInclude,
+    });
   });
 
   await logChange({

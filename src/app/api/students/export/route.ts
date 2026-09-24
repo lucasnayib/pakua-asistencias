@@ -16,6 +16,9 @@ export async function GET() {
         orderBy: { createdAt: "asc" },
         take: 1,
       },
+      graduationHistory: {
+        orderBy: [{ authorizedAt: "desc" }, { createdAt: "desc" }],
+      },
     },
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
   });
@@ -28,7 +31,17 @@ export async function GET() {
     };
   });
 
-  const buffer = await buildStudentsExcelBuffer(rows);
+  const historyRows = students.flatMap((s) =>
+    s.graduationHistory.map((h) => ({
+      studentFirstName: s.firstName,
+      studentLastName: s.lastName,
+      graduacion: h.graduacion,
+      authorizedAt: h.authorizedAt,
+      delivered: h.delivered,
+    }))
+  );
+
+  const buffer = await buildStudentsExcelBuffer(rows, historyRows);
   const filename = `alumnos_${new Date().toISOString().slice(0, 10)}.xlsx`;
 
   await logChange({

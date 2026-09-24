@@ -35,6 +35,14 @@ export type ScheduleListItem = {
   _count: { students: number };
 };
 
+export type StudentGraduationHistoryItem = {
+  id: string;
+  graduacion: string;
+  authorizedAt: string | null;
+  delivered: boolean;
+  createdAt: string;
+};
+
 export type StudentListItem = {
   id: string;
   firstName: string;
@@ -49,6 +57,7 @@ export type StudentListItem = {
   active: boolean;
   createdAt: string;
   updatedAt: string;
+  graduationHistory: StudentGraduationHistoryItem[];
 };
 
 export type AdminListItem = {

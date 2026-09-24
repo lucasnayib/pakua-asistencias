@@ -6,17 +6,35 @@ import { getSession, requireAdmin } from "@/lib/auth";
 import { requireSchoolAccess } from "@/lib/school-access";
 import { logChange } from "@/lib/audit";
 
-const orientadorInclude = {
+const studentInclude = {
   orientadores: {
     include: { orientador: true },
     orderBy: { createdAt: "asc" as const },
     take: 1,
   },
+  graduationHistory: {
+    orderBy: [{ authorizedAt: "desc" as const }, { createdAt: "desc" as const }],
+  },
 };
 
-function toStudentResponse(student: { orientadores: { orientador: unknown }[] } & Record<string, unknown>) {
-  const { orientadores, ...rest } = student;
-  return { ...rest, orientador: orientadores[0]?.orientador ?? null };
+type StudentWithRelations = {
+  orientadores: { orientador: unknown }[];
+  graduationHistory: { id: string; graduacion: string; authorizedAt: string | null; delivered: boolean; createdAt: Date }[];
+} & Record<string, unknown>;
+
+function toStudentResponse(student: StudentWithRelations) {
+  const { orientadores, graduationHistory, ...rest } = student;
+  return {
+    ...rest,
+    orientador: orientadores[0]?.orientador ?? null,
+    graduationHistory: graduationHistory.map((h) => ({
+      id: h.id,
+      graduacion: h.graduacion,
+      authorizedAt: h.authorizedAt,
+      delivered: h.delivered,
+      createdAt: h.createdAt,
+    })),
+  };
 }
 
 export async function GET(request: NextRequest) {
@@ -47,7 +65,7 @@ export async function GET(request: NextRequest) {
           }
         : {}),
     },
-    include: orientadorInclude,
+    include: studentInclude,
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
   });
 
@@ -102,7 +120,7 @@ export async function POST(request: NextRequest) {
       adminId: session.adminId,
       ...(orientadorId ? { orientadores: { create: { orientadorId } } } : {}),
     },
-    include: orientadorInclude,
+    include: studentInclude,
   });
 
   await logChange({

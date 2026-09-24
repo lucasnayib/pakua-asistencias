@@ -279,6 +279,7 @@ export default function AlumnosAdminPage() {
         open={detailsStudent !== null}
         student={detailsStudent}
         onClose={() => setDetailsStudent(null)}
+        onChanged={loadStudents}
       />
 
       <ConfirmDialog

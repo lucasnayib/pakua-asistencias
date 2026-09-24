@@ -18,6 +18,14 @@ const HOUR_HEIGHT = 56; // px
 const TOTAL_HEIGHT = (END_HOUR - START_HOUR) * HOUR_HEIGHT;
 const HOURS = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => START_HOUR + i);
 
+const HEADER_HEIGHT = 44; // px — fija (en vez de que dependa del padding/texto), ver nota más abajo
+// El contenedor con scroll horizontal (para pantallas angostas) queda, por una particularidad de
+// CSS, con overflow-y "auto" aunque no se lo pida (fijar overflow-x en un eje vuelve "auto" al
+// otro si estaba en "visible"). Sin una altura mínima explícita, esto le agrega un scroll vertical
+// propio de unos pocos píxeles aunque el contenido entre justo — se le da un colchón de sobra para
+// que nunca aparezca.
+const GRID_MIN_HEIGHT = HEADER_HEIGHT + TOTAL_HEIGHT + 16;
+
 function minutesFromStart(time: string): number {
   const [h, m] = time.split(":").map(Number);
   return h * 60 + m - START_HOUR * 60;
@@ -69,13 +77,14 @@ type ScheduleCalendarViewProps = {
 
 export function ScheduleCalendarView({ schedules, onEdit }: ScheduleCalendarViewProps) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-border bg-surface">
+    <div className="overflow-x-auto rounded-xl border border-border bg-surface" style={{ minHeight: GRID_MIN_HEIGHT }}>
       <div className="grid min-w-[860px] grid-cols-[3.5rem_repeat(6,1fr)]">
-        <div className="border-b border-border" />
+        <div className="border-b border-border" style={{ height: HEADER_HEIGHT }} />
         {CALENDAR_DAYS.map((day) => (
           <div
             key={day}
-            className="border-b border-l border-border bg-surface-2 p-2 text-center text-sm font-semibold"
+            className="flex items-center justify-center border-b border-l border-border bg-surface-2 text-center text-sm font-semibold"
+            style={{ height: HEADER_HEIGHT }}
           >
             {DAY_LABELS[day]}
           </div>
