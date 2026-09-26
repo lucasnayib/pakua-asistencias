@@ -29,7 +29,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
   }
 
   return NextResponse.json({
-    students: activity.studentRegistrations.map((r) => r.student),
+    students: activity.studentRegistrations.map((r) => ({ ...r.student, attendedAt: r.attendedAt })),
   });
 }
 

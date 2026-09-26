@@ -116,6 +116,8 @@ export type ItineranciaRegisteredStudent = ItineranciaPerson & {
   formacion: string | null;
   graduacionDelivered: boolean;
   graduacionDeliveredAt: string | null;
+  /** Cuándo se marcó presente en la actividad (auto-check-in del alumno). null = no asistió (todavía). */
+  attendedAt: string | null;
 };
 
 export type ItineranciaPublicActivity = {

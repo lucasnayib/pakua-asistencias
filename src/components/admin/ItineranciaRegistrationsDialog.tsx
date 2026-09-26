@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
 import { Switch } from "@/components/ui/Switch";
 import { ItineranciaGraduationDialog } from "@/components/admin/ItineranciaGraduationDialog";
+import { graduacionRank } from "@/lib/graduacion-rank";
 import { formatDateEs } from "@/lib/time";
 import type { ItineranciaActivityListItem, ItineranciaRegisteredStudent } from "@/types";
 
@@ -33,6 +34,11 @@ export function ItineranciaRegistrationsDialog({
   const [deliveryDraft, setDeliveryDraft] = useState("");
 
   const allowsGraduation = activity?.category === "EVALUACION" || activity?.category === "COMPENSATORIOS";
+
+  // De más a menos graduado (mismo ranking por cinto que ya usa la planilla PDF de evaluación,
+  // ver src/lib/graduacion-rank.ts) — sort estable, así que a igual graduación se mantiene el
+  // orden alfabético que ya trae la API.
+  const sortedStudents = [...students].sort((a, b) => graduacionRank(b.graduacion) - graduacionRank(a.graduacion));
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -152,20 +158,26 @@ export function ItineranciaRegistrationsDialog({
                 <thead className="bg-surface-2 text-xs uppercase text-muted-foreground">
                   <tr>
                     <th className="px-4 py-3">Alumno</th>
+                    <th className="px-4 py-3">Asistencia</th>
                     {allowsGraduation && <th className="px-4 py-3">Graduación actual</th>}
                     {allowsGraduation && <th className="px-4 py-3">Entrega</th>}
                     <th className="px-4 py-3">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {students.map((s) => {
+                  {sortedStudents.map((s) => {
                     const showGraduation = allowsGraduation && s.formacion !== "Gym" && !!s.graduacion;
-                    const colSpan = allowsGraduation ? 4 : 2;
+                    const colSpan = allowsGraduation ? 5 : 3;
                     return (
                       <Fragment key={s.id}>
                         <tr className="bg-surface align-top">
                           <td className="px-4 py-3 font-medium">
                             {s.firstName} {s.lastName}
+                          </td>
+                          <td className="px-4 py-3 text-xs">
+                            <span className={s.attendedAt ? "text-success" : "text-muted-foreground"}>
+                              {s.attendedAt ? `Presente ✓ ${formatDateEs(s.attendedAt.slice(0, 10))}` : "Ausente"}
+                            </span>
                           </td>
                           {allowsGraduation && (
                             <td className="px-4 py-3 text-muted-foreground">
