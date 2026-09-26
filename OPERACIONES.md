@@ -142,19 +142,35 @@ Esto corre todos los días a las 3:15 AM (tarea programada de Windows), igual qu
 
 Sección exclusiva de una sola escuela (evento trimestral: marzo, junio, septiembre y
 diciembre), donde se publican actividades (evaluaciones, seminarios, cursos) y los alumnos se
-anotan ellos mismos desde su celular. Automática: tanto el panel ("Itinerancias"
-en el menú del admin de esa escuela) como la página pública se abren y cierran solas según el
-mes calendario — nadie tiene que activarlas a mano, y fuera de esos 4 meses quedan ocultas.
+anotan ellos mismos desde su celular.
+
+- **Panel de admin** ("Itinerancias" en el menú del admin de esa escuela): disponible **todo
+  el año**, sin restricción de mes — se puede ver, crear y editar actividades en cualquier
+  momento.
+- **Lado público** (inscripción, asistencia, listado público y desbloqueo por código): sigue
+  abriéndose y cerrándose solo según el mes calendario, exactamente como antes — fuera de esos
+  4 meses los alumnos no pueden entrar a inscribirse.
+
+### Archivado ("Itinerancias anteriores")
+
+En vez de borrarse solas a fin de mes, las actividades del panel se **archivan**: el admin
+puede tocar el botón "Cerrar itinerancia actual" cuando quiera, lo que mueve todas las
+actividades activas a "Itinerancias anteriores" bajo un nombre de período editable (por
+ejemplo "Itinerancias Septiembre 2026"), dejando el panel principal limpio para las próximas
+actividades. Si el admin no lo hace a mano, un job diario (3:30 AM) archiva solo los meses ya
+vencidos con un nombre autogenerado, sin tocar el mes en curso. Desde "Itinerancias
+anteriores" se puede seguir haciendo todo lo de siempre sobre esas actividades: ver
+inscriptos, exportar Excel, planilla PDF, editar y eliminar.
 
 Para habilitarla:
 
 1. En el `.env` del servidor, completar `ITINERANCIAS_SCHOOL_SLUG` con el slug de la escuela
    (el que aparece en su URL, `attendio.lat/escuela/<slug>`) y reiniciar el servidor
    (`pm2 restart pakua-asistencias`).
-2. Ya en uno de los 4 meses abiertos, el admin de esa escuela entra a "Itinerancias" en el
-   panel y define un **código de acceso propio** (distinto de la contraseña de la escuela) —
-   ese es el que se reparte a los alumnos para que entren a
-   `attendio.lat/escuela/<slug>/itinerancias` desde su teléfono. La inscripción a una actividad
+2. El admin de esa escuela entra a "Itinerancias" en el panel (en cualquier momento del año) y
+   define un **código de acceso propio** (distinto de la contraseña de la escuela) — ese es el
+   que se reparte a los alumnos para que entren a `attendio.lat/escuela/<slug>/itinerancias`
+   desde su teléfono, únicamente durante los 4 meses abiertos. La inscripción a una actividad
    es definitiva: una vez confirmada, solo el admin la puede deshacer desde el panel.
 
 ### Activar el chequeo automático (una sola vez, en el servidor)
@@ -164,6 +180,21 @@ Para habilitarla:
 
 Si no se activa esta tarea programada, la configuración de cada admin queda guardada pero no
 se aplica sola — es solo el interruptor, el que la hace efectiva es este cron diario.
+
+### Cierre automático de Itinerancias por mes vencido
+
+Si el admin de la escuela de Itinerancias no cerró manualmente el período, un job diario
+revisa las actividades activas (sin período asignado) y archiva solas las de cualquier mes ya
+terminado bajo una etiqueta autogenerada ("Itinerancias Mes Año"), dejando intactas las del mes
+en curso. Corre todos los días a las 3:30 AM.
+
+#### Activar el chequeo automático (una sola vez, en el servidor)
+
+1. Clic derecho sobre `programar-cierre-itinerancias.bat` → **Ejecutar como administrador**.
+2. Confirmar que dice "Tarea creada" al final.
+
+Si no se activa esta tarea programada, el cierre automático nunca corre — el admin solo puede
+cerrar el período a mano.
 
 ## Backup manual completo (todas las escuelas)
 

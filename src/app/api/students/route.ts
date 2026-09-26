@@ -84,6 +84,8 @@ export async function POST(request: NextRequest) {
     formacion: formData.get("formacion") || null,
     graduacion: formData.get("graduacion") || null,
     evaluationDate: formData.get("evaluationDate") || null,
+    graduacionDelivered: formData.get("graduacionDelivered") === "true",
+    graduacionDeliveredAt: formData.get("graduacionDeliveredAt") || null,
     dni: formData.get("dni") || null,
     birthDate: formData.get("birthDate") || null,
     orientadorId: formData.get("orientadorId") || null,

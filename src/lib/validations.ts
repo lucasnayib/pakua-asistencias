@@ -13,6 +13,8 @@ export const studentCreateSchema = z.object({
   formacion: formacionSchema,
   graduacion: z.string().trim().max(200).optional().nullable(),
   evaluationDate: z.string().trim().max(20).optional().nullable(),
+  graduacionDelivered: z.boolean().optional(),
+  graduacionDeliveredAt: z.string().trim().max(20).optional().nullable(),
   dni: z.string().trim().max(20).optional().nullable(),
   birthDate: z.string().trim().max(20).optional().nullable(),
   orientadorId: z.string().trim().min(1).optional().nullable(),
@@ -24,6 +26,8 @@ export const studentUpdateSchema = z.object({
   formacion: formacionSchema,
   graduacion: z.string().trim().max(200).optional().nullable(),
   evaluationDate: z.string().trim().max(20).optional().nullable(),
+  graduacionDelivered: z.boolean().optional(),
+  graduacionDeliveredAt: z.string().trim().max(20).optional().nullable(),
   dni: z.string().trim().max(20).optional().nullable(),
   birthDate: z.string().trim().max(20).optional().nullable(),
   orientadorId: z.string().trim().min(1).optional().nullable(),
@@ -151,6 +155,10 @@ export const itineranciaRegisterSchema = z.object({
   studentId: z.string().min(1),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
+});
+
+export const itineranciaClosePeriodSchema = z.object({
+  label: z.string().trim().min(1, "La etiqueta es obligatoria").max(150),
 });
 
 // clientDate: fecha "de hoy" calculada en el dispositivo del alumno (no en el servidor), para

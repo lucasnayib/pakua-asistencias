@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { Switch } from "@/components/ui/Switch";
 import { FORMACION_OPTIONS } from "@/lib/validations";
 import type { StudentListItem } from "@/types";
 
@@ -25,6 +26,8 @@ export function StudentFormDialog({ open, student, orientadores, onClose, onSave
   const [formacion, setFormacion] = useState("");
   const [graduacion, setGraduacion] = useState("");
   const [evaluationDate, setEvaluationDate] = useState("");
+  const [graduacionDelivered, setGraduacionDelivered] = useState(false);
+  const [graduacionDeliveredAt, setGraduacionDeliveredAt] = useState("");
   const [dni, setDni] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [orientadorId, setOrientadorId] = useState("");
@@ -40,6 +43,8 @@ export function StudentFormDialog({ open, student, orientadores, onClose, onSave
       setFormacion(student?.formacion ?? "");
       setGraduacion(student?.graduacion ?? "");
       setEvaluationDate(student?.evaluationDate ?? "");
+      setGraduacionDelivered(student?.graduacionDelivered ?? false);
+      setGraduacionDeliveredAt(student?.graduacionDeliveredAt ?? "");
       setDni(student?.dni ?? "");
       setBirthDate(student?.birthDate ?? "");
       setOrientadorId(student?.orientador?.id ?? "");
@@ -84,6 +89,8 @@ export function StudentFormDialog({ open, student, orientadores, onClose, onSave
       formData.set("formacion", formacion);
       formData.set("graduacion", graduacion);
       formData.set("evaluationDate", evaluationDate);
+      formData.set("graduacionDelivered", String(graduacionDelivered));
+      formData.set("graduacionDeliveredAt", graduacionDelivered ? graduacionDeliveredAt : "");
       formData.set("dni", dni);
       formData.set("birthDate", birthDate);
       formData.set("orientadorId", orientadorId);
@@ -150,12 +157,24 @@ export function StudentFormDialog({ open, student, orientadores, onClose, onSave
           ))}
         </Select>
         {!isGym && (
-          <Input
-            label="Graduación"
-            placeholder='Ej: "Cinto Naranja"'
-            value={graduacion}
-            onChange={(e) => setGraduacion(e.target.value)}
-          />
+          <>
+            <Input
+              label="Graduación"
+              placeholder='Ej: "Cinto Naranja"'
+              value={graduacion}
+              onChange={(e) => setGraduacion(e.target.value)}
+            />
+            <Switch checked={graduacionDelivered} onChange={setGraduacionDelivered} label="Entregado" />
+            {graduacionDelivered && (
+              <Input
+                label="¿Cuándo fue entregado?"
+                type="date"
+                value={graduacionDeliveredAt}
+                onChange={(e) => setGraduacionDeliveredAt(e.target.value)}
+                required
+              />
+            )}
+          </>
         )}
         <Input
           label={isGym ? "Fecha de Ingreso" : "¿Cuándo fue Autorizado?"}

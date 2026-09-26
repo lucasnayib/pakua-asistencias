@@ -9,15 +9,18 @@ const registrationCounts = {
   _count: { select: { studentRegistrations: true } },
 } as const;
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await requireAdmin();
   if (session instanceof NextResponse) return session;
 
   const denied = await requireItineranciaAdminAccess(session.adminId);
   if (denied) return denied;
 
+  const { searchParams } = new URL(request.url);
+  const archived = searchParams.get("archived") === "1";
+
   const activities = await prisma.itineranciaActivity.findMany({
-    where: { adminId: session.adminId },
+    where: { adminId: session.adminId, period: archived ? { not: null } : null },
     include: registrationCounts,
     orderBy: [{ date: "asc" }, { startTime: "asc" }],
   });

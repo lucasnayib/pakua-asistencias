@@ -84,6 +84,8 @@ model Student {
   formacion      String?
   graduacion     String?
   evaluationDate String?
+  graduacionDelivered   Boolean @default(false)
+  graduacionDeliveredAt String? // "YYYY-MM-DD" — igual formato que evaluationDate
   dni            String?
   birthDate      String?
   active         Boolean             @default(true)
@@ -222,6 +224,8 @@ model ItineranciaActivity {
   date        String // "YYYY-MM-DD"
   startTime   String // "HH:mm"
   endTime     String // "HH:mm"
+  period      String? // null = activa (panel principal); no-null = archivada bajo esta
+                       // etiqueta ("Itinerancias Septiembre 2026") tras un cierre manual o automático
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -229,6 +233,7 @@ model ItineranciaActivity {
 
   @@index([adminId])
   @@index([date])
+  @@index([adminId, period])
 }
 
 model ItineranciaStudentRegistration {

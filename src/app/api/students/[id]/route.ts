@@ -54,6 +54,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   const rawFormacion = formData.get("formacion");
   const rawGraduacion = formData.get("graduacion");
   const rawEvaluationDate = formData.get("evaluationDate");
+  const rawGraduacionDelivered = formData.get("graduacionDelivered");
+  const rawGraduacionDeliveredAt = formData.get("graduacionDeliveredAt");
   const rawDni = formData.get("dni");
   const rawBirthDate = formData.get("birthDate");
   const rawOrientadorId = formData.get("orientadorId");
@@ -63,6 +65,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     formacion: rawFormacion === null ? undefined : rawFormacion || null,
     graduacion: rawGraduacion === null ? undefined : rawGraduacion || null,
     evaluationDate: rawEvaluationDate === null ? undefined : rawEvaluationDate || null,
+    graduacionDelivered: rawGraduacionDelivered === null ? undefined : rawGraduacionDelivered === "true",
+    graduacionDeliveredAt: rawGraduacionDeliveredAt === null ? undefined : rawGraduacionDeliveredAt || null,
     dni: rawDni === null ? undefined : rawDni || null,
     birthDate: rawBirthDate === null ? undefined : rawBirthDate || null,
     orientadorId: rawOrientadorId === null ? undefined : rawOrientadorId || null,
@@ -96,8 +100,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 
   // Si la graduación actual cambia a un valor distinto y no vacío, la anterior (con la fecha
-  // que tenía) se guarda sola en el historial, marcada como no entregada todavía — nunca se
-  // asume que el cinto viejo ya se entregó, eso se corrige a mano desde la ficha del alumno.
+  // que tenía y su estado real de entrega) se guarda sola en el historial.
   const shouldSnapshotGraduacion =
     studentData.graduacion !== undefined &&
     !!studentData.graduacion &&
@@ -118,7 +121,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
           studentId: id,
           graduacion: existing.graduacion!,
           authorizedAt: existing.evaluationDate,
-          delivered: false,
+          delivered: existing.graduacionDelivered,
+          deliveredAt: existing.graduacionDeliveredAt,
         },
       });
     }

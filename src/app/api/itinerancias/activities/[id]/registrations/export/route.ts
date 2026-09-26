@@ -46,6 +46,7 @@ export async function GET(request: NextRequest, { params }: Params) {
       formacion: r.student.formacion,
       graduacion: r.student.graduacion,
       evaluationDate: r.student.evaluationDate,
+      graduacionDelivered: r.student.graduacionDelivered,
       dni: r.student.dni,
       birthDate: r.student.birthDate,
       orientadorName: orientador ? `${orientador.lastName}, ${orientador.firstName}` : null,

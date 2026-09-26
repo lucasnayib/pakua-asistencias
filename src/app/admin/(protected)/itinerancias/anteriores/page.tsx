@@ -2,9 +2,9 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isItineranciasSchool } from "@/lib/itinerancias";
-import { ItineranciasAdminClient } from "@/components/admin/ItineranciasAdminClient";
+import { ItineranciasAnterioresClient } from "@/components/admin/ItineranciasAnterioresClient";
 
-export default async function ItineranciasAdminPage() {
+export default async function ItineranciasAnterioresPage() {
   const session = await getSession();
   if (!session) redirect("/admin/login");
   if (session.role === "SUPER_ADMIN") redirect("/admin/admins");
@@ -15,5 +15,5 @@ export default async function ItineranciasAdminPage() {
     redirect("/admin");
   }
 
-  return <ItineranciasAdminClient />;
+  return <ItineranciasAnterioresClient />;
 }

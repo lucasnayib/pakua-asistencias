@@ -1,31 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { toast } from "sonner";
+import Link from "next/link";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
-import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ItineranciaAccessCodeSettings } from "@/components/admin/ItineranciaAccessCodeSettings";
-import { ItineranciaActivityFormDialog } from "@/components/admin/ItineranciaActivityFormDialog";
-import { ItineranciaRegistrationsDialog } from "@/components/admin/ItineranciaRegistrationsDialog";
 import { ItineranciaCalendarView } from "@/components/admin/ItineranciaCalendarView";
-import { formatDateEs, formatTimeRange } from "@/lib/time";
+import { ItineranciaActivityList } from "@/components/admin/ItineranciaActivityList";
+import { ItineranciaClosePeriodDialog } from "@/components/admin/ItineranciaClosePeriodDialog";
+import { useItineranciaActivityDialogs } from "@/components/admin/useItineranciaActivityDialogs";
 import type { ItineranciaActivityListItem } from "@/types";
-
-const CATEGORY_LABELS: Record<string, string> = {
-  EVALUACION: "Evaluación",
-  SEMINARIO: "Seminario",
-  CURSO: "Curso",
-  COMPENSATORIOS: "Compensatorios",
-  CLASES_ESPECIALES: "Clases Especiales",
-};
-
-const LOCATION_LABELS: Record<string, string> = {
-  CORDOBA: "Córdoba",
-  ALTA_GRACIA: "Alta Gracia",
-};
 
 type ViewMode = "list" | "calendar";
 
@@ -34,12 +19,7 @@ export function ItineranciasAdminClient() {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [search, setSearch] = useState("");
-  const [expandedTitles, setExpandedTitles] = useState<Set<string>>(new Set());
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<ItineranciaActivityListItem | null>(null);
-  const [registrationsFor, setRegistrationsFor] = useState<ItineranciaActivityListItem | null>(null);
-  const [deleting, setDeleting] = useState<ItineranciaActivityListItem | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [closePeriodOpen, setClosePeriodOpen] = useState(false);
 
   const loadActivities = useCallback(() => {
     setLoading(true);
@@ -53,105 +33,21 @@ export function ItineranciasAdminClient() {
     loadActivities();
   }, [loadActivities]);
 
-  function openCreate() {
-    setEditing(null);
-    setFormOpen(true);
-  }
-
-  function openEdit(activity: ItineranciaActivityListItem) {
-    setEditing(activity);
-    setFormOpen(true);
-  }
-
-  async function handleDelete() {
-    if (!deleting) return;
-    setBusy(true);
-    try {
-      const res = await fetch(`/api/itinerancias/activities/${deleting.id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error ?? "No se pudo eliminar la actividad");
-        return;
-      }
-      toast.success("Actividad eliminada");
-      setDeleting(null);
-      loadActivities();
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  function toggleTitle(title: string) {
-    setExpandedTitles((current) => {
-      const next = new Set(current);
-      if (next.has(title)) next.delete(title);
-      else next.add(title);
-      return next;
-    });
-  }
-
-  function renderActivityCard(a: ItineranciaActivityListItem) {
-    return (
-      <Card key={a.id} className="flex flex-col gap-2 p-4">
-        <div className="flex items-start justify-between gap-2">
-          <p className="font-medium">{a.title}</p>
-          <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-xs">
-            {CATEGORY_LABELS[a.category] ?? a.category}
-          </span>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          {formatDateEs(a.date)} · {formatTimeRange(a.startTime, a.endTime)}
-        </p>
-        {a.location && <p className="text-xs text-muted-foreground">{LOCATION_LABELS[a.location] ?? a.location}</p>}
-        <p className="text-xs text-muted-foreground">{a._count.studentRegistrations} alumno(s) anotados</p>
-        <div className="mt-1 flex flex-wrap gap-2 text-xs">
-          <button className="text-muted-foreground hover:underline" onClick={() => openEdit(a)}>
-            Editar
-          </button>
-          <button className="text-muted-foreground hover:underline" onClick={() => setRegistrationsFor(a)}>
-            Ver inscriptos
-          </button>
-          <a className="text-muted-foreground hover:underline" href={`/api/itinerancias/activities/${a.id}/registrations/export`}>
-            Exportar
-          </a>
-          <a
-            className="text-muted-foreground hover:underline"
-            href={`/api/itinerancias/activities/${a.id}/registrations/export?format=planilla`}
-          >
-            Planilla (PDF)
-          </a>
-          <button className="text-danger hover:underline" onClick={() => setDeleting(a)}>
-            Eliminar
-          </button>
-        </div>
-      </Card>
-    );
-  }
+  const { dialogs, openCreate, openEdit, openRegistrations, openDelete } =
+    useItineranciaActivityDialogs(loadActivities);
 
   const query = search.trim().toLowerCase();
   const filteredActivities = query
     ? activities.filter((a) => a.title.toLowerCase().includes(query))
     : activities;
 
-  // Junta en un mismo grupo las actividades que tienen EXACTAMENTE el mismo título (típicamente
-  // el mismo curso dictado en Córdoba y en Alta Gracia — ver la inscripción "hermana" que ya
-  // registra al alumno en todas las actividades con ese título), para no tener que buscar cada
-  // una por separado en una lista larga.
-  const groupedByTitle = new Map<string, ItineranciaActivityListItem[]>();
-  for (const a of filteredActivities) {
-    const group = groupedByTitle.get(a.title);
-    if (group) group.push(a);
-    else groupedByTitle.set(a.title, [a]);
-  }
-  const activityGroups = [...groupedByTitle.entries()].sort(([a], [b]) => a.localeCompare(b));
-
   return (
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-semibold">Itinerancias</h1>
         <p className="text-sm text-muted-foreground">
-          Actividades de este período: evaluaciones, seminarios, cursos y otras propuestas para
-          que los alumnos se anoten desde su celular.
+          Actividades del período en curso: evaluaciones, seminarios, cursos y otras propuestas
+          para que los alumnos se anoten desde su celular.
         </p>
       </div>
 
@@ -180,9 +76,16 @@ export function ItineranciasAdminClient() {
               Calendario
             </button>
           </div>
+          <Button variant="secondary" onClick={() => setClosePeriodOpen(true)}>
+            Cerrar itinerancia actual
+          </Button>
           <Button onClick={openCreate}>Nueva actividad</Button>
         </div>
       </div>
+
+      <Link href="/admin/itinerancias/anteriores" className="text-sm text-muted-foreground hover:underline">
+        Itinerancias anteriores →
+      </Link>
 
       <Input
         placeholder="Buscar actividad por nombre…"
@@ -206,68 +109,21 @@ export function ItineranciasAdminClient() {
       ) : viewMode === "calendar" ? (
         <ItineranciaCalendarView activities={filteredActivities} onEdit={openEdit} />
       ) : (
-        <div className="flex flex-col gap-3">
-          {activityGroups.map(([title, group]) => {
-            if (group.length === 1) return renderActivityCard(group[0]);
-
-            const expanded = expandedTitles.has(title);
-            const totalRegistrations = group.reduce((sum, a) => sum + a._count.studentRegistrations, 0);
-            return (
-              <div key={title} className="rounded-xl border border-border">
-                <button
-                  type="button"
-                  onClick={() => toggleTitle(title)}
-                  className="flex w-full items-center justify-between gap-3 p-4 text-left"
-                >
-                  <div>
-                    <p className="font-medium">{title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {group.length} actividades · {totalRegistrations} alumno(s) anotados en total
-                    </p>
-                  </div>
-                  <span className="shrink-0 text-xs text-muted-foreground">{expanded ? "Ocultar ▲" : "Ver ▼"}</span>
-                </button>
-                {expanded && (
-                  <div className="grid grid-cols-1 gap-3 border-t border-border p-3 sm:grid-cols-2 lg:grid-cols-3">
-                    {group.map((a) => renderActivityCard(a))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+        <ItineranciaActivityList
+          activities={filteredActivities}
+          onEdit={openEdit}
+          onOpenRegistrations={openRegistrations}
+          onDelete={openDelete}
+        />
       )}
 
-      <ItineranciaActivityFormDialog
-        open={formOpen}
-        activity={editing}
-        onClose={() => setFormOpen(false)}
-        onSaved={() => {
-          setFormOpen(false);
-          loadActivities();
-        }}
-      />
+      {dialogs}
 
-      <ItineranciaRegistrationsDialog
-        open={registrationsFor !== null}
-        activity={registrationsFor}
-        onClose={() => setRegistrationsFor(null)}
-        onChanged={loadActivities}
-      />
-
-      <ConfirmDialog
-        open={deleting !== null}
-        title="Eliminar actividad"
-        message={
-          deleting
-            ? `Esta acción borra "${deleting.title}" y todas sus inscripciones de forma permanente.`
-            : ""
-        }
-        confirmLabel="Eliminar"
-        danger
-        loading={busy}
-        onConfirm={handleDelete}
-        onCancel={() => setDeleting(null)}
+      <ItineranciaClosePeriodDialog
+        open={closePeriodOpen}
+        activeCount={activities.length}
+        onClose={() => setClosePeriodOpen(false)}
+        onClosed={loadActivities}
       />
     </div>
   );

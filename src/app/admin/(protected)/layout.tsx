@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { SIDEBAR_COLLAPSED_COOKIE } from "@/lib/admin-sidebar";
 import { prisma } from "@/lib/prisma";
-import { isItineranciasOpen, isItineranciasSchool } from "@/lib/itinerancias";
+import { isItineranciasSchool } from "@/lib/itinerancias";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -25,7 +25,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       ? await prisma.admin.count({ where: { role: "ADMIN", approved: false } })
       : 0;
 
-  const itineranciasEnabled = isItineranciasSchool(admin?.slug) && isItineranciasOpen();
+  const itineranciasEnabled = isItineranciasSchool(admin?.slug);
 
   // La preferencia de barra contraída se guarda en una cookie (no en localStorage) para que
   // el servidor renderice ya el estado correcto y no haya un parpadeo al cargar la página.

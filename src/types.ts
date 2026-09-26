@@ -52,6 +52,8 @@ export type StudentListItem = {
   formacion: string | null;
   graduacion: string | null;
   evaluationDate: string | null;
+  graduacionDelivered: boolean;
+  graduacionDeliveredAt: string | null;
   dni: string | null;
   birthDate: string | null;
   orientador: { id: string; firstName: string; lastName: string } | null;
@@ -93,6 +95,7 @@ export type ItineranciaActivityListItem = {
   date: string;
   startTime: string;
   endTime: string;
+  period: string | null;
   createdAt: string;
   updatedAt: string;
   _count: { studentRegistrations: number };
@@ -103,6 +106,16 @@ export type ItineranciaPerson = {
   firstName: string;
   lastName: string;
   photoUrl: string | null;
+};
+
+// Fila de la lista de inscriptos en el panel de admin: a diferencia de ItineranciaPerson (usado
+// también del lado público, que solo selecciona id/firstName/lastName/photoUrl), acá sí viajan
+// graduacion/formacion porque GET .../registrations trae la fila completa del alumno.
+export type ItineranciaRegisteredStudent = ItineranciaPerson & {
+  graduacion: string | null;
+  formacion: string | null;
+  graduacionDelivered: boolean;
+  graduacionDeliveredAt: string | null;
 };
 
 export type ItineranciaPublicActivity = {

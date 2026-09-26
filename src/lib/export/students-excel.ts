@@ -7,6 +7,7 @@ export type StudentExportRow = {
   formacion: string | null;
   graduacion: string | null;
   evaluationDate: string | null;
+  graduacionDelivered: boolean;
   dni: string | null;
   birthDate: string | null;
   orientadorName: string | null;
@@ -50,7 +51,7 @@ export async function buildStudentsExcelBuffer(
     sheet.addRow({
       fullName: `${row.lastName}, ${row.firstName}`,
       formacion: row.formacion ?? "",
-      graduacion: row.graduacion ?? "",
+      graduacion: row.graduacion ? `${row.graduacion}${row.graduacionDelivered ? " (Entregado)" : ""}` : "",
       evaluationDate: row.evaluationDate ? formatDateEs(row.evaluationDate) : "",
       dni: row.dni ? `D.N.I. ${row.dni}` : "",
       orientadorName: row.orientadorName ?? "",

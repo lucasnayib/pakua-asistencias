@@ -32,6 +32,12 @@ export function StudentDetailsDialog({ open, student, onClose, onChanged }: Stud
   const [deleteTarget, setDeleteTarget] = useState<StudentGraduationHistoryItem | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  const [currentDelivered, setCurrentDelivered] = useState(false);
+  const [currentDeliveredAt, setCurrentDeliveredAt] = useState<string | null>(null);
+  const [currentDeliveryFormOpen, setCurrentDeliveryFormOpen] = useState(false);
+  const [currentDeliveryDraft, setCurrentDeliveryDraft] = useState("");
+  const [currentToggling, setCurrentToggling] = useState(false);
+
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
@@ -45,6 +51,9 @@ export function StudentDetailsDialog({ open, student, onClose, onChanged }: Stud
       setFormOpen(false);
       setEditingEntry(null);
       setFormError(null);
+      setCurrentDelivered(student?.graduacionDelivered ?? false);
+      setCurrentDeliveredAt(student?.graduacionDeliveredAt ?? null);
+      setCurrentDeliveryFormOpen(false);
     }
   }, [open, student]);
 
@@ -157,6 +166,62 @@ export function StudentDetailsDialog({ open, student, onClose, onChanged }: Stud
     }
   }
 
+  // Mismo criterio que handleMarkNotDelivered/handleSwitchToggle, pero para la graduación
+  // actual (Student.graduacion), no una entrada del historial: pasar a "pendiente" es directo,
+  // pasar a "entregado" pide la fecha primero.
+  async function handleCurrentMarkNotDelivered() {
+    if (!student) return;
+    setCurrentToggling(true);
+    try {
+      const formData = new FormData();
+      formData.set("graduacionDelivered", "false");
+      formData.set("graduacionDeliveredAt", "");
+      const res = await fetch(`/api/students/${student.id}`, { method: "PATCH", body: formData });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "No se pudo actualizar");
+        return;
+      }
+      setCurrentDelivered(false);
+      setCurrentDeliveredAt(null);
+      onChanged();
+    } finally {
+      setCurrentToggling(false);
+    }
+  }
+
+  function handleCurrentSwitchToggle() {
+    if (currentDelivered) {
+      handleCurrentMarkNotDelivered();
+    } else {
+      setCurrentDeliveryDraft("");
+      setCurrentDeliveryFormOpen(true);
+    }
+  }
+
+  async function handleCurrentDeliverySubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!student) return;
+    setCurrentToggling(true);
+    try {
+      const formData = new FormData();
+      formData.set("graduacionDelivered", "true");
+      formData.set("graduacionDeliveredAt", currentDeliveryDraft);
+      const res = await fetch(`/api/students/${student.id}`, { method: "PATCH", body: formData });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "No se pudo actualizar");
+        return;
+      }
+      setCurrentDelivered(true);
+      setCurrentDeliveredAt(currentDeliveryDraft || null);
+      setCurrentDeliveryFormOpen(false);
+      onChanged();
+    } finally {
+      setCurrentToggling(false);
+    }
+  }
+
   async function handleDelete() {
     if (!student || !deleteTarget) return;
     setDeleting(true);
@@ -201,7 +266,48 @@ export function StudentDetailsDialog({ open, student, onClose, onChanged }: Stud
             {!isGym && (
               <div>
                 <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Graduación</dt>
-                <dd className="mt-0.5">{student.graduacion || "—"}</dd>
+                <dd className="mt-0.5 flex flex-wrap items-center gap-2">
+                  <span>{student.graduacion || "—"}</span>
+                  {student.graduacion && (
+                    <>
+                      <span className={`text-xs ${currentDelivered ? "text-success" : "text-muted-foreground"}`}>
+                        {currentDelivered
+                          ? `Entregado ✓${currentDeliveredAt ? ` ${formatDateEs(currentDeliveredAt)}` : ""}`
+                          : "Pendiente"}
+                      </span>
+                      <Switch checked={currentDelivered} onChange={handleCurrentSwitchToggle} disabled={currentToggling} />
+                    </>
+                  )}
+                </dd>
+                {student.graduacion && currentDeliveryFormOpen && (
+                  <form
+                    onSubmit={handleCurrentDeliverySubmit}
+                    className="mt-2 flex flex-col gap-2 rounded-lg border border-border p-3"
+                  >
+                    <Input
+                      label="¿Cuándo fue entregado?"
+                      type="date"
+                      value={currentDeliveryDraft}
+                      onChange={(e) => setCurrentDeliveryDraft(e.target.value)}
+                      required
+                      autoFocus
+                    />
+                    <div className="mt-1 flex justify-end gap-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setCurrentDeliveryFormOpen(false)}
+                        disabled={currentToggling}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button type="submit" size="sm" loading={currentToggling}>
+                        Guardar
+                      </Button>
+                    </div>
+                  </form>
+                )}
               </div>
             )}
             <div>

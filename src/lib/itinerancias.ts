@@ -1,7 +1,9 @@
 /**
  * Itinerancias: evento trimestral (marzo/junio/septiembre/diciembre) exclusivo de una escuela
- * puntual, identificada por ITINERANCIAS_SCHOOL_SLUG. Tanto el panel de admin como la página
- * pública se apagan automáticamente fuera de esos meses — ver OPERACIONES.md.
+ * puntual, identificada por ITINERANCIAS_SCHOOL_SLUG. Solo la página pública se apaga
+ * automáticamente fuera de esos meses — el panel de admin está disponible todo el año, y en su
+ * lugar usa un archivado explícito (ver ItineranciaActivity.period) para separar el período en
+ * curso de los ya cerrados. Ver OPERACIONES.md.
  */
 const OPEN_MONTHS = [3, 6, 9, 12];
 
@@ -61,14 +63,18 @@ export function checkItineranciaLocation(
 }
 
 /**
- * Corta con 403 si la escuela del admin logueado no es la de Itinerancias, o si el mes actual
- * no es uno de los abiertos. Repetir este chequeo en cada ruta de admin es intencional: nunca
- * alcanza con ocultar el link en el sidebar.
+ * Corta con 403 si la escuela del admin logueado no es la de Itinerancias. Ya no exige que el
+ * mes actual sea uno de los "abiertos": el panel de admin de Itinerancias no tiene restricción
+ * horaria, solo el lado público (inscripción/asistencia/listado/desbloqueo) sigue usando
+ * isItineranciasOpen() directamente. Repetir este chequeo en cada ruta de admin es intencional:
+ * nunca alcanza con ocultar el link en el sidebar.
  */
 export async function requireItineranciaAdminAccess(adminId: string): Promise<NextResponse | null> {
   const admin = await prisma.admin.findUnique({ where: { id: adminId }, select: { slug: true } });
-  if (!isItineranciasSchool(admin?.slug) || !isItineranciasOpen()) {
-    return NextResponse.json({ error: "Itinerancias no está disponible ahora" }, { status: 403 });
+  if (!isItineranciasSchool(admin?.slug)) {
+    return NextResponse.json({ error: "Itinerancias no está disponible para esta escuela" }, { status: 403 });
   }
   return null;
 }
+
+export { formatItineranciaPeriodLabel } from "./itinerancia-period";
