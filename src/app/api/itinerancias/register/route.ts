@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { itineranciaRegisterSchema } from "@/lib/validations";
 import { requireItineranciaAccess } from "@/lib/itinerancia-access";
@@ -9,16 +9,25 @@ import {
   itineranciaRequiresLocation,
 } from "@/lib/itinerancias";
 import { logChange } from "@/lib/audit";
+import { checkRateLimit, recordFailedAttempt } from "@/lib/rate-limit";
+import { getRequestIp, lockoutMessage } from "@/lib/request-ip";
 
 /**
  * Inscripción pública de un alumno a una actividad de Itinerancias. Solo POST: es irrevocable
  * desde este lado (ver plan) — la única forma de deshacerla es la corrección manual del admin
  * en /api/itinerancias/activities/[id]/registrations.
  */
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const rateLimitKey = `itinerancia-register:${getRequestIp(request)}`;
+  const status = checkRateLimit(rateLimitKey);
+  if (status.locked) {
+    return NextResponse.json({ error: lockoutMessage(status.remainingMs) }, { status: 429 });
+  }
+
   const body = await request.json().catch(() => null);
   const parsed = itineranciaRegisterSchema.safeParse(body);
   if (!parsed.success) {
+    recordFailedAttempt(rateLimitKey);
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Datos inválidos" }, { status: 400 });
   }
   const { activityId, studentId, latitude, longitude } = parsed.data;
@@ -52,6 +61,7 @@ export async function POST(request: Request) {
   try {
     await prisma.itineranciaStudentRegistration.create({ data: { activityId, studentId } });
   } catch {
+    recordFailedAttempt(rateLimitKey);
     return NextResponse.json({ error: "Ya estabas anotado a esta actividad" }, { status: 409 });
   }
 
