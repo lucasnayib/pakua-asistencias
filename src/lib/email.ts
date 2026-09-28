@@ -231,6 +231,40 @@ export async function sendSubscriptionWarningEmail(data: {
   );
 }
 
+export async function sendSubscriptionSuspendedEmail(data: {
+  contactEmail: string;
+  displayName: string;
+  reason: "TRIAL_ENDED" | "PAYMENT_FAILED";
+}): Promise<void> {
+  const config = getEmailConfig();
+  if (!config) return;
+
+  const url = baseUrl();
+  const billingLine = url
+    ? `Regularizá tu suscripción acá: ${url}/admin/facturacion`
+    : `Entrá a "Facturación" en el panel para regularizar tu suscripción.`;
+
+  const REASONS: Record<typeof data.reason, string> = {
+    TRIAL_ENDED: `Suspendimos el acceso al panel de "${data.displayName}" porque tu período de prueba en Attendio terminó sin una suscripción activa.`,
+    PAYMENT_FAILED: `Suspendimos el acceso al panel de "${data.displayName}" porque no pudimos procesar tu último cobro y venció el período de gracia sin regularizarlo.`,
+  };
+
+  await sendMail(
+    config,
+    data.contactEmail,
+    `Tu panel fue suspendido por falta de pago — ${data.displayName}`,
+    [
+      REASONS[data.reason],
+      ``,
+      `Tus datos no se perdieron: alumnos, horarios y el historial de asistencias siguen guardados tal cual estaban. En cuanto se regularice el pago, el panel se reactiva automáticamente.`,
+      ``,
+      billingLine,
+      ``,
+      `Si creés que esto es un error, escribinos a pakuaasistencias@gmail.com.`,
+    ].join("\n")
+  );
+}
+
 export async function sendInactiveStudentsDeactivatedEmail(data: {
   contactEmail: string;
   displayName: string;

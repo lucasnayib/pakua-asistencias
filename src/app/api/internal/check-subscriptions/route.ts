@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { sendSubscriptionWarningEmail } from "@/lib/email";
+import { sendSubscriptionSuspendedEmail, sendSubscriptionWarningEmail } from "@/lib/email";
 
 const WARNING_WINDOW_MS = 12 * 60 * 60 * 1000; // 12 horas
 
@@ -33,6 +33,13 @@ export async function POST(request: Request) {
     if (admin.subscriptionStatus === "TRIALING" && admin.trialEndsAt) {
       if (admin.trialEndsAt <= now) {
         await prisma.admin.update({ where: { id: admin.id }, data: { subscriptionStatus: "SUSPENDED" } });
+        if (admin.contactEmail) {
+          await sendSubscriptionSuspendedEmail({
+            contactEmail: admin.contactEmail,
+            displayName: admin.displayName,
+            reason: "TRIAL_ENDED",
+          });
+        }
         trialSuspensions++;
         continue;
       }
@@ -67,6 +74,13 @@ export async function POST(request: Request) {
 
     if (admin.subscriptionStatus === "PAST_DUE" && admin.graceEndsAt && admin.graceEndsAt <= now) {
       await prisma.admin.update({ where: { id: admin.id }, data: { subscriptionStatus: "SUSPENDED" } });
+      if (admin.contactEmail) {
+        await sendSubscriptionSuspendedEmail({
+          contactEmail: admin.contactEmail,
+          displayName: admin.displayName,
+          reason: "PAYMENT_FAILED",
+        });
+      }
       graceSuspensions++;
     }
   }
