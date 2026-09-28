@@ -7,10 +7,20 @@ import { Card } from "@/components/ui/Card";
 import { Spinner } from "@/components/ui/Spinner";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { AdminFormDialog } from "@/components/admin/AdminFormDialog";
+import { SUBSCRIPTION_STATUS_LABELS } from "@/lib/subscription";
 import type { AdminListItem } from "@/types";
+
+const SUBSCRIPTION_BADGE_CLASSES: Record<string, string> = {
+  TRIALING: "bg-accent/15 text-accent",
+  ACTIVE: "bg-success/15 text-success",
+  PAST_DUE: "bg-danger/15 text-danger",
+  SUSPENDED: "bg-danger/15 text-danger",
+  CANCELED: "bg-surface-2 text-muted-foreground",
+};
 
 export default function AdminsPage() {
   const [admins, setAdmins] = useState<AdminListItem[]>([]);
+  const [subscriptionsEnabled, setSubscriptionsEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<AdminListItem | null>(null);
@@ -39,7 +49,10 @@ export default function AdminsPage() {
     setLoading(true);
     fetch("/api/admins")
       .then((res) => res.json())
-      .then((data) => setAdmins(data.admins ?? []))
+      .then((data) => {
+        setAdmins(data.admins ?? []);
+        setSubscriptionsEnabled(Boolean(data.subscriptionsEnabled));
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -222,6 +235,15 @@ export default function AdminsPage() {
                   >
                     {a.active ? "Activo" : "Desactivado"}
                   </span>
+                  {subscriptionsEnabled && a.role === "ADMIN" && (
+                    <span
+                      className={`rounded-full px-2 py-0.5 font-medium ${
+                        SUBSCRIPTION_BADGE_CLASSES[a.subscriptionStatus] ?? "bg-surface-2 text-muted-foreground"
+                      }`}
+                    >
+                      {SUBSCRIPTION_STATUS_LABELS[a.subscriptionStatus] ?? a.subscriptionStatus}
+                    </span>
+                  )}
                 </div>
                 <div className="mt-3 flex flex-wrap gap-3 text-xs">
                   <button

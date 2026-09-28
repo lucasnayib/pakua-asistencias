@@ -74,6 +74,8 @@ export type AdminListItem = {
   contactEmail: string | null;
   contactPhone: string | null;
   createdAt: string;
+  /** Solo tiene sentido para role "ADMIN" — el super-admin no factura. */
+  subscriptionStatus: string;
 };
 
 export type SchoolListItem = {

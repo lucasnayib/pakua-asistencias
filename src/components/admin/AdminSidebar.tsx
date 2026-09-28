@@ -44,6 +44,7 @@ export function AdminSidebar({
   pendingAdminCount = 0,
   itineranciasEnabled = false,
   defaultCollapsed = false,
+  suspended = false,
 }: {
   displayName: string;
   username: string;
@@ -52,6 +53,9 @@ export function AdminSidebar({
   pendingAdminCount?: number;
   itineranciasEnabled?: boolean;
   defaultCollapsed?: boolean;
+  /** Suscripción suspendida: el proxy (src/proxy.ts) ya bloquea cualquier pantalla que no sea
+   * Facturación, así que acá se oculta todo lo demás para no mostrar navegación muerta. */
+  suspended?: boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -69,7 +73,9 @@ export function AdminSidebar({
   // El super-admin no tiene acceso a datos de escuela: solo ve la gestión de cuentas.
   const isSuperAdmin = role === "SUPER_ADMIN";
 
-  const groups: NavGroup[] = isSuperAdmin
+  const groups: NavGroup[] = suspended
+    ? []
+    : isSuperAdmin
     ? [
         {
           id: "cuentas",
@@ -160,11 +166,12 @@ export function AdminSidebar({
 
   // Itinerancias es un evento trimestral (solo aparece en los meses habilitados): va como
   // tarjeta propia junto al Resumen, no dentro de un grupo.
-  const primaryLinks: NavItem[] = isSuperAdmin
-    ? []
-    : itineranciasEnabled
-      ? [DASHBOARD_LINK, ITINERANCIAS_LINK]
-      : [DASHBOARD_LINK];
+  const primaryLinks: NavItem[] =
+    suspended || isSuperAdmin
+      ? []
+      : itineranciasEnabled
+        ? [DASHBOARD_LINK, ITINERANCIAS_LINK]
+        : [DASHBOARD_LINK];
   const billingActive = isActive(BILLING_LINK.href);
 
   return (
@@ -254,14 +261,16 @@ export function AdminSidebar({
 
           <div className="flex w-full shrink-0 flex-col items-center gap-1 border-t border-border px-2 py-2">
             {!isSuperAdmin && <RailLink item={BILLING_LINK} active={billingActive} />}
-            <GoToAttendanceLink
-              href={schoolSlug ? `/escuela/${schoolSlug}` : "/"}
-              title="Ir a toma de asistencia"
-              className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-surface-2 hover:text-foreground"
-            >
-              <SidebarIcon name="clipboard-check" className="h-5 w-5" />
-              <span className="sr-only">Ir a toma de asistencia</span>
-            </GoToAttendanceLink>
+            {!suspended && (
+              <GoToAttendanceLink
+                href={schoolSlug ? `/escuela/${schoolSlug}` : "/"}
+                title="Ir a toma de asistencia"
+                className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-surface-2 hover:text-foreground"
+              >
+                <SidebarIcon name="clipboard-check" className="h-5 w-5" />
+                <span className="sr-only">Ir a toma de asistencia</span>
+              </GoToAttendanceLink>
+            )}
             <button
               type="button"
               onClick={handleLogout}
@@ -444,13 +453,15 @@ export function AdminSidebar({
               </Link>
             )}
 
-            <GoToAttendanceLink
-              href={schoolSlug ? `/escuela/${schoolSlug}` : "/"}
-              className="flex flex-col items-center gap-1 border-b border-border px-5 py-3 text-xs text-muted-foreground transition hover:bg-surface-2 hover:text-foreground md:py-2"
-            >
-              <SidebarIcon name="clipboard-check" className="h-6 w-6" />
-              Ir a toma de asistencia
-            </GoToAttendanceLink>
+            {!suspended && (
+              <GoToAttendanceLink
+                href={schoolSlug ? `/escuela/${schoolSlug}` : "/"}
+                className="flex flex-col items-center gap-1 border-b border-border px-5 py-3 text-xs text-muted-foreground transition hover:bg-surface-2 hover:text-foreground md:py-2"
+              >
+                <SidebarIcon name="clipboard-check" className="h-6 w-6" />
+                Ir a toma de asistencia
+              </GoToAttendanceLink>
+            )}
 
             <button
               type="button"

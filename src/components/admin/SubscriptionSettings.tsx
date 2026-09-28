@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { SUBSCRIPTION_STATUS_LABELS } from "@/lib/subscription";
 
 type Props = {
   subscriptionStatus: string;
@@ -18,23 +19,41 @@ type Props = {
 const CHECKOUT_PENDING_KEY = "pakua_checkout_pending";
 const POLL_INTERVAL_MS = 2000;
 const POLL_MAX_ATTEMPTS = 10; // ~20s: el webhook suele tardar unos segundos en llegar
-
-function daysUntil(iso: string): number {
-  const diffMs = new Date(iso).getTime() - Date.now();
-  return Math.max(0, Math.ceil(diffMs / (24 * 60 * 60 * 1000)));
-}
+const URGENT_THRESHOLD_MS = 24 * 60 * 60 * 1000; // último día: la tarjeta pasa a alerta roja
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  TRIALING: "Período de prueba",
-  ACTIVE: "Activa",
-  PAST_DUE: "Pago pendiente",
-  SUSPENDED: "Suspendida",
-  CANCELED: "Cancelada",
-};
+/** Cuenta regresiva en vivo hasta `targetIso`, recalculada cada segundo. */
+function useCountdown(targetIso: string | null): number {
+  const [remainingMs, setRemainingMs] = useState(() => (targetIso ? new Date(targetIso).getTime() - Date.now() : 0));
+
+  useEffect(() => {
+    if (!targetIso) return;
+    const target = new Date(targetIso).getTime();
+    const tick = () => setRemainingMs(target - Date.now());
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [targetIso]);
+
+  return Math.max(0, remainingMs);
+}
+
+/** "3 días", "5h 12m", "2m 45s" — la unidad más gruesa que todavía tenga sentido mostrar. */
+function formatCountdown(remainingMs: number): string {
+  const totalSeconds = Math.floor(remainingMs / 1000);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (days >= 1) return `${days} día${days === 1 ? "" : "s"}`;
+  if (hours >= 1) return `${hours}h ${minutes}m`;
+  if (minutes >= 1) return `${minutes}m ${seconds}s`;
+  return `${seconds}s`;
+}
 
 export function SubscriptionSettings({
   subscriptionStatus,
@@ -49,6 +68,17 @@ export function SubscriptionSettings({
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const pollAttempts = useRef(0);
+
+  const trialRemainingMs = useCountdown(subscriptionStatus === "TRIALING" ? trialEndsAt : null);
+  const trialUrgent = trialRemainingMs > 0 && trialRemainingMs <= URGENT_THRESHOLD_MS;
+  const trialJustExpired = subscriptionStatus === "TRIALING" && trialEndsAt !== null && trialRemainingMs <= 0;
+
+  // Cuando la cuenta regresiva llega a 0, el estado real (¿ya la suspendió el job de
+  // background?) puede haber cambiado en el servidor — se refresca una vez para mostrarlo
+  // sin que el usuario tenga que recargar a mano.
+  useEffect(() => {
+    if (trialJustExpired) router.refresh();
+  }, [trialJustExpired, router]);
 
   // Al volver del checkout de Mercado Pago, esta misma página se vuelve a cargar. El
   // webhook que confirma el pago puede tardar unos segundos en llegar, así que
@@ -118,15 +148,27 @@ export function SubscriptionSettings({
 
   return (
     <div className="flex flex-col gap-6">
-      <Card className="max-w-md border-accent/30 bg-accent/5 p-6">
-        <p className="text-xs font-medium uppercase tracking-wide text-accent">
-          {STATUS_LABELS[subscriptionStatus] ?? subscriptionStatus}
+      <Card
+        className={`max-w-md p-6 transition-colors ${
+          trialUrgent ? "border-danger/50 bg-danger/10" : "border-accent/30 bg-accent/5"
+        }`}
+      >
+        <p className={`text-xs font-medium uppercase tracking-wide ${trialUrgent ? "text-danger" : "text-accent"}`}>
+          {SUBSCRIPTION_STATUS_LABELS[subscriptionStatus] ?? subscriptionStatus}
         </p>
 
         {subscriptionStatus === "TRIALING" && trialEndsAt && (
           <>
             <p className="mt-1 text-lg font-semibold">
-              Te quedan {daysUntil(trialEndsAt)} día{daysUntil(trialEndsAt) === 1 ? "" : "s"} de prueba gratis
+              {trialJustExpired ? (
+                "Tu prueba gratis está terminando…"
+              ) : (
+                <>
+                  Te quedan{" "}
+                  <span className={trialUrgent ? "text-danger" : undefined}>{formatCountdown(trialRemainingMs)}</span>{" "}
+                  de prueba gratis
+                </>
+              )}
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
               Tu prueba termina el {formatDate(trialEndsAt)}. Suscribite antes de esa fecha para que tu

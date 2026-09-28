@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { SIDEBAR_COLLAPSED_COOKIE } from "@/lib/admin-sidebar";
 import { prisma } from "@/lib/prisma";
 import { isItineranciasSchool } from "@/lib/itinerancias";
+import { isSubscriptionSuspended } from "@/lib/subscription";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -15,8 +16,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // El super-admin no tiene escuela propia: no hace falta resolver un slug para él.
   const admin =
     session.role === "ADMIN"
-      ? await prisma.admin.findUnique({ where: { id: session.adminId }, select: { slug: true } })
+      ? await prisma.admin.findUnique({
+          where: { id: session.adminId },
+          select: { slug: true, subscriptionStatus: true },
+        })
       : null;
+
+  const suspended = admin ? isSubscriptionSuspended(admin.subscriptionStatus) : false;
 
   // Cantidad de solicitudes de escuela nueva pendientes de aprobación: solo le importa al
   // super-admin (única cuenta con acceso a /admin/admins), así que se resuelve solo para él.
@@ -41,6 +47,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         pendingAdminCount={pendingAdminCount}
         itineranciasEnabled={itineranciasEnabled}
         defaultCollapsed={sidebarCollapsed}
+        suspended={suspended}
       />
       {/* Sin scroll propio: antes esta caja se recortaba a la altura de la pantalla y generaba
           su propia barra angosta, separada de la barra grande del navegador. Ahora el contenido

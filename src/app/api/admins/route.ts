@@ -17,6 +17,7 @@ const adminSelect = {
   contactEmail: true,
   contactPhone: true,
   createdAt: true,
+  subscriptionStatus: true,
 };
 
 export async function GET() {
@@ -30,7 +31,7 @@ export async function GET() {
     orderBy: [{ createdAt: "asc" }],
   });
 
-  return NextResponse.json({ admins });
+  return NextResponse.json({ admins, subscriptionsEnabled: process.env.SUBSCRIPTIONS_ENABLED === "true" });
 }
 
 export async function POST(request: NextRequest) {
