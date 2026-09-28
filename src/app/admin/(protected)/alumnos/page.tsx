@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -210,10 +211,9 @@ export default function AlumnosAdminPage() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {students.map((s) => (
             <Card key={s.id} className="flex items-center gap-3 p-4">
-              <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-2">
+              <span className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-2">
                 {s.photoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={s.photoUrl} alt="" className="h-full w-full object-cover" />
+                  <Image src={s.photoUrl} alt={`${s.firstName} ${s.lastName}`} fill sizes="56px" className="object-cover" />
                 ) : (
                   <span className="text-xs text-muted-foreground">
                     {s.firstName[0]}
@@ -228,31 +228,31 @@ export default function AlumnosAdminPage() {
                 {!s.active && <p className="text-xs text-danger">Dado de baja</p>}
                 <div className="mt-1 flex flex-wrap gap-2 text-xs">
                   <button
-                    className="text-muted-foreground hover:underline"
+                    className="px-1 py-2 text-muted-foreground hover:underline"
                     onClick={() => setDetailsStudent(s)}
                   >
                     Más información
                   </button>
-                  <button className="text-muted-foreground hover:underline" onClick={() => openEdit(s)}>
+                  <button className="px-1 py-2 text-muted-foreground hover:underline" onClick={() => openEdit(s)}>
                     Editar
                   </button>
                   {s.active ? (
                     <button
-                      className="text-muted-foreground hover:underline"
+                      className="px-1 py-2 text-muted-foreground hover:underline"
                       onClick={() => setConfirmAction({ type: "deactivate", student: s })}
                     >
                       Dar de baja
                     </button>
                   ) : (
                     <button
-                      className="text-muted-foreground hover:underline"
+                      className="px-1 py-2 text-muted-foreground hover:underline"
                       onClick={() => handleSetActive(s, true)}
                     >
                       Reactivar
                     </button>
                   )}
                   <button
-                    className="text-danger hover:underline"
+                    className="px-1 py-2 text-danger hover:underline"
                     onClick={() => setConfirmAction({ type: "delete", student: s })}
                   >
                     Eliminar

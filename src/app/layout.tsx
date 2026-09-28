@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { Footer } from "@/components/layout/Footer";
@@ -39,6 +39,14 @@ export const metadata: Metadata = {
     title: "Pakua — Asistencias",
     description: SITE_DESCRIPTION,
   },
+};
+
+// El default de Next ya era correcto (width=device-width, initial-scale=1); se deja explícito
+// por prolijidad, con themeColor a juego con el fondo oscuro forzado de la app.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#040506",
 };
 
 export default function RootLayout({

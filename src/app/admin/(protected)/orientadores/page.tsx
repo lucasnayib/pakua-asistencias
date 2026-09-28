@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Image from "next/image";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -89,10 +90,9 @@ export default function OrientadoresAdminPage() {
           {orientadores.map((o) => (
             <Card key={o.id} className="flex flex-col gap-3 p-4">
               <div className="flex items-start gap-3">
-                <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-2">
+                <span className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-2">
                   {o.photoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={o.photoUrl} alt="" className="h-full w-full object-cover" />
+                    <Image src={o.photoUrl} alt={`${o.firstName} ${o.lastName}`} fill sizes="56px" className="object-cover" />
                   ) : (
                     <span className="text-xs text-muted-foreground">
                       {o.firstName[0]}
@@ -108,7 +108,7 @@ export default function OrientadoresAdminPage() {
                   {o.phone && <p className="truncate text-xs text-muted-foreground">{o.phone}</p>}
                   <div className="mt-2 flex flex-wrap gap-3 text-xs">
                     <button
-                      className="text-muted-foreground hover:underline"
+                      className="px-1 py-2 text-muted-foreground hover:underline"
                       onClick={() => {
                         setEditing(o);
                         setFormOpen(true);
@@ -116,7 +116,7 @@ export default function OrientadoresAdminPage() {
                     >
                       Editar
                     </button>
-                    <button className="text-danger hover:underline" onClick={() => setDeleting(o)}>
+                    <button className="px-1 py-2 text-danger hover:underline" onClick={() => setDeleting(o)}>
                       Eliminar
                     </button>
                   </div>

@@ -160,14 +160,14 @@ export default function AdminsPage() {
                   )}
                   <div className="mt-3 flex flex-wrap gap-3 text-xs">
                     <button
-                      className="font-medium text-success hover:underline"
+                      className="px-1 py-2 font-medium text-success hover:underline"
                       disabled={busyId === a.id}
                       onClick={() => handleApprove(a)}
                     >
                       Aprobar
                     </button>
                     <button
-                      className="font-medium text-danger hover:underline"
+                      className="px-1 py-2 font-medium text-danger hover:underline"
                       disabled={busyId === a.id}
                       onClick={() => setRejecting(a)}
                     >
@@ -204,7 +204,7 @@ export default function AdminsPage() {
                     <p className="truncate text-xs text-accent">/escuela/{a.slug}</p>
                     <button
                       type="button"
-                      className="text-xs text-muted-foreground hover:underline"
+                      className="px-1 py-2 text-xs text-muted-foreground hover:underline"
                       onClick={() => copyLink(a.slug)}
                     >
                       Copiar enlace
@@ -225,7 +225,7 @@ export default function AdminsPage() {
                 </div>
                 <div className="mt-3 flex flex-wrap gap-3 text-xs">
                   <button
-                    className="text-muted-foreground hover:underline"
+                    className="px-1 py-2 text-muted-foreground hover:underline"
                     onClick={() => {
                       setEditing(a);
                       setFormOpen(true);
@@ -234,14 +234,14 @@ export default function AdminsPage() {
                     Editar
                   </button>
                   <button
-                    className={a.active ? "text-danger hover:underline" : "text-accent hover:underline"}
+                    className={`px-1 py-2 ${a.active ? "text-danger hover:underline" : "text-accent hover:underline"}`}
                     disabled={busyId === a.id}
                     onClick={() => toggleActive(a)}
                   >
                     {a.active ? "Desactivar" : "Reactivar"}
                   </button>
                   <button
-                    className="text-danger hover:underline"
+                    className="px-1 py-2 text-danger hover:underline"
                     disabled={busyId === a.id}
                     onClick={() => setDeleting(a)}
                   >

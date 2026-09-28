@@ -121,8 +121,10 @@ export function OrientadorFormDialog({ open, orientador, onClose, onSaved }: Ori
         <div className="flex items-center gap-4">
           <span className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-surface-2">
             {preview ? (
+              // No next/image: puede ser un blob: URL de la foto recién elegida (vista previa
+              // local, antes de subir), y el optimizador de next/image no puede resolverlo.
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={preview} alt="" className="h-full w-full object-cover" />
+              <img src={preview} alt="Vista previa de la foto del orientador" className="h-full w-full object-cover" />
             ) : (
               <span className="text-xs text-muted-foreground">Sin foto</span>
             )}

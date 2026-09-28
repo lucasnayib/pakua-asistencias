@@ -28,7 +28,7 @@ function RailLink({ item, active }: { item: NavItem; active: boolean }) {
     >
       <SidebarIcon name={item.icon} className="h-5 w-5" />
       {item.badge !== undefined && item.badge > 0 && (
-        <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-semibold leading-none text-white">
+        <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-semibold leading-none text-danger-foreground">
           {item.badge}
         </span>
       )}
@@ -367,7 +367,7 @@ export function AdminSidebar({
                         </span>
                       </span>
                       {!open && collapsedBadge > 0 && (
-                        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1.5 text-xs font-semibold text-white">
+                        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1.5 text-xs font-semibold text-danger-foreground">
                           {collapsedBadge}
                         </span>
                       )}
@@ -403,7 +403,7 @@ export function AdminSidebar({
                                   />
                                   {item.label}
                                   {item.badge !== undefined && item.badge > 0 && (
-                                    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1.5 text-xs font-semibold text-white">
+                                    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1.5 text-xs font-semibold text-danger-foreground">
                                       {item.badge}
                                     </span>
                                   )}

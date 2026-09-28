@@ -119,7 +119,7 @@ export default function HorariosAdminPage() {
               <p className="text-xs text-muted-foreground">{s._count.students} alumnos asignados</p>
               <div className="mt-1 flex gap-3 text-xs">
                 <button
-                  className="text-muted-foreground hover:underline"
+                  className="px-1 py-2 text-muted-foreground hover:underline"
                   onClick={() => {
                     setEditing(s);
                     setFormOpen(true);
@@ -127,7 +127,7 @@ export default function HorariosAdminPage() {
                 >
                   Editar
                 </button>
-                <button className="text-danger hover:underline" onClick={() => setDeleting(s)}>
+                <button className="px-1 py-2 text-danger hover:underline" onClick={() => setDeleting(s)}>
                   Eliminar
                 </button>
               </div>
