@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Términos y condiciones — Pakua Asistencias",
+  title: "Términos y condiciones",
   description: "Condiciones de uso de la plataforma Pakua Asistencias para escuelas, administradores y alumnos.",
 };
 

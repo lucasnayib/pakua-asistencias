@@ -15,9 +15,30 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const SITE_URL = "https://attendio.lat";
+const SITE_NAME = "Pakua Asistencias";
+const SITE_DESCRIPTION = "Control de asistencia de la escuela de artes marciales Pakua";
+
 export const metadata: Metadata = {
-  title: "Pakua — Asistencias",
-  description: "Control de asistencia de la escuela de artes marciales Pakua",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Pakua — Asistencias",
+    template: `%s — ${SITE_NAME}`,
+  },
+  description: SITE_DESCRIPTION,
+  openGraph: {
+    title: "Pakua — Asistencias",
+    description: SITE_DESCRIPTION,
+    url: SITE_URL,
+    siteName: SITE_NAME,
+    locale: "es_AR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Pakua — Asistencias",
+    description: SITE_DESCRIPTION,
+  },
 };
 
 export default function RootLayout({

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
@@ -8,6 +9,19 @@ import { SchoolSuspendedNotice } from "@/components/attendance/SchoolSuspendedNo
 import { EscuelaCheckInClient } from "./EscuelaCheckInClient";
 
 type Params = { params: Promise<{ slug: string }> };
+
+export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  const { slug } = await params;
+  const school = await prisma.admin.findFirst({ where: { slug, active: true, role: "ADMIN" }, select: { displayName: true } });
+  if (!school) return { title: "Escuela no encontrada" };
+  const description = `Registrá tu asistencia en ${school.displayName} con Pakua Asistencias.`;
+  return {
+    title: school.displayName,
+    description,
+    openGraph: { title: `${school.displayName} — Pakua Asistencias`, description },
+    twitter: { title: `${school.displayName} — Pakua Asistencias`, description },
+  };
+}
 
 export default async function EscuelaHomePage({ params }: Params) {
   const { slug } = await params;

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Política de privacidad — Pakua Asistencias",
+  title: "Política de privacidad",
   description: "Cómo Pakua Asistencias recolecta, usa y protege los datos personales de alumnos, orientadores y escuelas.",
 };
 
@@ -19,7 +19,7 @@ export default function PrivacidadPage() {
           <h2 className="text-base font-semibold">1. Responsable del tratamiento</h2>
           <p className="mt-1 text-muted-foreground">
             El responsable del tratamiento de los datos personales recolectados a través de este
-            sitio (attendio.lat) es [NOMBRE], contactable en{" "}
+            sitio (attendio.lat) es Pakua Federación Mundial, contactable en{" "}
             <a href="mailto:pakuaasistencias@gmail.com" className="text-accent hover:underline">
               pakuaasistencias@gmail.com
             </a>
@@ -77,8 +77,8 @@ export default function PrivacidadPage() {
           <p className="mt-1 text-muted-foreground">
             Como titular de tus datos, tenés derecho de acceso, rectificación, actualización y
             supresión de tu información, de acuerdo a la Ley 25.326. Para ejercerlos, escribinos a{" "}
-            <a href="mailto:[EMAIL]" className="text-accent hover:underline">
-              [EMAIL]
+            <a href="mailto:pakuaasistencias@gmail.com" className="text-accent hover:underline">
+              pakuaasistencias@gmail.com
             </a>{" "}
             indicando tu nombre, la escuela a la que pertenecés y el dato que querés
             corregir o eliminar. La Agencia de Acceso a la Información Pública, en su carácter de
