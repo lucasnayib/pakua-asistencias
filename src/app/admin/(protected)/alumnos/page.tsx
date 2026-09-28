@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { Spinner } from "@/components/ui/Spinner";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { PhotoLightbox } from "@/components/ui/PhotoLightbox";
 import { StudentFormDialog } from "@/components/admin/StudentFormDialog";
 import { StudentDetailsDialog } from "@/components/admin/StudentDetailsDialog";
 import { InactivityDeactivationSettings } from "@/components/admin/InactivityDeactivationSettings";
@@ -23,6 +24,7 @@ export default function AlumnosAdminPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<StudentListItem | null>(null);
   const [detailsStudent, setDetailsStudent] = useState<StudentListItem | null>(null);
+  const [zoomedStudent, setZoomedStudent] = useState<StudentListItem | null>(null);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
   const [busy, setBusy] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -213,7 +215,14 @@ export default function AlumnosAdminPage() {
             <Card key={s.id} className="flex items-center gap-3 p-4">
               <span className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-2">
                 {s.photoUrl ? (
-                  <Image src={s.photoUrl} alt={`${s.firstName} ${s.lastName}`} fill sizes="56px" className="object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setZoomedStudent(s)}
+                    className="h-full w-full cursor-zoom-in"
+                    aria-label={`Ver foto de ${s.firstName} ${s.lastName} en grande`}
+                  >
+                    <Image src={s.photoUrl} alt={`${s.firstName} ${s.lastName}`} fill sizes="56px" className="object-cover" />
+                  </button>
                 ) : (
                   <span className="text-xs text-muted-foreground">
                     {s.firstName[0]}
@@ -280,6 +289,13 @@ export default function AlumnosAdminPage() {
         student={detailsStudent}
         onClose={() => setDetailsStudent(null)}
         onChanged={loadStudents}
+      />
+
+      <PhotoLightbox
+        open={zoomedStudent !== null}
+        photoUrl={zoomedStudent?.photoUrl ?? null}
+        alt={zoomedStudent ? `${zoomedStudent.firstName} ${zoomedStudent.lastName}` : ""}
+        onClose={() => setZoomedStudent(null)}
       />
 
       <ConfirmDialog
