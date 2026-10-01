@@ -52,25 +52,29 @@ export async function GET(request: NextRequest) {
 
   const search = request.nextUrl.searchParams.get("search")?.trim();
   const includeInactive = request.nextUrl.searchParams.get("includeInactive") === "1";
+  const onlyInactive = request.nextUrl.searchParams.get("onlyInactive") === "1";
 
-  const students = await prisma.student.findMany({
-    where: {
-      adminId,
-      ...(includeInactive ? {} : { active: true }),
-      ...(search
-        ? {
-            OR: [
-              { firstName: { contains: search } },
-              { lastName: { contains: search } },
-            ],
-          }
-        : {}),
-    },
-    include: studentInclude,
-    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-  });
+  const [students, inactiveCount] = await Promise.all([
+    prisma.student.findMany({
+      where: {
+        adminId,
+        ...(onlyInactive ? { active: false } : includeInactive ? {} : { active: true }),
+        ...(search
+          ? {
+              OR: [
+                { firstName: { contains: search } },
+                { lastName: { contains: search } },
+              ],
+            }
+          : {}),
+      },
+      include: studentInclude,
+      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+    }),
+    prisma.student.count({ where: { adminId, active: false } }),
+  ]);
 
-  return NextResponse.json({ students: students.map(toStudentResponse) });
+  return NextResponse.json({ students: students.map(toStudentResponse), inactiveCount });
 }
 
 export async function POST(request: NextRequest) {

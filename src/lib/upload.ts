@@ -1,4 +1,4 @@
-import { mkdir, unlink, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 
@@ -55,6 +55,28 @@ export async function saveStudentPhoto(file: File): Promise<string> {
 /** Borra una foto previa de alumno. No lanza si el archivo no existe. */
 export async function deleteStudentPhoto(photoUrl: string | null | undefined): Promise<void> {
   await deletePhoto(STUDENT_PHOTOS_DIR, "/api/uploads/students/", photoUrl);
+}
+
+/**
+ * Copia la foto de un alumno a un archivo nuevo (nombre distinto, mismo directorio) y
+ * devuelve su propia URL. Se usa al migrar un alumno a otra escuela: aunque la ruta que
+ * sirve la foto no chequea adminId (ver /api/uploads/students/[filename]/route.ts) y la URL
+ * ya "funcionaría" para las dos escuelas, reusarla tal cual acoplaría el archivo a dos
+ * alumnos con ciclos de vida independientes — si uno edita o borra su foto después, el
+ * otro se quedaría sin la suya. Devuelve null si no había foto para copiar.
+ */
+export async function copyStudentPhoto(photoUrl: string | null | undefined): Promise<string | null> {
+  const prefix = "/api/uploads/students/";
+  if (!photoUrl || !photoUrl.startsWith(prefix)) return null;
+
+  const sourceFilename = photoUrl.slice(prefix.length);
+  const extension = sourceFilename.split(".").pop() ?? "jpg";
+  const newFilename = `${randomUUID()}.${extension}`;
+
+  await mkdir(STUDENT_PHOTOS_DIR, { recursive: true });
+  await copyFile(path.join(STUDENT_PHOTOS_DIR, sourceFilename), path.join(STUDENT_PHOTOS_DIR, newFilename));
+
+  return `${prefix}${newFilename}`;
 }
 
 /** Guarda la foto de un orientador y devuelve la URL pública (servida por una API route). */

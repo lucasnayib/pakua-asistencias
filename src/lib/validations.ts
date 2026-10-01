@@ -187,6 +187,13 @@ export const confirmPendingChangeSchema = z.object({
     .regex(/^\d{6}$/, "El código debe tener 6 dígitos"),
 });
 
+export const studentMigrationCodeSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, "El código debe tener 6 dígitos"),
+});
+
 export const forgotPasswordSchema = z.object({
   username: z.string().trim().min(1),
 });

@@ -11,20 +11,26 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { PhotoLightbox } from "@/components/ui/PhotoLightbox";
 import { StudentFormDialog } from "@/components/admin/StudentFormDialog";
 import { StudentDetailsDialog } from "@/components/admin/StudentDetailsDialog";
+import { StudentMigrationDialog } from "@/components/admin/StudentMigrationDialog";
+import { ReceiveMigratedStudentDialog } from "@/components/admin/ReceiveMigratedStudentDialog";
 import { InactivityDeactivationSettings } from "@/components/admin/InactivityDeactivationSettings";
 import type { StudentListItem } from "@/types";
 
 type ConfirmAction = { type: "deactivate" | "reactivate" | "delete"; student: StudentListItem };
+type StudentView = "active" | "inactive";
 
 export default function AlumnosAdminPage() {
   const [students, setStudents] = useState<StudentListItem[]>([]);
+  const [inactiveCount, setInactiveCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [showInactive, setShowInactive] = useState(false);
+  const [view, setView] = useState<StudentView>("active");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<StudentListItem | null>(null);
   const [detailsStudent, setDetailsStudent] = useState<StudentListItem | null>(null);
   const [zoomedStudent, setZoomedStudent] = useState<StudentListItem | null>(null);
+  const [migratingStudent, setMigratingStudent] = useState<StudentListItem | null>(null);
+  const [receiveOpen, setReceiveOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
   const [busy, setBusy] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -36,12 +42,15 @@ export default function AlumnosAdminPage() {
     setLoading(true);
     const params = new URLSearchParams();
     if (search) params.set("search", search);
-    if (showInactive) params.set("includeInactive", "1");
+    if (view === "inactive") params.set("onlyInactive", "1");
     fetch(`/api/students?${params.toString()}`)
       .then((res) => res.json())
-      .then((data) => setStudents(data.students ?? []))
+      .then((data) => {
+        setStudents(data.students ?? []);
+        setInactiveCount(data.inactiveCount ?? 0);
+      })
       .finally(() => setLoading(false));
-  }, [search, showInactive]);
+  }, [search, view]);
 
   useEffect(() => {
     loadStudents();
@@ -170,6 +179,9 @@ export default function AlumnosAdminPage() {
           <Button variant="secondary" loading={exporting} onClick={handleExport}>
             Exportar alumnos
           </Button>
+          <Button variant="secondary" onClick={() => setReceiveOpen(true)}>
+            Recibir alumno migrado
+          </Button>
           <Button onClick={openCreate}>Nuevo alumno</Button>
         </div>
       </div>
@@ -191,14 +203,26 @@ export default function AlumnosAdminPage() {
           onChange={(e) => setSearch(e.target.value)}
           className="w-64"
         />
-        <label className="flex h-10 items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={showInactive}
-            onChange={(e) => setShowInactive(e.target.checked)}
-          />
-          Mostrar dados de baja
-        </label>
+        <div className="flex h-10 gap-1 rounded-lg border border-border p-1">
+          <button
+            type="button"
+            onClick={() => setView("active")}
+            className={`rounded-md px-3 text-sm font-medium transition ${
+              view === "active" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-surface-2"
+            }`}
+          >
+            Activos
+          </button>
+          <button
+            type="button"
+            onClick={() => setView("inactive")}
+            className={`rounded-md px-3 text-sm font-medium transition ${
+              view === "inactive" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-surface-2"
+            }`}
+          >
+            Dados de baja ({inactiveCount})
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -260,6 +284,14 @@ export default function AlumnosAdminPage() {
                       Reactivar
                     </button>
                   )}
+                  {s.active && (
+                    <button
+                      className="px-1 py-2 text-muted-foreground hover:underline"
+                      onClick={() => setMigratingStudent(s)}
+                    >
+                      Migrar a otra escuela
+                    </button>
+                  )}
                   <button
                     className="px-1 py-2 text-danger hover:underline"
                     onClick={() => setConfirmAction({ type: "delete", student: s })}
@@ -296,6 +328,18 @@ export default function AlumnosAdminPage() {
         photoUrl={zoomedStudent?.photoUrl ?? null}
         alt={zoomedStudent ? `${zoomedStudent.firstName} ${zoomedStudent.lastName}` : ""}
         onClose={() => setZoomedStudent(null)}
+      />
+
+      <StudentMigrationDialog
+        open={migratingStudent !== null}
+        student={migratingStudent}
+        onClose={() => setMigratingStudent(null)}
+      />
+
+      <ReceiveMigratedStudentDialog
+        open={receiveOpen}
+        onClose={() => setReceiveOpen(false)}
+        onMigrated={loadStudents}
       />
 
       <ConfirmDialog

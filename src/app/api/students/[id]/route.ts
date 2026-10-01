@@ -129,7 +129,10 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
     return tx.student.update({
       where: { id, adminId: session.adminId },
-      data: { ...studentData, ...(photoUrl ? { photoUrl } : {}) },
+      data: {
+        ...studentData,
+        ...(photoUrl ? { photoUrl } : {}),
+      },
       include: studentInclude,
     });
   });
@@ -163,6 +166,16 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
         error:
           "Este alumno tiene historial de asistencias. Para conservarlo, dalo de baja en vez de eliminarlo (podés reactivarlo cuando quieras).",
       },
+      { status: 409 }
+    );
+  }
+
+  const pendingMigration = await prisma.studentMigration.findFirst({
+    where: { studentId: id, status: "PENDING" },
+  });
+  if (pendingMigration) {
+    return NextResponse.json(
+      { error: "Este alumno tiene una migración pendiente. Cancelala antes de eliminarlo." },
       { status: 409 }
     );
   }

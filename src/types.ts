@@ -63,6 +63,28 @@ export type StudentListItem = {
   graduationHistory: StudentGraduationHistoryItem[];
 };
 
+/** Vista previa de solo lectura al validar un código de migración, antes de confirmarla. */
+export type StudentMigrationPreview = {
+  firstName: string;
+  lastName: string;
+  photoUrl: string | null;
+  formacion: string | null;
+  graduacion: string | null;
+  evaluationDate: string | null;
+  graduacionDelivered: boolean;
+  graduacionDeliveredAt: string | null;
+  dni: string | null;
+  birthDate: string | null;
+  graduationHistory: StudentGraduationHistoryItem[];
+  sourceSchoolName: string;
+};
+
+/** Estado de la migración pendiente (si hay alguna) de un alumno, del lado de la escuela de origen. */
+export type StudentMigrationStatus = {
+  pending: boolean;
+  expiresAt: string | null;
+};
+
 export type AdminListItem = {
   id: string;
   username: string;

@@ -96,6 +96,7 @@ model Student {
   orientadores             OrientadorStudent[]
   itineranciaRegistrations ItineranciaStudentRegistration[]
   graduationHistory        StudentGraduationHistory[]
+  migrations               StudentMigration[]
 
   @@index([lastName, firstName])
   @@index([adminId])
@@ -117,6 +118,35 @@ model StudentGraduationHistory {
   updatedAt    DateTime @updatedAt
 
   @@index([studentId])
+}
+
+// Migración de un alumno de una escuela a otra: la escuela de origen genera un código de
+// un solo uso (ver src/lib/student-migration.ts), y quien lo reclame primero (destino
+// destino-agnóstico, no hay una escuela destino pre-acordada) crea un alumno nuevo con la
+// identidad/graduación copiadas y da de baja al viejo. destinationAdminId/newStudentId son
+// referencias sueltas (igual que AuditLog.adminId/entityId), no relaciones Prisma reales —
+// solo quedan para auditoría, no participan de la integridad referencial viva.
+model StudentMigration {
+  id                 String    @id @default(cuid())
+  studentId          String
+  student            Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  codeHash           String // sha256(code), no bcrypt: hace falta poder buscarlo por índice sin
+  // saber de antemano a qué alumno pertenece (con bcrypt solo se puede escanear y comparar
+  // uno por uno). Con un espacio de 6 dígitos, bcrypt no suma protección real contra fuerza
+  // bruta — la protección real es el rate limit — mismo criterio que passwordFingerprint en
+  // src/lib/auth.ts para un secreto corto de un solo uso.
+  status             String    @default("PENDING") // "PENDING" | "COMPLETED" | "CANCELED"
+  // "EXPIRED" nunca se guarda acá: se calcula al vuelo (status == "PENDING" && expiresAt <
+  // now()), mismo criterio que Admin.pendingChangeExpiresAt.
+  expiresAt          DateTime
+  destinationAdminId String?
+  newStudentId       String?
+  completedAt        DateTime?
+  createdAt          DateTime  @default(now())
+
+  @@index([studentId])
+  @@index([codeHash])
+  @@index([status, expiresAt])
 }
 
 model Orientador {
