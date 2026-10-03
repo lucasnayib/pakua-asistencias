@@ -9,6 +9,7 @@ import {
   itineranciaRequiresLocation,
 } from "@/lib/itinerancias";
 import { logChange } from "@/lib/audit";
+import { isOutsidePublicHours, getPublicHoursWindow } from "@/lib/business-hours";
 
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -91,6 +92,18 @@ async function loadRegistration(activityId: string, studentId: string, clientDat
   if (!isItineranciasSchool(admin?.slug) || !isItineranciasOpen()) {
     return {
       error: NextResponse.json({ error: "Itinerancias no está disponible ahora" }, { status: 404 }),
+    } as const;
+  }
+
+  // Defensa en profundidad: la página pública ya se cierra sola (ver isOutsidePublicHours()
+  // en /escuela/[slug]/itinerancias), esto cubre una pestaña que ya estaba abierta antes.
+  if (isOutsidePublicHours()) {
+    const { open, close } = getPublicHoursWindow();
+    return {
+      error: NextResponse.json(
+        { error: `La página está cerrada en este horario. Disponible de ${open} a ${close}.` },
+        { status: 403 }
+      ),
     } as const;
   }
 

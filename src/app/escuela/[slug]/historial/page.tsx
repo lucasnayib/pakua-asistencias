@@ -3,8 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { getUnlockedAdminId } from "@/lib/school-access";
 import { isSubscriptionSuspended } from "@/lib/subscription";
+import { isOutsidePublicHours, getPublicHoursWindow } from "@/lib/business-hours";
 import { SchoolUnlockGate } from "@/components/attendance/SchoolUnlockGate";
 import { SchoolSuspendedNotice } from "@/components/attendance/SchoolSuspendedNotice";
+import { ClosedForHoursNotice } from "@/components/attendance/ClosedForHoursNotice";
 import { HistorialClient } from "./HistorialClient";
 
 type Params = { params: Promise<{ slug: string }> };
@@ -23,6 +25,11 @@ export default async function HistorialPage({ params }: Params) {
 
   if (isSubscriptionSuspended(school.subscriptionStatus)) {
     return <SchoolSuspendedNotice schoolName={school.displayName} />;
+  }
+
+  if (isOutsidePublicHours()) {
+    const { open, close } = getPublicHoursWindow();
+    return <ClosedForHoursNotice schoolName={school.displayName} openTime={open} closeTime={close} />;
   }
 
   const [session, unlockedAdminId] = await Promise.all([getSession(), getUnlockedAdminId(slug)]);

@@ -7,6 +7,7 @@ import { isItineranciasOpen, isItineranciasSchool } from "@/lib/itinerancias";
 import { checkRateLimit, recordFailedAttempt, resetRateLimit } from "@/lib/rate-limit";
 import { logChange } from "@/lib/audit";
 import { isSubscriptionSuspended } from "@/lib/subscription";
+import { isOutsidePublicHours, getPublicHoursWindow } from "@/lib/business-hours";
 
 type Params = { params: Promise<{ slug: string }> };
 
@@ -52,6 +53,15 @@ export async function POST(request: NextRequest, { params }: Params) {
     resetRateLimit(rateLimitKey);
     return NextResponse.json(
       { error: "SUSPENDED", message: "Esta escuela tiene la suscripción suspendida." },
+      { status: 403 }
+    );
+  }
+
+  if (isOutsidePublicHours()) {
+    resetRateLimit(rateLimitKey);
+    const { open, close } = getPublicHoursWindow();
+    return NextResponse.json(
+      { error: "CLOSED", message: `La página está cerrada en este horario. Disponible de ${open} a ${close}.` },
       { status: 403 }
     );
   }

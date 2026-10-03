@@ -3,9 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { isItineranciasOpen, isItineranciasSchool } from "@/lib/itinerancias";
 import { getUnlockedItineranciaAdminId } from "@/lib/itinerancia-access";
 import { isSubscriptionSuspended } from "@/lib/subscription";
+import { isOutsidePublicHours, getPublicHoursWindow } from "@/lib/business-hours";
 import { ItineranciaUnlockGate } from "@/components/attendance/ItineranciaUnlockGate";
 import { ItineranciasHome } from "@/components/attendance/ItineranciasHome";
 import { SchoolSuspendedNotice } from "@/components/attendance/SchoolSuspendedNotice";
+import { ClosedForHoursNotice } from "@/components/attendance/ClosedForHoursNotice";
 import { AppHeader } from "@/components/layout/AppHeader";
 
 type Params = { params: Promise<{ slug: string }> };
@@ -28,6 +30,11 @@ export default async function ItineranciasPage({ params }: Params) {
 
   if (isSubscriptionSuspended(school.subscriptionStatus)) {
     return <SchoolSuspendedNotice schoolName={school.displayName} />;
+  }
+
+  if (isOutsidePublicHours()) {
+    const { open, close } = getPublicHoursWindow();
+    return <ClosedForHoursNotice schoolName={school.displayName} openTime={open} closeTime={close} />;
   }
 
   if (!isItineranciasOpen()) {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSchoolAccess } from "@/lib/school-access";
 import { logChange } from "@/lib/audit";
+import { isOutsidePublicHours, getPublicHoursWindow } from "@/lib/business-hours";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -17,6 +18,14 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
 
   const access = await requireSchoolAccess(attendance.schedule.adminId);
   if (access instanceof NextResponse) return access;
+
+  if (isOutsidePublicHours()) {
+    const { open, close } = getPublicHoursWindow();
+    return NextResponse.json(
+      { error: `La página está cerrada en este horario. Disponible de ${open} a ${close}.` },
+      { status: 403 }
+    );
+  }
 
   await prisma.attendance.delete({ where: { id } });
 

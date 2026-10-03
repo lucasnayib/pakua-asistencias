@@ -5,6 +5,7 @@ import { requireSchoolAccess } from "@/lib/school-access";
 import { logChange } from "@/lib/audit";
 import { distanceMeters } from "@/lib/geo";
 import { getLocalNow } from "@/lib/time";
+import { isOutsidePublicHours, getPublicHoursWindow } from "@/lib/business-hours";
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
@@ -24,6 +25,17 @@ export async function POST(request: NextRequest) {
 
   const access = await requireSchoolAccess(schedule.adminId);
   if (access instanceof NextResponse) return access;
+
+  // Defensa en profundidad: la página pública ya se cierra sola (ver isOutsidePublicHours()
+  // en los Server Components de /escuela/[slug]), pero esto cubre una pestaña que ya estaba
+  // abierta antes del cierre y todavía intenta marcar asistencia por acá directamente.
+  if (isOutsidePublicHours()) {
+    const { open, close } = getPublicHoursWindow();
+    return NextResponse.json(
+      { error: `La página está cerrada en este horario. Disponible de ${open} a ${close}.` },
+      { status: 403 }
+    );
+  }
 
   const admin = await prisma.admin.findUnique({
     where: { id: schedule.adminId },

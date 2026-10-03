@@ -4,8 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { getUnlockedAdminId } from "@/lib/school-access";
 import { isSubscriptionSuspended } from "@/lib/subscription";
+import { isOutsidePublicHours, getPublicHoursWindow } from "@/lib/business-hours";
 import { SchoolUnlockGate } from "@/components/attendance/SchoolUnlockGate";
 import { SchoolSuspendedNotice } from "@/components/attendance/SchoolSuspendedNotice";
+import { ClosedForHoursNotice } from "@/components/attendance/ClosedForHoursNotice";
 import { EscuelaCheckInClient } from "./EscuelaCheckInClient";
 
 type Params = { params: Promise<{ slug: string }> };
@@ -39,6 +41,13 @@ export default async function EscuelaHomePage({ params }: Params) {
   // desbloqueo vigente — se chequea antes que nada, ni siquiera se llega a pedir la contraseña.
   if (isSubscriptionSuspended(school.subscriptionStatus)) {
     return <SchoolSuspendedNotice schoolName={school.displayName} />;
+  }
+
+  // Igual que la suspensión: corta el acceso a toda la página, ya haya o no cookie de
+  // desbloqueo vigente, antes de llegar a pedir la contraseña.
+  if (isOutsidePublicHours()) {
+    const { open, close } = getPublicHoursWindow();
+    return <ClosedForHoursNotice schoolName={school.displayName} openTime={open} closeTime={close} />;
   }
 
   // Acceso permitido con sesión de admin normal (para ese mismo tenant) o con la cookie de

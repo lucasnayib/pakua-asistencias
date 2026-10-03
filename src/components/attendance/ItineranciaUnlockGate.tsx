@@ -33,7 +33,7 @@ export function ItineranciaUnlockGate({ slug, schoolName }: ItineranciaUnlockGat
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
-        if (data?.error === "SUSPENDED") {
+        if (data?.error === "SUSPENDED" || data?.error === "CLOSED") {
           router.refresh();
           return;
         }
