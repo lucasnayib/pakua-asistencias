@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { Spinner } from "@/components/ui/Spinner";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { AdminFormDialog } from "@/components/admin/AdminFormDialog";
+import { PermanentDeleteSchoolDialog } from "@/components/admin/PermanentDeleteSchoolDialog";
 import { SUBSCRIPTION_STATUS_LABELS } from "@/lib/subscription";
 import type { AdminListItem } from "@/types";
 
@@ -29,6 +30,7 @@ export default function AdminsPage() {
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [rejecting, setRejecting] = useState<AdminListItem | null>(null);
   const [rejectBusy, setRejectBusy] = useState(false);
+  const [permanentDeleting, setPermanentDeleting] = useState<AdminListItem | null>(null);
   const [origin, setOrigin] = useState("");
 
   useEffect(() => {
@@ -269,6 +271,15 @@ export default function AdminsPage() {
                   >
                     Eliminar
                   </button>
+                  {a.role === "ADMIN" && (
+                    <button
+                      className="px-1 py-2 text-danger hover:underline"
+                      disabled={busyId === a.id}
+                      onClick={() => setPermanentDeleting(a)}
+                    >
+                      Eliminar permanentemente
+                    </button>
+                  )}
                 </div>
               </div>
             </Card>
@@ -314,6 +325,15 @@ export default function AdminsPage() {
         loading={rejectBusy}
         onConfirm={handleReject}
         onCancel={() => setRejecting(null)}
+      />
+
+      <PermanentDeleteSchoolDialog
+        admin={permanentDeleting}
+        onClose={() => setPermanentDeleting(null)}
+        onDeleted={() => {
+          setPermanentDeleting(null);
+          loadAdmins();
+        }}
       />
     </div>
   );
