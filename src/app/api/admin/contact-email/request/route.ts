@@ -23,7 +23,18 @@ export async function POST(request: Request) {
   }
   recordFailedAttempt(rateLimitKey);
 
-  const { newEmail } = parsed.data;
+  // Normalizado a minúsculas, mismo criterio que /api/schools/register.
+  const newEmail = parsed.data.newEmail.toLowerCase();
+
+  // Un mismo mail de contacto no puede tener más de una escuela (ver /api/schools/register):
+  // si no, alcanzaría con "mudar" el mail de una cuenta ya usada para esquivar ese chequeo.
+  const emailInUse = await prisma.admin.findFirst({
+    where: { contactEmail: newEmail, id: { not: session.adminId } },
+  });
+  if (emailInUse) {
+    return NextResponse.json({ error: "Ese mail ya está asociado a otra cuenta." }, { status: 409 });
+  }
+
   const code = generateVerificationCode();
   const codeHash = await hashVerificationCode(code);
 

@@ -25,7 +25,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Datos inválidos" }, { status: 400 });
   }
 
-  const { username, password, displayName, contactEmail, contactPhone } = parsed.data;
+  const { username, password, displayName, contactPhone } = parsed.data;
+  // Normalizado a minúsculas: el chequeo de duplicados de abajo no debe poder esquivarse
+  // registrando el mismo mail con otra capitalización.
+  const contactEmail = parsed.data.contactEmail.toLowerCase();
+
+  // Un mismo mail de contacto no puede tener más de una escuela: si no, alcanza con
+  // registrar varias con el mismo contacto para acumular períodos de prueba gratis.
+  const emailInUse = await prisma.admin.findFirst({ where: { contactEmail } });
+  if (emailInUse) {
+    recordFailedAttempt(rateLimitKey);
+    // Mismo mensaje genérico que el conflicto de username más abajo: no confirmar ni negar
+    // si el mail ya existe, para no habilitar enumeración de cuentas desde un formulario público.
+    return NextResponse.json(
+      { error: "No se pudo procesar la solicitud. Revisá los datos e intentá de nuevo." },
+      { status: 400 }
+    );
+  }
 
   const existingSlugs = (await prisma.admin.findMany({ select: { slug: true } })).map((a) => a.slug);
   const slug = uniqueSlug(slugify(displayName), existingSlugs);
