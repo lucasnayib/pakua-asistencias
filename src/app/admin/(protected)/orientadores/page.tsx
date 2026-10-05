@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { Spinner } from "@/components/ui/Spinner";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { OverflowMenu } from "@/components/ui/OverflowMenu";
 import { OrientadorFormDialog } from "@/components/admin/OrientadorFormDialog";
 import type { OrientadorListItem } from "@/types";
 
@@ -106,35 +107,35 @@ export default function OrientadoresAdminPage() {
                   </p>
                   {o.email && <p className="truncate text-xs text-muted-foreground">{o.email}</p>}
                   {o.phone && <p className="truncate text-xs text-muted-foreground">{o.phone}</p>}
-                  <div className="mt-2 flex flex-wrap gap-3 text-xs">
-                    <button
-                      className="px-1 py-2 text-muted-foreground hover:underline"
-                      onClick={() => {
+                </div>
+                <OverflowMenu
+                  items={[
+                    {
+                      label: "Editar",
+                      onSelect: () => {
                         setEditing(o);
                         setFormOpen(true);
-                      }}
-                    >
-                      Editar
-                    </button>
-                    <button className="px-1 py-2 text-danger hover:underline" onClick={() => setDeleting(o)}>
-                      Eliminar
-                    </button>
-                  </div>
-                </div>
+                      },
+                    },
+                    ...(o.students.length > 0
+                      ? [
+                          {
+                            label: "Exportar Lista de Alumnos",
+                            onSelect: () => {
+                              window.location.href = `/api/orientadores/${o.id}/export`;
+                            },
+                          },
+                        ]
+                      : []),
+                    { label: "Eliminar", onSelect: () => setDeleting(o), danger: true },
+                  ]}
+                />
               </div>
 
-              <div className="flex items-center justify-between border-t border-border pt-3">
+              <div className="flex items-center border-t border-border pt-3">
                 <span className="text-xs font-semibold text-muted-foreground">
                   {o.students.length} alumno{o.students.length === 1 ? "" : "s"} a cargo
                 </span>
-                {o.students.length > 0 && (
-                  <a
-                    href={`/api/orientadores/${o.id}/export`}
-                    className="text-xs font-medium text-accent hover:underline"
-                  >
-                    Exportar Lista de Alumnos
-                  </a>
-                )}
               </div>
             </Card>
           ))}

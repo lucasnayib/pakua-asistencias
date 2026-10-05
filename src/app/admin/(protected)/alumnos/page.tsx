@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { Spinner } from "@/components/ui/Spinner";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { OverflowMenu } from "@/components/ui/OverflowMenu";
 import { PhotoLightbox } from "@/components/ui/PhotoLightbox";
 import { StudentFormDialog } from "@/components/admin/StudentFormDialog";
 import { StudentDetailsDialog } from "@/components/admin/StudentDetailsDialog";
@@ -259,47 +260,20 @@ export default function AlumnosAdminPage() {
                   {s.firstName} {s.lastName}
                 </p>
                 {!s.active && <p className="text-xs text-danger">Dado de baja</p>}
-                <div className="mt-1 flex flex-wrap gap-2 text-xs">
-                  <button
-                    className="px-1 py-2 text-muted-foreground hover:underline"
-                    onClick={() => setDetailsStudent(s)}
-                  >
-                    Más información
-                  </button>
-                  <button className="px-1 py-2 text-muted-foreground hover:underline" onClick={() => openEdit(s)}>
-                    Editar
-                  </button>
-                  {s.active ? (
-                    <button
-                      className="px-1 py-2 text-muted-foreground hover:underline"
-                      onClick={() => setConfirmAction({ type: "deactivate", student: s })}
-                    >
-                      Dar de baja
-                    </button>
-                  ) : (
-                    <button
-                      className="px-1 py-2 text-muted-foreground hover:underline"
-                      onClick={() => handleSetActive(s, true)}
-                    >
-                      Reactivar
-                    </button>
-                  )}
-                  {s.active && (
-                    <button
-                      className="px-1 py-2 text-muted-foreground hover:underline"
-                      onClick={() => setMigratingStudent(s)}
-                    >
-                      Migrar a otra escuela
-                    </button>
-                  )}
-                  <button
-                    className="px-1 py-2 text-danger hover:underline"
-                    onClick={() => setConfirmAction({ type: "delete", student: s })}
-                  >
-                    Eliminar
-                  </button>
-                </div>
               </div>
+              <OverflowMenu
+                items={[
+                  { label: "Más información", onSelect: () => setDetailsStudent(s) },
+                  { label: "Editar", onSelect: () => openEdit(s) },
+                  ...(s.active
+                    ? [
+                        { label: "Dar de baja", onSelect: () => setConfirmAction({ type: "deactivate", student: s }) },
+                        { label: "Migrar a otra escuela", onSelect: () => setMigratingStudent(s) },
+                      ]
+                    : [{ label: "Reactivar", onSelect: () => handleSetActive(s, true) }]),
+                  { label: "Eliminar", onSelect: () => setConfirmAction({ type: "delete", student: s }), danger: true },
+                ]}
+              />
             </Card>
           ))}
         </div>

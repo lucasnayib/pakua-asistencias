@@ -7,6 +7,9 @@ import { Input } from "@/components/ui/Input";
 import { DAY_NAMES } from "@/lib/time";
 import type { ScheduleListItem } from "@/types";
 
+// Igual a la duración de modal-out en globals.css.
+const CLOSE_ANIMATION_MS = 140;
+
 type ScheduleFormDialogProps = {
   open: boolean;
   schedule: ScheduleListItem | null;
@@ -36,8 +39,18 @@ export function ScheduleFormDialog({ open, schedule, onClose, onSaved }: Schedul
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
-    if (!open && dialog.open) dialog.close();
+    if (open) {
+      dialog.classList.remove("modal-exit");
+      if (!dialog.open) dialog.showModal();
+      return;
+    }
+    if (!dialog.open) return;
+    dialog.classList.add("modal-exit");
+    const timer = setTimeout(() => {
+      dialog.close();
+      dialog.classList.remove("modal-exit");
+    }, CLOSE_ANIMATION_MS);
+    return () => clearTimeout(timer);
   }, [open]);
 
   function toggleDay(day: number) {
@@ -75,7 +88,7 @@ export function ScheduleFormDialog({ open, schedule, onClose, onSaved }: Schedul
         e.preventDefault();
         onClose();
       }}
-      className="m-auto w-[min(90vw,28rem)] rounded-2xl border border-border bg-surface p-0 text-foreground backdrop:bg-black/50"
+      className="modal-dialog m-auto w-[min(90vw,28rem)] rounded-2xl border border-border bg-surface p-0 text-foreground backdrop:bg-black/50"
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-6">
         <h2 className="text-lg font-semibold">{schedule ? "Editar horario" : "Nuevo horario"}</h2>

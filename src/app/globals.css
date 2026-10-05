@@ -85,6 +85,129 @@ body {
   }
 }
 
+/* Menú de acciones por fila (OverflowMenu): entra con un leve desplazamiento, cada opción
+   aparece en cascada, y al cerrar se desvanece antes de desmontarse. */
+@keyframes overflow-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes overflow-menu-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+}
+
+@keyframes overflow-menu-item-in {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.overflow-menu-open {
+  animation: overflow-menu-in 180ms ease-out both;
+}
+
+.overflow-menu-closing {
+  animation: overflow-menu-out 140ms ease-in both;
+}
+
+.overflow-menu-item {
+  animation: overflow-menu-item-in 220ms ease-out both;
+  animation-delay: var(--item-delay, 0ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overflow-menu-open,
+  .overflow-menu-closing,
+  .overflow-menu-item {
+    animation: none;
+  }
+}
+
+/* Diálogos de horarios (ScheduleFormDialog): entran con un leve zoom y salen con un
+   desvanecido corto. La clase modal-exit se agrega antes de cerrar el <dialog>. */
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes modal-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes backdrop-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.modal-dialog[open] {
+  animation: modal-in 180ms ease-out both;
+}
+
+.modal-dialog[open]::backdrop {
+  animation: backdrop-in 180ms ease-out both;
+}
+
+.modal-dialog.modal-exit {
+  animation: modal-out 140ms ease-in both;
+}
+
+.modal-dialog.modal-exit::backdrop {
+  animation: backdrop-out 140ms ease-in both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-dialog[open],
+  .modal-dialog[open]::backdrop,
+  .modal-dialog.modal-exit,
+  .modal-dialog.modal-exit::backdrop {
+    animation: none;
+  }
+}
+
 /* El navegador pinta de celeste los campos que autocompletó (usuario/contraseña
    guardados), ignorando nuestros colores. Se fuerza el fondo con box-shadow (el único
    truco que funciona sobre autofill) para que combine con el tema. */
