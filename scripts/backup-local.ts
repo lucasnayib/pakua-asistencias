@@ -1,18 +1,16 @@
 import "dotenv/config";
-import Database from "better-sqlite3";
-import { existsSync, mkdirSync, readdirSync, statSync, unlinkSync, appendFileSync } from "node:fs";
+import { mkdirSync, readdirSync, statSync, unlinkSync, appendFileSync } from "node:fs";
 import path from "node:path";
+import { createBackupZip } from "../src/lib/backup";
+import { syncBackupToDrive } from "../src/lib/google-drive";
 import { pad2 } from "../src/lib/time";
 
 const RETENTION_DAYS = 30;
+// Más corto que el local a propósito: Drive tiene espacio limitado, y esto es la copia que
+// sale de la máquina del servidor, no la única copia — con una semana alcanza de sobra.
+const DRIVE_RETENTION_DAYS = 7;
 const BACKUP_PREFIX = "pakua-backup-";
-const BACKUP_EXT = ".db";
-
-function resolveDbPath(): string {
-  const rawUrl = process.env.DATABASE_URL ?? "file:./dev.db";
-  const relativePath = rawUrl.replace(/^file:/, "");
-  return path.join(process.cwd(), relativePath);
-}
+const BACKUP_EXT = ".zip";
 
 function resolveBackupDir(): string {
   const dir = process.env.BACKUP_DIR ?? "storage/backups";
@@ -44,29 +42,25 @@ function pruneOldBackups(backupDir: string): number {
 }
 
 async function main(): Promise<void> {
-  const dbPath = resolveDbPath();
-  if (!existsSync(dbPath)) {
-    throw new Error(`No se encontró la base de datos en "${dbPath}" (revisá DATABASE_URL).`);
-  }
-
   const backupDir = resolveBackupDir();
   mkdirSync(backupDir, { recursive: true });
 
   const filename = `${BACKUP_PREFIX}${timestamp(new Date())}${BACKUP_EXT}`;
   const destPath = path.join(backupDir, filename);
 
-  const db = new Database(dbPath, { readonly: true });
-  try {
-    await db.backup(destPath);
-  } finally {
-    db.close();
-  }
+  await createBackupZip(destPath);
 
   const sizeBytes = statSync(destPath).size;
   const removed = pruneOldBackups(backupDir);
+  const drive = await syncBackupToDrive(destPath, filename, DRIVE_RETENTION_DAYS);
+  const driveStatus = drive.uploaded ? `subido, ${drive.removed ?? 0} viejo(s) borrado(s)` : drive.reason;
 
-  logLine(`OK backup="${filename}" size=${sizeBytes}b removidos=${removed} retencion=${RETENTION_DAYS}d`);
-  console.log(`Backup creado: ${destPath} (${sizeBytes} bytes). Backups viejos eliminados: ${removed}.`);
+  logLine(
+    `OK backup="${filename}" size=${sizeBytes}b removidos=${removed} retencion=${RETENTION_DAYS}d drive=${driveStatus}`
+  );
+  console.log(
+    `Backup creado: ${destPath} (${sizeBytes} bytes). Backups viejos eliminados: ${removed}. Drive: ${driveStatus}.`
+  );
 }
 
 main().catch((error) => {

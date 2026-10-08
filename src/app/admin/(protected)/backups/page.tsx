@@ -6,13 +6,14 @@ export default function BackupsAdminPage() {
       <div>
         <h1 className="text-2xl font-semibold">Copias de seguridad</h1>
         <p className="text-sm text-muted-foreground">
-          Descargá una copia completa de la base de datos (alumnos, horarios, asistencias e historial).
+          Descargá una copia completa de la base de datos (alumnos, horarios, asistencias e
+          historial) junto con las fotos de alumnos y orientadores.
         </p>
       </div>
 
       <Card className="flex flex-wrap items-center justify-between gap-4 p-5">
         <div>
-          <p className="font-medium">Base de datos completa (.db)</p>
+          <p className="font-medium">Base de datos y fotos (.zip)</p>
           <p className="text-sm text-muted-foreground">
             Guardá este archivo en un lugar seguro. Recomendado: una vez por semana.
           </p>

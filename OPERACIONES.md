@@ -99,7 +99,9 @@ todavía no verificado).
 
 ## Backups automáticos
 
-Todos los días a las 3:00 AM se guarda una copia de la base de datos completa en la carpeta `storage/backups/`, con nombre `pakua-backup-AAAAMMDD-HHMM.db`. Se conservan los últimos **30 días**; las copias más viejas se borran solas en cada corrida.
+Todos los días a las 3:00 AM se guarda una copia completa (base de datos + fotos de alumnos y
+orientadores) en la carpeta `storage/backups/`, con nombre `pakua-backup-AAAAMMDD-HHMM.zip`. Se
+conservan los últimos **30 días**; las copias más viejas se borran solas en cada corrida.
 
 Cada corrida deja un renglón en `storage/backup.log` diciendo si salió bien o mal.
 
@@ -119,13 +121,37 @@ npm run backup
 ### Restaurar un backup
 
 1. **Apagar el servidor**: `pm2 stop pakua-asistencias`.
-2. Hacer una copia del `dev.db` actual por las dudas (por si el backup elegido resulta no ser el correcto).
-3. Copiar el archivo de backup elegido (desde `storage/backups/`) sobre `dev.db`, en la raíz del proyecto, renombrándolo a `dev.db`.
-4. Volver a prender el servidor: `pm2 start pakua-asistencias`.
+2. Hacer una copia del `dev.db` y de `storage/uploads/` actuales por las dudas (por si el backup elegido resulta no ser el correcto).
+3. Descomprimir el `.zip` elegido (desde `storage/backups/`).
+4. Copiar `database.db` sobre `dev.db`, en la raíz del proyecto, renombrándolo a `dev.db`.
+5. Copiar el contenido de la carpeta `uploads/` del zip sobre `storage/uploads/`, pisando lo que haya.
+6. Volver a prender el servidor: `pm2 start pakua-asistencias`.
+
+### Copia automática a Google Drive (opcional)
+
+Además de guardarse en `storage/backups/`, cada backup nocturno se puede subir solo a una
+carpeta de Google Drive — así sobrevive aunque la computadora del servidor se rompa, se pierda
+o se la roben. Reusa las credenciales del Service Account que ya existen para las
+exportaciones (`GOOGLE_DRIVE_CLIENT_EMAIL` / `GOOGLE_DRIVE_PRIVATE_KEY`), pero en una carpeta
+aparte: la de backups se va limpiando sola (se guardan los últimos **7 días**, se borran los
+más viejos en cada corrida), y conviene que esa limpieza automática nunca pueda tocar un
+archivo exportado por una escuela.
+
+1. En Google Drive, crear una carpeta nueva (distinta de la de exportaciones) y compartirla con
+   el mismo mail del Service Account que ya está en `GOOGLE_DRIVE_CLIENT_EMAIL`.
+2. Copiar el ID de esa carpeta (de la URL de Drive) a `GOOGLE_DRIVE_BACKUP_FOLDER_ID` en el
+   `.env` del servidor.
+3. Reiniciar el servidor: `pm2 restart pakua-asistencias`.
+
+Si se deja `GOOGLE_DRIVE_BACKUP_FOLDER_ID` vacía, el backup local se sigue haciendo igual que
+siempre, simplemente no se sube copia a Drive — mismo criterio que el resto de las
+integraciones opcionales de esta app.
 
 ### Qué NO cubre esto
 
-Estos backups quedan guardados **en el mismo disco** del servidor. Si esa computadora se rompe, se pierde o se la roban, los backups se pierden con ella. Para cubrir ese caso hace falta además una copia fuera de esa máquina (por ejemplo, subiéndola a Google Drive) — todavía no está configurado; es el siguiente paso pendiente cuando se quiera cerrar ese riesgo del todo.
+Estos backups quedan guardados **en el mismo disco** del servidor (salvo que se configure la
+copia a Google Drive de arriba). Sin esa copia a Drive, si la computadora se rompe, se pierde o
+se la roban, los backups se pierden con ella.
 
 ## Baja automática de alumnos por inactividad
 
@@ -198,4 +224,4 @@ cerrar el período a mano.
 
 ## Backup manual completo (todas las escuelas)
 
-Desde el panel, con la cuenta de **super-admin**, en "Copias de seguridad" hay un botón para descargar la base completa (todas las escuelas juntas) en cualquier momento. Guardar ese archivo en un lugar seguro fuera de la computadora del servidor (ej. un pendrive, otra compu). Solo el super-admin puede hacer esto — un admin de una escuela individual no tiene acceso, porque ese archivo contiene los datos de todas las escuelas, no solo la propia.
+Desde el panel, con la cuenta de **super-admin**, en "Copias de seguridad" hay un botón para descargar un `.zip` con la base completa y las fotos (todas las escuelas juntas) en cualquier momento. Guardar ese archivo en un lugar seguro fuera de la computadora del servidor (ej. un pendrive, otra compu). Solo el super-admin puede hacer esto — un admin de una escuela individual no tiene acceso, porque ese archivo contiene los datos de todas las escuelas, no solo la propia.
