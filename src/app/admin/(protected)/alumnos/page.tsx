@@ -34,8 +34,6 @@ export default function AlumnosAdminPage() {
   const [receiveOpen, setReceiveOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
   const [busy, setBusy] = useState(false);
-  const [importing, setImporting] = useState(false);
-  const [exporting, setExporting] = useState(false);
   const [orientadores, setOrientadores] = useState<{ id: string; firstName: string; lastName: string }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -110,7 +108,6 @@ export default function AlumnosAdminPage() {
   }
 
   async function handleExport() {
-    setExporting(true);
     try {
       const res = await fetch("/api/students/export");
       if (!res.ok) {
@@ -132,13 +129,10 @@ export default function AlumnosAdminPage() {
       toast.success("Lista de alumnos exportada");
     } catch {
       toast.error("Error de conexión al exportar");
-    } finally {
-      setExporting(false);
     }
   }
 
   async function handleImport(file: File) {
-    setImporting(true);
     try {
       const formData = new FormData();
       formData.set("file", file);
@@ -151,7 +145,6 @@ export default function AlumnosAdminPage() {
       toast.success(`${data.imported} alumnos importados`);
       loadStudents();
     } finally {
-      setImporting(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
@@ -174,16 +167,15 @@ export default function AlumnosAdminPage() {
               if (file) handleImport(file);
             }}
           />
-          <Button variant="secondary" loading={importing} onClick={() => fileInputRef.current?.click()}>
-            Importar Excel
-          </Button>
-          <Button variant="secondary" loading={exporting} onClick={handleExport}>
-            Exportar alumnos
-          </Button>
-          <Button variant="secondary" onClick={() => setReceiveOpen(true)}>
-            Recibir alumno migrado
-          </Button>
           <Button onClick={openCreate}>Nuevo alumno</Button>
+          <OverflowMenu
+            label="Más acciones de alumnos"
+            items={[
+              { label: "Importar Excel", onSelect: () => fileInputRef.current?.click() },
+              { label: "Exportar alumnos", onSelect: handleExport },
+              { label: "Recibir alumno migrado", onSelect: () => setReceiveOpen(true) },
+            ]}
+          />
         </div>
       </div>
 

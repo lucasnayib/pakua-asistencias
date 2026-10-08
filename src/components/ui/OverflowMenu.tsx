@@ -48,7 +48,11 @@ export function OverflowMenu({ items, label = "Más acciones" }: { items: Overfl
         aria-label={label}
         aria-haspopup="menu"
         aria-expanded={open && !closing}
-        onClick={() => (open ? requestClose() : setOpen(true))}
+        onClick={() => {
+          if (!open) setOpen(true);
+          else if (closing) setClosing(false);
+          else requestClose();
+        }}
         className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-surface-2"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
