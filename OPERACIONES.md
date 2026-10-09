@@ -238,6 +238,10 @@ aprobado.
 automáticos** ni en el `.zip` del super-admin). Si se quiere guardar una copia de lo subido,
 hay que copiar esa carpeta a mano.
 
+> **Pendiente (2026-10-09):** el código ya está en `main`, pero el servidor real todavía no
+> tiene las variables de entorno cargadas — sin eso, `/encuentro` responde 404. Hace falta
+> hacer los 3 pasos de "Activarla" de abajo antes de repartir el QR.
+
 ### Activarla (una sola vez, en el servidor)
 
 1. En el `.env` del servidor, completar:
@@ -261,9 +265,11 @@ panel) sigue mostrando lo ya aprobado.
 
 - Los asistentes suben desde el celular, sin que se les pida ningún dato.
 - En `/admin/encuentro` aparecen como "Pendientes" hasta que el super-admin los aprueba
-  (uno por uno, varios seleccionados, o "Aprobar todo"). Lo rechazado se borra para
-  siempre. Lo ya aprobado también se puede sacar después si hace falta (por ejemplo, si
-  alguien reporta una foto inadecuada) — queda registrado aparte en el log de auditoría.
+  (uno por uno, varios seleccionados, o con "Seleccionar todo" + "Aprobar seleccionados").
+  Lo rechazado se borra para siempre. Lo ya aprobado también se puede sacar después si hace
+  falta (por ejemplo, si alguien reporta una foto inadecuada, o para vaciar la galería
+  completa con "Seleccionar todo" ahí también) — queda registrado aparte en el log de
+  auditoría.
 - Desde esa misma pantalla se puede descargar un `.zip` con todo lo aprobado.
 
 ### Si falla una subida grande
