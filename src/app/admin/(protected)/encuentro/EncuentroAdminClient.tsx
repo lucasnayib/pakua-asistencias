@@ -331,7 +331,7 @@ export function EncuentroAdminClient() {
       <section className="flex flex-col gap-4 border-t border-border pt-6">
         <h2 className="text-lg font-semibold">Galería pública</h2>
         <Card className="flex flex-wrap items-center justify-between gap-4 p-5">
-          <div>
+          <div className="min-w-0">
             <p className="font-medium">{gallery.galleryEnabled ? "Activa" : "Desactivada"}</p>
             <p className="max-w-md truncate text-sm text-muted-foreground">
               {gallery.galleryUrl ?? "Todavía no generaste un link."}
@@ -360,7 +360,7 @@ export function EncuentroAdminClient() {
           <Card className="flex flex-col items-center gap-3 p-6 print:border-0 print:shadow-none">
             {/* eslint-disable-next-line @next/next/no-img-element -- data URL generado en el servidor */}
             <img src={qr.dataUrl} alt="Código QR del Encuentro" className="h-56 w-56" />
-            <p className="text-xs text-muted-foreground">{qr.url}</p>
+            <p className="max-w-full break-all text-center text-xs text-muted-foreground">{qr.url}</p>
             <Button size="sm" variant="secondary" className="print:hidden" onClick={() => window.print()}>
               Imprimir
             </Button>
