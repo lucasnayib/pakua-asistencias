@@ -42,6 +42,7 @@ export function AdminSidebar({
   role,
   schoolSlug,
   pendingAdminCount = 0,
+  pendingEncuentroCount = 0,
   itineranciasEnabled = false,
   defaultCollapsed = false,
   suspended = false,
@@ -51,6 +52,7 @@ export function AdminSidebar({
   role: string;
   schoolSlug?: string | null;
   pendingAdminCount?: number;
+  pendingEncuentroCount?: number;
   itineranciasEnabled?: boolean;
   defaultCollapsed?: boolean;
   /** Suscripción suspendida: el proxy (src/proxy.ts) ya bloquea cualquier pantalla que no sea
@@ -85,6 +87,7 @@ export function AdminSidebar({
             { href: "/admin/admins", label: "Administradores", icon: "users", badge: pendingAdminCount },
             { href: "/admin/backups", label: "Copias de seguridad", icon: "database" },
             { href: "/admin/dos-factores", label: "Seguridad", icon: "shield" },
+            { href: "/admin/encuentro", label: "Encuentro", icon: "camera", badge: pendingEncuentroCount },
           ],
         },
       ]

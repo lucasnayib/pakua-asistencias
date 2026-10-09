@@ -225,3 +225,51 @@ cerrar el período a mano.
 ## Backup manual completo (todas las escuelas)
 
 Desde el panel, con la cuenta de **super-admin**, en "Copias de seguridad" hay un botón para descargar un `.zip` con la base completa y las fotos (todas las escuelas juntas) en cualquier momento. Guardar ese archivo en un lugar seguro fuera de la computadora del servidor (ej. un pendrive, otra compu). Solo el super-admin puede hacer esto — un admin de una escuela individual no tiene acceso, porque ese archivo contiene los datos de todas las escuelas, no solo la propia.
+
+## Encuentro (fotos y video del evento)
+
+Sección aparte para un evento puntual (ej. el encuentro internacional): los asistentes
+escanean un QR, suben fotos y videos de forma anónima desde `/encuentro`, el super-admin los
+revisa en `/admin/encuentro`, y después comparte un link de galería para que todos vean lo
+aprobado.
+
+**No toca la base de datos ni tiene migraciones** — todo se guarda en archivos dentro de
+`storage/evento/` (fuera de `storage/uploads/`, así que **no entra en los backups
+automáticos** ni en el `.zip` del super-admin). Si se quiere guardar una copia de lo subido,
+hay que copiar esa carpeta a mano.
+
+### Activarla (una sola vez, en el servidor)
+
+1. En el `.env` del servidor, completar:
+   - `EVENT_UPLOAD_CODE`: el código que va en el QR (`/encuentro?c=CODIGO`). Cualquier texto
+     sirve, no hace falta que sean solo números.
+   - `EVENT_UPLOADS_ENABLED="true"`.
+2. Reiniciar el servidor: `pm2 restart pakua-asistencias`.
+3. Entrar a `/admin/encuentro` con la cuenta de super-admin: ahí se genera el QR imprimible
+   (apunta a `https://attendio.lat/encuentro?c=...`) y, aparte, el link de la galería
+   (se activa con un interruptor en esa misma pantalla — el link y si está activo o no se
+   guardan en `storage/evento/config.json`, no hacen falta variables de entorno ni reiniciar
+   el servidor para cambiarlos).
+
+### Cerrar la carga después del evento
+
+Poner `EVENT_UPLOADS_ENABLED="false"` en el `.env` y `pm2 restart pakua-asistencias`. El
+código del QR deja de aceptar subidas nuevas, pero la galería (si sigue activada desde el
+panel) sigue mostrando lo ya aprobado.
+
+### Uso diario durante el evento
+
+- Los asistentes suben desde el celular, sin que se les pida ningún dato.
+- En `/admin/encuentro` aparecen como "Pendientes" hasta que el super-admin los aprueba
+  (uno por uno, varios seleccionados, o "Aprobar todo"). Lo rechazado se borra para
+  siempre. Lo ya aprobado también se puede sacar después si hace falta (por ejemplo, si
+  alguien reporta una foto inadecuada) — queda registrado aparte en el log de auditoría.
+- Desde esa misma pantalla se puede descargar un `.zip` con todo lo aprobado.
+
+### Si falla una subida grande
+
+Los archivos se suben en partes de 8MB, con reintentos automáticos — un corte de señal
+breve no debería perder la subida. Las partes sueltas que quedan abandonadas (alguien cerró
+la app a mitad de una subida y nunca volvió) se limpian solas, sin necesidad de ninguna
+tarea programada: cada vez que alguien arranca una subida nueva o se abre el panel de
+pendientes, se borra lo que lleve más de 24hs sin terminar.

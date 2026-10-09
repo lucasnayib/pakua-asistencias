@@ -5,6 +5,7 @@ import { SIDEBAR_COLLAPSED_COOKIE } from "@/lib/admin-sidebar";
 import { prisma } from "@/lib/prisma";
 import { isItineranciasSchool } from "@/lib/itinerancias";
 import { isSubscriptionSuspended } from "@/lib/subscription";
+import { countPendingEncuentroFiles } from "@/lib/encuentro-storage";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -31,6 +32,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       ? await prisma.admin.count({ where: { role: "ADMIN", approved: false } })
       : 0;
 
+  // Conteo de archivos, no query a la base: es la única prop de este layout que no sale de
+  // Prisma, porque Encuentro no toca la base a propósito (ver OPERACIONES.md).
+  const pendingEncuentroCount = session.role === "SUPER_ADMIN" ? await countPendingEncuentroFiles() : 0;
+
   const itineranciasEnabled = isItineranciasSchool(admin?.slug);
 
   // La preferencia de barra contraída se guarda en una cookie (no en localStorage) para que
@@ -45,6 +50,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         role={session.role}
         schoolSlug={admin?.slug}
         pendingAdminCount={pendingAdminCount}
+        pendingEncuentroCount={pendingEncuentroCount}
         itineranciasEnabled={itineranciasEnabled}
         defaultCollapsed={sidebarCollapsed}
         suspended={suspended}

@@ -208,6 +208,51 @@ body {
   }
 }
 
+/* Grilla de Encuentro (MediaGrid): aparición escalonada, misma técnica que
+   overflow-menu-item-in (variable --item-delay). */
+@keyframes media-tile-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.media-tile {
+  animation: media-tile-in 320ms ease-out both;
+  animation-delay: var(--item-delay, 0ms);
+}
+
+/* Confirmación de carga completa (EncuentroUploadClient). */
+@keyframes upload-success-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.upload-success-pop {
+  animation: upload-success-pop 420ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .media-tile,
+  .upload-success-pop {
+    animation: none;
+  }
+}
+
 /* El navegador pinta de celeste los campos que autocompletó (usuario/contraseña
    guardados), ignorando nuestros colores. Se fuerza el fondo con box-shadow (el único
    truco que funciona sobre autofill) para que combine con el tema. */

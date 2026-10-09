@@ -257,6 +257,28 @@ export const adminUpdateSchema = z.object({
 
 // Formulario público de registro de escuela nueva (`/registrar-escuela`). La cuenta se crea
 // con `approved: false`: queda pendiente de revisión del super-admin antes de poder operar.
+export const encuentroVerifyCodeSchema = z.object({
+  code: z.string().trim().min(1, "Ingresá el código"),
+});
+
+export const encuentroVerifyGalleryTokenSchema = z.object({
+  token: z.string().trim().min(1, "Falta el token"),
+});
+
+export const encuentroUploadStartSchema = z.object({
+  mime: z.string().trim().min(1),
+  size: z.number().int().positive(),
+});
+
+export const encuentroApproveRejectSchema = z.object({
+  ids: z.array(z.string().min(1)).optional(),
+  all: z.boolean().optional(),
+});
+
+export const encuentroGalleryToggleSchema = z.object({
+  enabled: z.boolean(),
+});
+
 export const schoolRegistrationSchema = z.object({
   username: z.string().trim().min(1, "El usuario es obligatorio").max(50),
   password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),

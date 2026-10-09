@@ -17,6 +17,7 @@ export type SidebarIconName =
   | "credit-card"
   | "shield"
   | "database"
+  | "camera"
   | "power"
   | "chevron-right"
   | "chevron-up"
@@ -140,6 +141,12 @@ const PATHS: Record<SidebarIconName, ReactNode> = {
       <ellipse cx="12" cy="5" rx="9" ry="3" />
       <path d="M3 5v14a9 3 0 0 0 18 0V5" />
       <path d="M3 12a9 3 0 0 0 18 0" />
+    </>
+  ),
+  camera: (
+    <>
+      <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+      <circle cx="12" cy="13" r="3" />
     </>
   ),
   power: (

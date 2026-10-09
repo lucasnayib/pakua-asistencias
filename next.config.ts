@@ -30,6 +30,13 @@ const productionOnlyHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Default de Next 16 es 10MB y trunca el body en silencio si se supera (sin error) — las
+  // partes de 8MB de la subida de Encuentro (src/app/api/encuentro/upload/.../chunk) necesitan
+  // margen real por encima de eso. No tiene nada que ver con experimental.serverActions
+  // (bodySizeLimit, 1MB), que es una config aparte para Server Actions, no para Route Handlers.
+  experimental: {
+    proxyClientMaxBodySize: "12mb",
+  },
   turbopack: {
     root: __dirname,
   },

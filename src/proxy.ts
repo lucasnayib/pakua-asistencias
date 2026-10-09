@@ -31,6 +31,8 @@ function isSuperAdminOnlyRoute(pathname: string): boolean {
   if (pathname.startsWith("/admin/backups")) return true;
   if (pathname.startsWith("/api/admin/two-factor")) return true;
   if (pathname.startsWith("/admin/dos-factores")) return true;
+  if (pathname.startsWith("/api/admin/encuentro")) return true;
+  if (pathname.startsWith("/admin/encuentro")) return true;
   return false;
 }
 
@@ -57,6 +59,11 @@ function isAdminOnlyApiRoute(pathname: string, method: string): boolean {
   if (pathname.startsWith("/api/admin/contact-email")) return true;
   if (pathname.startsWith("/api/admin/password")) return true;
   if (pathname.startsWith("/api/subscription/checkout")) return true;
+  // También tiene que estar acá, no solo en isSuperAdminOnlyRoute: la rama /api/ de abajo
+  // solo evalúa isSuperAdminOnlyRoute si needsSession||isSchoolData ya dio true. Sin esta
+  // línea, /api/admin/encuentro/* quedaría sin ningún chequeo de sesión (mismo motivo por
+  // el que /api/backup está en las dos funciones).
+  if (pathname.startsWith("/api/admin/encuentro")) return true;
 
   return false;
 }

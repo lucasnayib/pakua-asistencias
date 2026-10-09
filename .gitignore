@@ -66,3 +66,7 @@ next-env.d.ts
 !/storage/uploads/students/.gitkeep
 /storage/uploads/orientadores/*
 !/storage/uploads/orientadores/.gitkeep
+
+# Fotos/video del encuentro: a propósito fuera de storage/uploads, para que el backup
+# nocturno (que solo zipea storage/uploads) nunca los incluya. Ver OPERACIONES.md.
+/storage/evento/
