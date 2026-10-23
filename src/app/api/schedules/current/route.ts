@@ -23,22 +23,18 @@ export async function GET(request: NextRequest) {
 
   const shortTime = formatTimeShort(time);
 
-  const [schedule, admin] = await Promise.all([
-    prisma.schedule.findFirst({
-      where: {
-        adminId,
-        days: { some: { dayOfWeek } },
-        startTime: { lte: shortTime },
-        endTime: { gt: shortTime },
-      },
-    }),
-    prisma.admin.findUnique({
-      where: { id: adminId },
-      select: { latitude: true, longitude: true, attendanceRadiusMeters: true },
-    }),
-  ]);
-  const requiresLocation =
-    admin?.latitude != null && admin.longitude != null && admin.attendanceRadiusMeters != null;
+  const schedule = await prisma.schedule.findFirst({
+    where: {
+      adminId,
+      days: { some: { dayOfWeek } },
+      startTime: { lte: shortTime },
+      endTime: { gt: shortTime },
+    },
+  });
+  // Restricción de ubicación desactivada a pedido explícito (ver itinerancias.ts y
+  // api/attendance/route.ts) — nunca se le pide GPS al navegador mientras esté así, aunque la
+  // escuela tenga una configuración guardada de antes.
+  const requiresLocation = false;
 
   if (!schedule) {
     return NextResponse.json({ schedule: null, roster: [], date, requiresLocation });

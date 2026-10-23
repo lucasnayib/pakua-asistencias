@@ -3,8 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { attendanceCreateSchema } from "@/lib/validations";
 import { requireSchoolAccess } from "@/lib/school-access";
 import { logChange } from "@/lib/audit";
-import { distanceMeters } from "@/lib/geo";
-import { getLocalNow } from "@/lib/time";
 import { isOutsidePublicHours, getPublicHoursWindow } from "@/lib/business-hours";
 
 export async function POST(request: NextRequest) {
@@ -13,7 +11,7 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Datos inválidos" }, { status: 400 });
   }
-  const { studentId, scheduleId, date, time, latitude, longitude } = parsed.data;
+  const { studentId, scheduleId, date, time } = parsed.data;
 
   const [student, schedule] = await Promise.all([
     prisma.student.findUnique({ where: { id: studentId } }),
@@ -35,33 +33,6 @@ export async function POST(request: NextRequest) {
       { error: `La página está cerrada en este horario. Disponible de ${open} a ${close}.` },
       { status: 403 }
     );
-  }
-
-  const admin = await prisma.admin.findUnique({
-    where: { id: schedule.adminId },
-    select: { latitude: true, longitude: true, attendanceRadiusMeters: true },
-  });
-
-  // Si la escuela configuró una ubicación, la asistencia EN TIEMPO REAL (fecha de hoy) solo
-  // se puede marcar estando dentro del radio permitido. No aplica a correcciones retroactivas
-  // de días anteriores (pantalla "clases anteriores"), donde no tiene sentido pedir GPS.
-  // La validación se hace acá, en el servidor — nunca hay que confiar en que el cliente no
-  // haya falseado las coordenadas.
-  const isToday = date === getLocalNow().date;
-  if (isToday && admin?.latitude != null && admin.longitude != null && admin.attendanceRadiusMeters != null) {
-    if (latitude === undefined || longitude === undefined) {
-      return NextResponse.json(
-        { error: "Esta escuela requiere ubicación para marcar asistencia" },
-        { status: 400 }
-      );
-    }
-    const distance = distanceMeters(admin.latitude, admin.longitude, latitude, longitude);
-    if (distance > admin.attendanceRadiusMeters) {
-      return NextResponse.json(
-        { error: "No estás dentro del rango permitido de la escuela para marcar asistencia" },
-        { status: 403 }
-      );
-    }
   }
 
   const attendance = await prisma.attendance.upsert({

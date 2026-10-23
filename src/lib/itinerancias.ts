@@ -32,18 +32,16 @@ import { distanceMeters } from "@/lib/geo";
 type AdminLocation = { latitude: number | null; longitude: number | null; attendanceRadiusMeters: number | null };
 
 /**
- * Restricción de ubicación de Itinerancias: reutiliza la misma configuración de la escuela que
- * ya usa la asistencia normal (Admin.latitude/longitude/attendanceRadiusMeters), pero solo se
- * exige para actividades de sede Córdoba — Alta Gracia es una sede distinta, fuera de este
- * control. Si la escuela no configuró ubicación, no se exige nada (igual que hoy).
+ * Restricción de ubicación de Itinerancias: reutilizaba la misma configuración de la escuela
+ * que la asistencia normal (Admin.latitude/longitude/attendanceRadiusMeters), exigida solo para
+ * actividades de sede Córdoba. Desactivada a pedido explícito (sin eliminar la configuración
+ * guardada por escuela, para poder reactivarla devolviendo la condición original de acá).
  */
+// La firma se mantiene igual para no tocar los 3 call sites; admin/activityLocation se vuelven
+// a usar el día que se reactive la restricción (ver condición original en el historial de git).
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function itineranciaRequiresLocation(admin: AdminLocation, activityLocation: string | null): boolean {
-  return (
-    activityLocation === "CORDOBA" &&
-    admin.latitude != null &&
-    admin.longitude != null &&
-    admin.attendanceRadiusMeters != null
-  );
+  return false;
 }
 
 /** Valida lat/long contra el radio configurado. Devuelve el error a responder, o null si está OK. */
