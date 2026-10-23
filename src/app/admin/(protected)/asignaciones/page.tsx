@@ -79,7 +79,13 @@ export default function AsignacionesAdminPage() {
       </div>
 
       <div className="flex flex-wrap items-end gap-3">
-        <Select label="Horario" value={scheduleId} onChange={(e) => setScheduleId(e.target.value)} className="w-64">
+        <Select
+          label="Horario"
+          value={scheduleId}
+          onChange={(e) => setScheduleId(e.target.value)}
+          className="w-64"
+          data-tour="select-horario-asignacion"
+        >
           {schedules.map((s) => (
             <option key={s.id} value={s.id}>
               {s.name ? `${s.name} · ` : ""}

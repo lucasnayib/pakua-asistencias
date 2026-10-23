@@ -10,11 +10,13 @@ export function GoToAttendanceLink({
   className,
   title,
   children,
+  "data-tour": dataTour,
 }: {
   href: string;
   className?: string;
   title?: string;
   children: ReactNode;
+  "data-tour"?: string;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -29,7 +31,7 @@ export function GoToAttendanceLink({
   }
 
   return (
-    <a href={href} onClick={handleClick} className={className} title={title}>
+    <a href={href} onClick={handleClick} className={className} title={title} data-tour={dataTour}>
       {children}
     </a>
   );

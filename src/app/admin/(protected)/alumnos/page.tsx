@@ -35,6 +35,7 @@ export default function AlumnosAdminPage() {
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
   const [busy, setBusy] = useState(false);
   const [orientadores, setOrientadores] = useState<{ id: string; firstName: string; lastName: string }[]>([]);
+  const [pendingAranceles, setPendingAranceles] = useState<Map<string, string[]>>(new Map());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadStudents = useCallback(() => {
@@ -60,6 +61,21 @@ export default function AlumnosAdminPage() {
       .then((res) => res.json())
       .then((data) => setOrientadores(data.orientadores ?? []));
   }, []);
+
+  const loadPendingAranceles = useCallback(() => {
+    fetch("/api/aranceles/pendientes")
+      .then((res) => res.json())
+      .then((data) => {
+        const map = new Map<string, string[]>();
+        for (const p of data.pending ?? []) map.set(p.studentId, p.tiposPendientes);
+        setPendingAranceles(map);
+      })
+      .catch(() => setPendingAranceles(new Map()));
+  }, []);
+
+  useEffect(() => {
+    loadPendingAranceles();
+  }, [loadPendingAranceles]);
 
   function openCreate() {
     setEditing(null);
@@ -167,7 +183,9 @@ export default function AlumnosAdminPage() {
               if (file) handleImport(file);
             }}
           />
-          <Button onClick={openCreate}>Nuevo alumno</Button>
+          <Button onClick={openCreate} data-tour="btn-nuevo-alumno">
+            Nuevo alumno
+          </Button>
           <OverflowMenu
             label="Más acciones de alumnos"
             items={[
@@ -252,6 +270,9 @@ export default function AlumnosAdminPage() {
                   {s.firstName} {s.lastName}
                 </p>
                 {!s.active && <p className="text-xs text-danger">Dado de baja</p>}
+                {pendingAranceles.has(s.id) && (
+                  <p className="text-xs text-danger">Cuota pendiente: {pendingAranceles.get(s.id)!.join(", ")}</p>
+                )}
               </div>
               <OverflowMenu
                 items={[
@@ -286,7 +307,10 @@ export default function AlumnosAdminPage() {
         open={detailsStudent !== null}
         student={detailsStudent}
         onClose={() => setDetailsStudent(null)}
-        onChanged={loadStudents}
+        onChanged={() => {
+          loadStudents();
+          loadPendingAranceles();
+        }}
       />
 
       <PhotoLightbox

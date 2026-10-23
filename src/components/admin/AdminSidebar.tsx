@@ -13,7 +13,17 @@ type NavGroup = { id: string; label: string; icon: SidebarIconName; items: NavIt
 
 const DASHBOARD_LINK: NavItem = { href: "/admin", label: "Resumen", icon: "dashboard" };
 const ITINERANCIAS_LINK: NavItem = { href: "/admin/itinerancias", label: "Itinerancias", icon: "calendar" };
+const ARANCELES_LINK: NavItem = { href: "/admin/aranceles", label: "Aranceles", icon: "wallet" };
 const BILLING_LINK: NavItem = { href: "/admin/facturacion", label: "Facturación", icon: "credit-card" };
+
+/** `data-tour` de cada link de navegación, para que la guía interactiva pueda apuntarle sin
+ * depender de selectores frágiles por texto/clase. */
+const NAV_TOUR_IDS: Record<string, string> = {
+  "/admin/alumnos": "nav-alumnos",
+  "/admin/horarios": "nav-horarios",
+  "/admin/asignaciones": "nav-asignaciones",
+  "/admin/aranceles": "nav-aranceles",
+};
 
 // Botón cuadrado de solo ícono para la versión contraída de la barra (el texto va en el tooltip).
 function RailLink({ item, active }: { item: NavItem; active: boolean }) {
@@ -22,6 +32,7 @@ function RailLink({ item, active }: { item: NavItem; active: boolean }) {
       href={item.href}
       title={item.label}
       aria-label={item.label}
+      data-tour={NAV_TOUR_IDS[item.href]}
       className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-all duration-150 active:scale-95 ${
         active ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-surface-2 hover:text-foreground"
       }`}
@@ -43,6 +54,7 @@ export function AdminSidebar({
   schoolSlug,
   pendingAdminCount = 0,
   pendingEncuentroCount = 0,
+  pendingArancelCount = 0,
   itineranciasEnabled = false,
   defaultCollapsed = false,
   suspended = false,
@@ -53,6 +65,7 @@ export function AdminSidebar({
   schoolSlug?: string | null;
   pendingAdminCount?: number;
   pendingEncuentroCount?: number;
+  pendingArancelCount?: number;
   itineranciasEnabled?: boolean;
   defaultCollapsed?: boolean;
   /** Suscripción suspendida: el proxy (src/proxy.ts) ya bloquea cualquier pantalla que no sea
@@ -112,15 +125,9 @@ export function AdminSidebar({
             { href: "/admin/estadisticas", label: "Estadísticas", icon: "bar-chart" },
           ],
         },
-        {
-          id: "configuracion",
-          label: "Configuración",
-          icon: "sliders",
-          items: [
-            { href: "/admin/ubicacion", label: "Ubicación", icon: "crosshair" },
-            { href: "/admin/mi-cuenta", label: "Mi cuenta", icon: "user" },
-          ],
-        },
+        // El grupo "Configuración" se quitó: con "Ubicación" ya oculta (ver nota en
+        // itinerancias.ts/attendance/route.ts), lo único que quedaba era "Mi cuenta", y ahora
+        // se accede directamente tocando el propio usuario arriba del todo del sidebar.
       ];
 
   function isActive(href: string) {
@@ -152,6 +159,32 @@ export function AdminSidebar({
     setOpenGroups((prev) => (prev.has(activeGroupId) ? prev : new Set(prev).add(activeGroupId)));
   }, [activeGroupId]);
 
+  // La guía interactiva (tour) a veces necesita señalar un link que vive dentro de un grupo
+  // colapsado, o directamente dentro del sidebar en mobile (ahí es un menú hamburguesa
+  // cerrado por defecto) — como no tiene una ref directa al estado de este componente, lo
+  // pide por evento en vez de por prop (evitaría pasar por el layout de servidor sin necesidad).
+  useEffect(() => {
+    function onForceOpenGroup(e: Event) {
+      const groupId = (e as CustomEvent<string>).detail;
+      if (!groupId) return;
+      setOpenGroups((prev) => (prev.has(groupId) ? prev : new Set(prev).add(groupId)));
+    }
+    function onForceOpenMobileMenu() {
+      setMobileOpen(true);
+    }
+    function onForceCloseMobileMenu() {
+      setMobileOpen(false);
+    }
+    window.addEventListener("pakua-tour-open-group", onForceOpenGroup);
+    window.addEventListener("pakua-tour-open-mobile-menu", onForceOpenMobileMenu);
+    window.addEventListener("pakua-tour-close-mobile-menu", onForceCloseMobileMenu);
+    return () => {
+      window.removeEventListener("pakua-tour-open-group", onForceOpenGroup);
+      window.removeEventListener("pakua-tour-open-mobile-menu", onForceOpenMobileMenu);
+      window.removeEventListener("pakua-tour-close-mobile-menu", onForceCloseMobileMenu);
+    };
+  }, []);
+
   // Bloquear el scroll de fondo mientras el menú está abierto en mobile.
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? "hidden" : "";
@@ -167,14 +200,16 @@ export function AdminSidebar({
     router.refresh();
   }
 
-  // Itinerancias es un evento trimestral (solo aparece en los meses habilitados): va como
-  // tarjeta propia junto al Resumen, no dentro de un grupo.
-  const primaryLinks: NavItem[] =
-    suspended || isSuperAdmin
-      ? []
-      : itineranciasEnabled
-        ? [DASHBOARD_LINK, ITINERANCIAS_LINK]
-        : [DASHBOARD_LINK];
+  // Itinerancias es un evento trimestral (solo aparece en los meses habilitados) y Aranceles
+  // se pidió como botón fijo en vez de un desplegable: ambos van como tarjeta propia junto al
+  // Resumen, no dentro de un grupo colapsable.
+  const primaryLinks: NavItem[] = suspended || isSuperAdmin
+    ? []
+    : [
+        DASHBOARD_LINK,
+        ...(itineranciasEnabled ? [ITINERANCIAS_LINK] : []),
+        { ...ARANCELES_LINK, badge: pendingArancelCount },
+      ];
   const billingActive = isActive(BILLING_LINK.href);
 
   return (
@@ -236,12 +271,24 @@ export function AdminSidebar({
             >
               <SidebarIcon name="chevrons-right" className="h-5 w-5" />
             </button>
-            <div
-              title={`${displayName} · ${username}`}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-2"
-            >
-              <SidebarIcon name="user" className="h-5 w-5" />
-            </div>
+            {isSuperAdmin ? (
+              <div
+                title={`${displayName} · ${username}`}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-2"
+              >
+                <SidebarIcon name="user" className="h-5 w-5" />
+              </div>
+            ) : (
+              <Link
+                href="/admin/mi-cuenta"
+                title={`${displayName} · ${username} — Mi cuenta`}
+                className={`flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-surface-2 ${
+                  isActive("/admin/mi-cuenta") ? "bg-accent text-accent-foreground" : "bg-surface-2"
+                }`}
+              >
+                <SidebarIcon name="user" className="h-5 w-5" />
+              </Link>
+            )}
           </div>
 
           <nav className="scrollbar-themed flex w-full flex-1 flex-col items-center gap-1 overflow-y-auto px-2 py-2">
@@ -268,6 +315,7 @@ export function AdminSidebar({
               <GoToAttendanceLink
                 href={schoolSlug ? `/escuela/${schoolSlug}` : "/"}
                 title="Ir a toma de asistencia"
+                data-tour="nav-asistencia"
                 className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-surface-2 hover:text-foreground"
               >
                 <SidebarIcon name="clipboard-check" className="h-5 w-5" />
@@ -316,15 +364,49 @@ export function AdminSidebar({
             </button>
           </div>
 
-          <div className="flex shrink-0 items-center gap-3 border-b border-border px-5 py-5 md:py-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-surface-2 md:h-10 md:w-10">
-              <SidebarIcon name="user" className="h-6 w-6" />
+          {isSuperAdmin ? (
+            <div className="flex shrink-0 items-center gap-3 border-b border-border px-5 py-5 md:py-3">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-surface-2 md:h-10 md:w-10">
+                <SidebarIcon name="user" className="h-6 w-6" />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-xs text-muted-foreground">{displayName}</p>
+                <p className="truncate text-base font-semibold">Hola, {username}</p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="truncate text-xs text-muted-foreground">{displayName}</p>
-              <p className="truncate text-base font-semibold">Hola, {username}</p>
-            </div>
-          </div>
+          ) : (
+            <Link
+              href="/admin/mi-cuenta"
+              title="Mi cuenta"
+              className={`flex shrink-0 items-center gap-3 border-b border-border px-5 py-5 transition md:py-3 ${
+                isActive("/admin/mi-cuenta") ? "bg-accent text-accent-foreground" : "hover:bg-surface-2"
+              }`}
+            >
+              <div
+                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full md:h-10 md:w-10 ${
+                  isActive("/admin/mi-cuenta") ? "bg-accent-foreground/15" : "bg-background/60"
+                }`}
+              >
+                <SidebarIcon name="user" className="h-6 w-6" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p
+                  className={`truncate text-xs ${
+                    isActive("/admin/mi-cuenta") ? "text-accent-foreground/70" : "text-muted-foreground"
+                  }`}
+                >
+                  {displayName}
+                </p>
+                <p className="truncate text-base font-semibold">Hola, {username}</p>
+              </div>
+              <SidebarIcon
+                name="chevron-right"
+                className={`h-4 w-4 shrink-0 ${
+                  isActive("/admin/mi-cuenta") ? "text-accent-foreground/70" : "text-muted-foreground"
+                }`}
+              />
+            </Link>
+          )}
 
           <nav className="scrollbar-themed flex-1 overflow-y-auto px-3 py-4 md:py-3">
             {primaryLinks.length > 0 && (
@@ -335,6 +417,7 @@ export function AdminSidebar({
                     <Link
                       key={item.href}
                       href={item.href}
+                      data-tour={NAV_TOUR_IDS[item.href]}
                       className={`flex items-center gap-3 rounded-2xl px-3 py-3 transition-all duration-150 active:scale-[0.98] md:py-2.5 ${
                         active ? "bg-accent text-accent-foreground" : "bg-surface-2 hover:bg-surface-2/70"
                       }`}
@@ -347,6 +430,11 @@ export function AdminSidebar({
                         <SidebarIcon name={item.icon} className="h-5 w-5" />
                       </span>
                       <span className="flex-1 text-sm font-semibold">{item.label}</span>
+                      {item.badge !== undefined && item.badge > 0 && (
+                        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1.5 text-xs font-semibold text-danger-foreground">
+                          {item.badge}
+                        </span>
+                      )}
                       <SidebarIcon
                         name="chevron-right"
                         className={`h-4 w-4 ${active ? "text-accent-foreground/70" : "text-muted-foreground"}`}
@@ -403,6 +491,7 @@ export function AdminSidebar({
                               <li key={item.href}>
                                 <Link
                                   href={item.href}
+                                  data-tour={NAV_TOUR_IDS[item.href]}
                                   className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 active:scale-[0.97] md:py-2 ${
                                     active
                                       ? "bg-accent text-accent-foreground"
@@ -459,6 +548,7 @@ export function AdminSidebar({
             {!suspended && (
               <GoToAttendanceLink
                 href={schoolSlug ? `/escuela/${schoolSlug}` : "/"}
+                data-tour="nav-asistencia"
                 className="flex flex-col items-center gap-1 border-b border-border px-5 py-3 text-xs text-muted-foreground transition hover:bg-surface-2 hover:text-foreground md:py-2"
               >
                 <SidebarIcon name="clipboard-check" className="h-6 w-6" />

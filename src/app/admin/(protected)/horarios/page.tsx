@@ -85,6 +85,7 @@ export default function HorariosAdminPage() {
               setEditing(null);
               setFormOpen(true);
             }}
+            data-tour="btn-nuevo-horario"
           >
             Nuevo horario
           </Button>

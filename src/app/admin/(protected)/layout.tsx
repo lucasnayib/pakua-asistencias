@@ -6,7 +6,10 @@ import { prisma } from "@/lib/prisma";
 import { isItineranciasSchool } from "@/lib/itinerancias";
 import { isSubscriptionSuspended } from "@/lib/subscription";
 import { countPendingEncuentroFiles } from "@/lib/encuentro-storage";
+import { currentMonth } from "@/lib/aranceles-calc";
+import { countStudentsWithUnpaidAranceles } from "@/lib/aranceles-server";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { TourProvider } from "@/components/admin/tour/TourProvider";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
@@ -19,11 +22,20 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     session.role === "ADMIN"
       ? await prisma.admin.findUnique({
           where: { id: session.adminId },
-          select: { slug: true, subscriptionStatus: true },
+          select: { slug: true, subscriptionStatus: true, onboardingCompletedAt: true },
         })
       : null;
 
   const suspended = admin ? isSubscriptionSuspended(admin.subscriptionStatus) : false;
+
+  // La guía interactiva solo se ofrece una vez: cuando la cuenta ya está paga (no solo
+  // aprobada) y todavía no se le mostró ni completó. Atado al estado de pago (no a la fecha
+  // de creación de la cuenta) porque mientras está UNPAID/SUSPENDED el admin no puede llegar
+  // a ninguna pantalla salvo Facturación de todos modos.
+  const showOnboardingPrompt =
+    session.role === "ADMIN" &&
+    admin?.subscriptionStatus === "ACTIVE" &&
+    admin?.onboardingCompletedAt == null;
 
   // Cantidad de solicitudes de escuela nueva pendientes de aprobación: solo le importa al
   // super-admin (única cuenta con acceso a /admin/admins), así que se resuelve solo para él.
@@ -35,6 +47,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // Conteo de archivos, no query a la base: es la única prop de este layout que no sale de
   // Prisma, porque Encuentro no toca la base a propósito (ver OPERACIONES.md).
   const pendingEncuentroCount = session.role === "SUPER_ADMIN" ? await countPendingEncuentroFiles() : 0;
+
+  // Alumnos con algún arancel sin pagar este mes: solo tiene sentido por escuela, igual que
+  // el resto de los datos de alumnos (el super-admin no gestiona finanzas de ninguna escuela).
+  const pendingArancelCount =
+    session.role === "ADMIN" ? await countStudentsWithUnpaidAranceles(session.adminId, currentMonth()) : 0;
 
   const itineranciasEnabled = isItineranciasSchool(admin?.slug);
 
@@ -51,6 +68,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         schoolSlug={admin?.slug}
         pendingAdminCount={pendingAdminCount}
         pendingEncuentroCount={pendingEncuentroCount}
+        pendingArancelCount={pendingArancelCount}
         itineranciasEnabled={itineranciasEnabled}
         defaultCollapsed={sidebarCollapsed}
         suspended={suspended}
@@ -59,7 +77,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           su propia barra angosta, separada de la barra grande del navegador. Ahora el contenido
           alto simplemente hace crecer la página, y el sidebar (sticky) se mantiene fijo con el
           único scroll, el de la página entera. */}
-      <main className="flex-1 p-4 md:p-8">{children}</main>
+      <main className="flex-1 p-4 md:p-8">
+        {/* TourProvider va ACÁ, envolviendo solo el contenido, no el sidebar como tal — pero al
+            estar en este layout (que no se remonta al navegar entre /admin/alumnos,
+            /admin/horarios, etc.) su estado sobrevive toda la navegación del recorrido. */}
+        <TourProvider initialShowPrompt={showOnboardingPrompt}>{children}</TourProvider>
+      </main>
     </div>
   );
 }
