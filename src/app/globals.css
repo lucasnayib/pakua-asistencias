@@ -66,6 +66,20 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
+/* Safari/Chrome en mobile hacen zoom automático de toda la página al enfocar un campo cuyo
+   texto mide menos de 16px, y ese zoom no siempre vuelve solo a 1x al salir del campo. Los
+   inputs/selects/textareas de la app usan letra de 14px (text-sm) por densidad de información
+   en escritorio — en mobile (mismo "md" que usa el resto de la app) se sube a 16px solo en los
+   controles de formulario, sin tocar nada del layout de escritorio, para que ese zoom
+   involuntario directamente no se dispare. */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
 /* La barra de scroll nativa es blanca (con flechas) y desentona en el tema oscuro: esta la
    deja fina, sin flechas y del color del borde del tema. */
 .scrollbar-themed {
@@ -204,6 +218,34 @@ body {
   .modal-dialog[open]::backdrop,
   .modal-dialog.modal-exit,
   .modal-dialog.modal-exit::backdrop {
+    animation: none;
+  }
+}
+
+/* Variante con más recorrido y un pequeño delay antes de arrancar, para diálogos donde se
+   pidió que la animación se note más (ej. "Nuevo movimiento" en Aranceles). Se combina con
+   .modal-dialog, no la reemplaza — así el resto de los diálogos (horarios, lightbox) no cambian. */
+.modal-dialog-pop[open] {
+  animation: modal-in 260ms cubic-bezier(0.34, 1.56, 0.64, 1) 80ms both;
+}
+
+.modal-dialog-pop[open]::backdrop {
+  animation: backdrop-in 220ms ease-out both;
+}
+
+.modal-dialog-pop.modal-exit {
+  animation: modal-out 160ms ease-in both;
+}
+
+.modal-dialog-pop.modal-exit::backdrop {
+  animation: backdrop-out 160ms ease-in both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-dialog-pop[open],
+  .modal-dialog-pop[open]::backdrop,
+  .modal-dialog-pop.modal-exit,
+  .modal-dialog-pop.modal-exit::backdrop {
     animation: none;
   }
 }

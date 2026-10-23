@@ -286,3 +286,55 @@ export const schoolRegistrationSchema = z.object({
   contactEmail: z.string().trim().email("Email inválido").max(150),
   contactPhone: z.string().trim().min(1, "El teléfono es obligatorio").max(30),
 });
+
+// Aranceles (finanzas de la escuela): catálogo de tipos de arancel, inscripción de alumnos,
+// pagos mensuales, y un libro de gastos/ingresos sueltos. Ver src/lib/aranceles-calc.ts.
+const monthRegex = /^\d{4}-\d{2}$/;
+
+export const tipoArancelCreateSchema = z.object({
+  name: z.string().trim().min(1, "El nombre es obligatorio").max(100),
+  amount: z.number().int().min(0, "El monto no puede ser negativo").max(100_000_000),
+});
+
+export const tipoArancelUpdateSchema = z.object({
+  name: z.string().trim().min(1, "El nombre es obligatorio").max(100).optional(),
+  amount: z.number().int().min(0).max(100_000_000).optional(),
+  active: z.boolean().optional(),
+});
+
+export const alumnoArancelCreateSchema = z.object({
+  tipoArancelId: z.string().trim().min(1),
+});
+
+export const pagoArancelMarkPaidSchema = z.object({
+  month: z.string().regex(monthRegex, "Mes inválido (YYYY-MM)"),
+});
+
+export const CATEGORIAS_INGRESO = ["CUOTAS", "DONACIONES", "VENTA_MERCHANDISING", "OTROS"] as const;
+export const CATEGORIAS_EGRESO = ["ALQUILER", "SERVICIOS", "INSUMOS", "MANTENIMIENTO", "SUELDOS", "OTROS"] as const;
+
+export const movimientoFinancieroCreateSchema = z
+  .object({
+    tipo: z.enum(["INGRESO", "EGRESO"]),
+    categoria: z.string().trim().min(1),
+    concepto: z.string().trim().min(1, "El concepto es obligatorio").max(200),
+    amount: z.number().int().min(1, "El monto debe ser mayor a 0").max(100_000_000),
+    date: z.string().regex(dateRegex, "Fecha inválida (YYYY-MM-DD)"),
+    estado: z.enum(["PAGADO", "NO_PAGADO"]).default("PAGADO"),
+  })
+  .refine(
+    (v) =>
+      (v.tipo === "INGRESO" ? (CATEGORIAS_INGRESO as readonly string[]) : (CATEGORIAS_EGRESO as readonly string[])).includes(
+        v.categoria
+      ),
+    { message: "Categoría inválida para ese tipo", path: ["categoria"] }
+  );
+
+export const movimientoFinancieroUpdateSchema = z.object({
+  tipo: z.enum(["INGRESO", "EGRESO"]).optional(),
+  categoria: z.string().trim().min(1).optional(),
+  concepto: z.string().trim().min(1).max(200).optional(),
+  amount: z.number().int().min(1).max(100_000_000).optional(),
+  date: z.string().regex(dateRegex, "Fecha inválida (YYYY-MM-DD)").optional(),
+  estado: z.enum(["PAGADO", "NO_PAGADO"]).optional(),
+});

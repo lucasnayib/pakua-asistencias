@@ -4,6 +4,7 @@ import { studentUpdateSchema } from "@/lib/validations";
 import { deleteStudentPhoto, saveStudentPhoto, UploadError } from "@/lib/upload";
 import { requireAdmin } from "@/lib/auth";
 import { logChange } from "@/lib/audit";
+import { autoEnrollByFormacion } from "@/lib/aranceles-server";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -145,6 +146,13 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     entityId: student.id,
     detail: `${student.firstName} ${student.lastName}`,
   });
+
+  // Si la formación cambió (o se cargó por primera vez) y coincide con un tipo de arancel ya
+  // existente, anotarlo solo — ver src/lib/aranceles-server.ts. No desanota de la formación
+  // anterior a propósito, por si quedó anotado ahí por otro motivo.
+  if (studentData.formacion !== undefined) {
+    await autoEnrollByFormacion(student.id, session.adminId, student.formacion);
+  }
 
   return NextResponse.json({ student: toStudentResponse(student) });
 }

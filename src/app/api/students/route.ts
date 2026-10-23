@@ -5,6 +5,7 @@ import { saveStudentPhoto, UploadError } from "@/lib/upload";
 import { getSession, requireAdmin } from "@/lib/auth";
 import { requireSchoolAccess } from "@/lib/school-access";
 import { logChange } from "@/lib/audit";
+import { autoEnrollByFormacion } from "@/lib/aranceles-server";
 
 const studentInclude = {
   orientadores: {
@@ -138,6 +139,10 @@ export async function POST(request: NextRequest) {
     entityId: student.id,
     detail: `${student.firstName} ${student.lastName}`,
   });
+
+  // Si la formación cargada coincide con un tipo de arancel ya existente (Yoga, Arte
+  // Marcial, etc.), anotarlo solo — ver src/lib/aranceles-server.ts.
+  await autoEnrollByFormacion(student.id, session.adminId, student.formacion);
 
   return NextResponse.json({ student: toStudentResponse(student) }, { status: 201 });
 }

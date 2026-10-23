@@ -47,7 +47,7 @@ model Admin {
 
   // Suscripción (Mercado Pago). Una escuela tiene como mucho una, así que va directo acá
   // en vez de un modelo aparte. Solo aplica a role "ADMIN" — el super-admin no factura.
-  subscriptionStatus  String    @default("TRIALING") // TRIALING | ACTIVE | PAST_DUE | SUSPENDED | CANCELED
+  subscriptionStatus  String    @default("UNPAID") // UNPAID | ACTIVE | PAST_DUE | SUSPENDED | CANCELED
   trialEndsAt         DateTime?
   trialWarningSentAt  DateTime?
   currentPeriodEnd    DateTime?
@@ -67,11 +67,20 @@ model Admin {
   // configuraron.
   itineranciaAccessCodeHash String?
 
-  students              Student[]
-  schedules             Schedule[]
-  orientadores          Orientador[]
-  exportLogs            ExportLog[]
-  itineranciaActivities ItineranciaActivity[]
+  // Guía interactiva del panel: null = todavía no se le ofreció/completó (se le muestra el
+  // cartel de "¿querés un recorrido guiado?" la primera vez que entra con la suscripción ya
+  // activa). Se puede volver a hacer desde "Mi cuenta" en cualquier momento sin tocar este
+  // campo — solo se escribe una vez, al decir que no o al terminar/saltar la primera vez.
+  onboardingCompletedAt DateTime?
+
+  students               Student[]
+  schedules              Schedule[]
+  orientadores           Orientador[]
+  exportLogs             ExportLog[]
+  itineranciaActivities  ItineranciaActivity[]
+  tiposArancel           TipoArancel[]
+  pagosArancel           PagoArancel[]
+  movimientosFinancieros MovimientoFinanciero[]
 }
 
 model Student {
@@ -97,6 +106,8 @@ model Student {
   itineranciaRegistrations ItineranciaStudentRegistration[]
   graduationHistory        StudentGraduationHistory[]
   migrations               StudentMigration[]
+  aranceles                AlumnoArancel[]
+  pagosArancel             PagoArancel[]
 
   @@index([lastName, firstName])
   @@index([adminId])
@@ -279,6 +290,81 @@ model ItineranciaStudentRegistration {
   attendedAt DateTime?
 
   @@unique([activityId, studentId])
+}
+
+// Catálogo de tipos de arancel de la escuela (abierto: el admin agrega los que necesite —
+// Yoga, Arte Marcial, Clases de Mejoramiento, un curso puntual, etc.). El monto es el mismo
+// para todos los alumnos anotados a ese tipo.
+model TipoArancel {
+  id        String   @id @default(cuid())
+  adminId   String
+  admin     Admin    @relation(fields: [adminId], references: [id])
+  name      String
+  amount    Int // pesos enteros, sin decimales
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  enrollments AlumnoArancel[]
+  payments    PagoArancel[]
+
+  @@index([adminId])
+}
+
+// A qué tipos de arancel está anotado cada alumno (un alumno puede tener varios a la vez).
+model AlumnoArancel {
+  id            String      @id @default(cuid())
+  studentId     String
+  student       Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  tipoArancelId String
+  tipoArancel   TipoArancel @relation(fields: [tipoArancelId], references: [id])
+  active        Boolean     @default(true) // false = desanotado, se conserva el historial de pagos
+  startMonth    String // "YYYY-MM": desde qué mes se le empieza a pedir este arancel
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([studentId, tipoArancelId])
+  @@index([studentId])
+}
+
+// Un pago: alumno + tipo de arancel + mes. SOLO existen filas para lo efectivamente pagado —
+// "no pagado" es la ausencia de fila, así no hace falta precrear/limpiar nada con una tarea
+// programada (ver src/lib/aranceles-calc.ts).
+model PagoArancel {
+  id            String      @id @default(cuid())
+  studentId     String
+  student       Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  tipoArancelId String
+  tipoArancel   TipoArancel @relation(fields: [tipoArancelId], references: [id])
+  adminId       String // denormalizado a propósito: permite consultas directas del panel/resumen sin pasar por student
+  admin         Admin       @relation(fields: [adminId], references: [id])
+  month         String // "YYYY-MM"
+  amount        Int // copia del monto de TipoArancel al momento de pagar: si después sube la
+  // cuota, lo ya pagado no cambia retroactivamente.
+  paidAt    DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@unique([studentId, tipoArancelId, month])
+  @@index([adminId, month])
+  @@index([studentId])
+}
+
+// Gastos e ingresos sueltos, no atados a un alumno (alquiler, insumos, donaciones, venta de
+// merchandising, etc.).
+model MovimientoFinanciero {
+  id        String   @id @default(cuid())
+  adminId   String
+  admin     Admin    @relation(fields: [adminId], references: [id])
+  tipo      String // "INGRESO" | "EGRESO"
+  categoria String // ver CATEGORIAS_INGRESO/CATEGORIAS_EGRESO en src/lib/validations.ts
+  concepto  String
+  amount    Int
+  date      String // "YYYY-MM-DD"
+  estado    String   @default("PAGADO") // "PAGADO" | "NO_PAGADO" — solo lo PAGADO entra en los totales
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([adminId, date])
 }
 
 model AuditLog {
