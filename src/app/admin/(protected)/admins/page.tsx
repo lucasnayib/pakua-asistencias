@@ -12,6 +12,7 @@ import { SUBSCRIPTION_STATUS_LABELS } from "@/lib/subscription";
 import type { AdminListItem } from "@/types";
 
 const SUBSCRIPTION_BADGE_CLASSES: Record<string, string> = {
+  UNPAID: "bg-danger/15 text-danger",
   TRIALING: "bg-accent/15 text-accent",
   ACTIVE: "bg-success/15 text-success",
   PAST_DUE: "bg-danger/15 text-danger",
