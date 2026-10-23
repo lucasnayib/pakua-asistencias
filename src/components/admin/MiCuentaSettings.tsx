@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { PasswordInput } from "@/components/ui/PasswordInput";
-import { Card } from "@/components/ui/Card";
+import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
 
 type EmailStep = "idle" | "code-sent";
 type PasswordStep = "idle" | "code-sent";
@@ -135,15 +135,10 @@ export function MiCuentaSettings({ initialContactEmail }: { initialContactEmail:
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <Card className="max-w-md p-6">
-        <h2 className="text-lg font-semibold">Mail de contacto</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Actual: {contactEmail ?? <span className="italic">sin mail cargado</span>}
-        </p>
-
+    <div className="flex flex-col gap-3">
+      <CollapsibleSection title="Mail de contacto" subtitle={contactEmail ?? "Sin mail cargado"}>
         {emailStep === "idle" ? (
-          <form onSubmit={requestEmailChange} className="mt-4 flex flex-col gap-4">
+          <form onSubmit={requestEmailChange} className="flex flex-col gap-4">
             <Input
               label="Mail nuevo"
               type="email"
@@ -157,7 +152,7 @@ export function MiCuentaSettings({ initialContactEmail }: { initialContactEmail:
             </Button>
           </form>
         ) : (
-          <form onSubmit={confirmEmailChange} className="mt-4 flex flex-col gap-4">
+          <form onSubmit={confirmEmailChange} className="flex flex-col gap-4">
             <p className="text-sm text-muted-foreground">
               Ingresá el código de 6 dígitos que te mandamos a {newEmail}.
             </p>
@@ -189,18 +184,17 @@ export function MiCuentaSettings({ initialContactEmail }: { initialContactEmail:
             </div>
           </form>
         )}
-      </Card>
+      </CollapsibleSection>
 
-      <Card className="max-w-md p-6">
-        <h2 className="text-lg font-semibold">Contraseña</h2>
+      <CollapsibleSection title="Contraseña" subtitle="Cambiar tu contraseña">
         {!contactEmail && (
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Necesitás cargar un mail de contacto (arriba) antes de poder cambiar tu contraseña.
           </p>
         )}
 
         {contactEmail && passwordStep === "idle" && (
-          <form onSubmit={requestPasswordChange} className="mt-4 flex flex-col gap-4">
+          <form onSubmit={requestPasswordChange} className="flex flex-col gap-4">
             <PasswordInput
               label="Contraseña nueva"
               value={newPassword}
@@ -223,7 +217,7 @@ export function MiCuentaSettings({ initialContactEmail }: { initialContactEmail:
         )}
 
         {contactEmail && passwordStep === "code-sent" && (
-          <form onSubmit={confirmPasswordChange} className="mt-4 flex flex-col gap-4">
+          <form onSubmit={confirmPasswordChange} className="flex flex-col gap-4">
             <p className="text-sm text-muted-foreground">
               Ingresá el código de 6 dígitos que te mandamos a {contactEmail}.
             </p>
@@ -255,7 +249,7 @@ export function MiCuentaSettings({ initialContactEmail }: { initialContactEmail:
             </div>
           </form>
         )}
-      </Card>
+      </CollapsibleSection>
     </div>
   );
 }

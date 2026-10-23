@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { MiCuentaSettings } from "@/components/admin/MiCuentaSettings";
+import { TourReplayButton } from "@/components/admin/tour/TourReplayButton";
 
 export default async function MiCuentaPage() {
   const session = await getSession();
@@ -22,7 +23,10 @@ export default async function MiCuentaPage() {
           con un código que te mandamos por mail.
         </p>
       </div>
-      <MiCuentaSettings initialContactEmail={admin?.contactEmail ?? null} />
+      <div className="flex max-w-md flex-col gap-3">
+        <MiCuentaSettings initialContactEmail={admin?.contactEmail ?? null} />
+        <TourReplayButton />
+      </div>
     </div>
   );
 }
