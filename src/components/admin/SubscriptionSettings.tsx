@@ -152,7 +152,13 @@ export function SubscriptionSettings({
           <p className="mt-1 text-lg font-semibold">Tu suscripción está cancelada.</p>
         )}
 
-        {subscriptionStatus !== "ACTIVE" && (
+        {subscriptionStatus === "EXEMPT" && (
+          <p className="mt-1 text-lg font-semibold">
+            Esta escuela tiene acceso gratuito permanente. No hay nada para pagar ni facturar.
+          </p>
+        )}
+
+        {subscriptionStatus !== "ACTIVE" && subscriptionStatus !== "EXEMPT" && (
           <>
             <Button onClick={handleSubscribe} loading={loading} className="mt-4 w-full">
               Suscribirme

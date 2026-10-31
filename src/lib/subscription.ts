@@ -13,7 +13,10 @@ export function isSubscriptionSuspended(subscriptionStatus: string): boolean {
 /** Etiqueta en español de cada subscriptionStatus, compartida entre la tarjeta de Facturación
  * de la propia escuela y la lista de cuentas del super-admin. TRIALING queda solo para filas
  * históricas (ya no se asigna a cuentas nuevas) — se conserva la etiqueta para no romper el
- * historial/auditoría de cuentas viejas. */
+ * historial/auditoría de cuentas viejas. EXEMPT es un caso especial puntual (ver
+ * scripts/_set_exempt.ts o el historial de auditoría de cada cuenta): no se asigna desde
+ * ningún flujo normal, solo a mano por el dueño del producto para una escuela puntual que
+ * queda con acceso gratuito permanente, sin fecha de corte. */
 export const SUBSCRIPTION_STATUS_LABELS: Record<string, string> = {
   UNPAID: "Pendiente de pago",
   TRIALING: "Período de prueba",
@@ -21,4 +24,5 @@ export const SUBSCRIPTION_STATUS_LABELS: Record<string, string> = {
   PAST_DUE: "Pago pendiente",
   SUSPENDED: "Suspendida",
   CANCELED: "Cancelada",
+  EXEMPT: "Acceso gratuito permanente",
 };

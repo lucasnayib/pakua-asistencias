@@ -18,6 +18,7 @@ const SUBSCRIPTION_BADGE_CLASSES: Record<string, string> = {
   PAST_DUE: "bg-danger/15 text-danger",
   SUSPENDED: "bg-danger/15 text-danger",
   CANCELED: "bg-surface-2 text-muted-foreground",
+  EXEMPT: "bg-success/15 text-success",
 };
 
 export default function AdminsPage() {
