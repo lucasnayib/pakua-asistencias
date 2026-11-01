@@ -11,9 +11,10 @@ import { slugify } from "@/lib/slug";
 
 type Props = {
   priceArs: string | null;
+  trialDays: string;
 };
 
-export function RegistrarEscuelaForm({ priceArs }: Props) {
+export function RegistrarEscuelaForm({ priceArs, trialDays }: Props) {
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -94,7 +95,7 @@ export function RegistrarEscuelaForm({ priceArs }: Props) {
           </p>
         ) : null}
         <p className="mt-2 text-sm text-muted-foreground">
-          Pago mensual automático. Sin compromiso: cancelás cuando quieras.
+          {trialDays} días de prueba gratis. Sin compromiso: cancelás cuando quieras.
         </p>
         <p className="mt-3 text-xs text-muted-foreground">
           Incluye asistencia digital, gestión de alumnos, horarios y orientadores para toda tu escuela.

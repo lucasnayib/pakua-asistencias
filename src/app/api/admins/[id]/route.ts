@@ -52,6 +52,12 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
   const wasApproving = approved === true && existing.approved === false;
 
+  // El trial de 7 días arranca en la aprobación de la escuela, no en el pago — nunca se
+  // toca si las suscripciones todavía no están habilitadas, para no afectar a las escuelas
+  // reales mientras se desarrolla esto.
+  const startTrial = wasApproving && process.env.SUBSCRIPTIONS_ENABLED === "true";
+  const trialDays = Number(process.env.SUBSCRIPTION_TRIAL_DAYS ?? "7");
+
   let admin;
   try {
     admin = await prisma.admin.update({
@@ -61,6 +67,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
         ...(slug !== undefined ? { slug } : {}),
         ...(active !== undefined ? { active } : {}),
         ...(approved !== undefined ? { approved } : {}),
+        ...(startTrial ? { trialEndsAt: new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000) } : {}),
       },
       select: adminSelect,
     });

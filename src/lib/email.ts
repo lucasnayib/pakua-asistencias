@@ -207,7 +207,7 @@ export async function sendSubscriptionActivatedEmail(data: {
 export async function sendSubscriptionWarningEmail(data: {
   contactEmail: string;
   displayName: string;
-  reason: "PAYMENT_DUE" | "PAYMENT_FAILED";
+  reason: "TRIAL_ENDING" | "PAYMENT_DUE" | "PAYMENT_FAILED";
 }): Promise<void> {
   const config = getEmailConfig();
   if (!config) return;
@@ -218,6 +218,7 @@ export async function sendSubscriptionWarningEmail(data: {
     : `Entrá a "Facturación" en el panel para suscribirte.`;
 
   const MESSAGES: Record<typeof data.reason, string> = {
+    TRIAL_ENDING: `Tu período de prueba en Attendio está por terminar en las próximas 12 horas. Si no te suscribís antes, tu panel va a quedar suspendido.`,
     PAYMENT_DUE: `Tu próximo cobro de Attendio es en las próximas 12 horas.`,
     PAYMENT_FAILED: `No pudimos procesar el último cobro de tu suscripción a Attendio. Tenés unos días de gracia antes de que se suspenda tu panel.`,
   };
@@ -233,7 +234,7 @@ export async function sendSubscriptionWarningEmail(data: {
 export async function sendSubscriptionSuspendedEmail(data: {
   contactEmail: string;
   displayName: string;
-  reason: "PAYMENT_FAILED";
+  reason: "TRIAL_ENDED" | "PAYMENT_FAILED";
 }): Promise<void> {
   const config = getEmailConfig();
   if (!config) return;
@@ -244,6 +245,7 @@ export async function sendSubscriptionSuspendedEmail(data: {
     : `Entrá a "Facturación" en el panel para regularizar tu suscripción.`;
 
   const REASONS: Record<typeof data.reason, string> = {
+    TRIAL_ENDED: `Suspendimos el acceso al panel de "${data.displayName}" porque tu período de prueba en Attendio terminó sin una suscripción activa.`,
     PAYMENT_FAILED: `Suspendimos el acceso al panel de "${data.displayName}" porque no pudimos procesar tu último cobro y venció el período de gracia sin regularizarlo.`,
   };
 
