@@ -47,7 +47,7 @@ model Admin {
 
   // Suscripción (Mercado Pago). Una escuela tiene como mucho una, así que va directo acá
   // en vez de un modelo aparte. Solo aplica a role "ADMIN" — el super-admin no factura.
-  subscriptionStatus  String    @default("UNPAID") // UNPAID | ACTIVE | PAST_DUE | SUSPENDED | CANCELED
+  subscriptionStatus  String    @default("TRIALING") // TRIALING | ACTIVE | PAST_DUE | SUSPENDED | CANCELED
   trialEndsAt         DateTime?
   trialWarningSentAt  DateTime?
   currentPeriodEnd    DateTime?
