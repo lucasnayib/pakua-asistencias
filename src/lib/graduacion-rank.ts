@@ -39,3 +39,37 @@ export function graduacionRank(graduacion: string | null): number {
   }
   return -1; // texto no reconocible → antes de Blanco
 }
+
+/** Mismo ranking que graduacionRank(), pero sin graduación (o un texto no reconocible) cuenta
+ * como Cinto Blanco (rank 0) en vez de "antes de Blanco" — para listar alumnos de mayor a
+ * menor graduación, donde no tener nada cargado todavía se considera el punto de partida, no
+ * un valor especial aparte. */
+function effectiveGraduacionRank(graduacion: string | null): number {
+  const rank = graduacionRank(graduacion);
+  return rank === -1 ? 0 : rank;
+}
+
+type GraduacionSortable = {
+  graduacion: string | null;
+  birthDate: string | null;
+  createdAt: Date;
+};
+
+/** Orden para listar alumnos de mayor a menor graduación (los sin graduación van con los
+ * Cinto Blanco). Dentro de un mismo rank: primero por fecha de nacimiento ascendente, y los
+ * que no la tienen cargada van al final de ese grupo, ordenados entre sí por la fecha en que
+ * se registraron en la página. */
+export function compareByGraduacionDesc(a: GraduacionSortable, b: GraduacionSortable): number {
+  const rankDiff = effectiveGraduacionRank(b.graduacion) - effectiveGraduacionRank(a.graduacion);
+  if (rankDiff !== 0) return rankDiff;
+
+  if (a.birthDate && b.birthDate) {
+    if (a.birthDate !== b.birthDate) return a.birthDate < b.birthDate ? -1 : 1;
+  } else if (a.birthDate && !b.birthDate) {
+    return -1;
+  } else if (!a.birthDate && b.birthDate) {
+    return 1;
+  }
+
+  return a.createdAt.getTime() - b.createdAt.getTime();
+}

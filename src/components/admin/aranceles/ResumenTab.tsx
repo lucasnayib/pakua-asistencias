@@ -13,6 +13,7 @@ import {
   formatMonth,
   movimientoToLedgerRow,
   pagoToLedgerRow,
+  totalCategoria,
   type LedgerRow,
 } from "@/lib/aranceles-calc";
 
@@ -20,7 +21,7 @@ type ResumenResponse = {
   month: string;
   prevMonth: string;
   movimientos: { tipo: string; categoria: string; concepto: string; amount: number; date: string; estado: string }[];
-  pagos: { amount: number; month: string; tipoArancel: { name: string } }[];
+  pagos: { amount: number; month: string; tipoArancel: { name: string; categoria: string } }[];
 };
 
 function KpiCard({ label, value, tone }: { label: string; value: string; tone?: "success" | "danger" }) {
@@ -56,6 +57,7 @@ export function ResumenTab() {
   const kpis = useMemo(() => calcularKpis(rowsThisMonth), [rowsThisMonth]);
   const desgloseIngresos = useMemo(() => desglosePorCategoria(rowsThisMonth, "INGRESO"), [rowsThisMonth]);
   const desgloseEgresos = useMemo(() => desglosePorCategoria(rowsThisMonth, "EGRESO"), [rowsThisMonth]);
+  const totalFederacion = useMemo(() => totalCategoria(rowsThisMonth, "INGRESO", "FEDERACION"), [rowsThisMonth]);
   const comparativa = useMemo(
     () => (data ? calcularComparativaMensual(rows, data.month, data.prevMonth) : null),
     [rows, data]
@@ -79,6 +81,18 @@ export function ResumenTab() {
             <KpiCard label="Egresos" value={formatMoney(kpis.egresosTotales)} tone="danger" />
             <KpiCard label="Saldo" value={formatMoney(kpis.saldo)} />
           </div>
+
+          {totalFederacion > 0 && (
+            <Card className="p-4 text-sm">
+              <p className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-muted-foreground">Recaudado para la Federación este mes</span>
+                <span className="font-semibold">{formatMoney(totalFederacion)}</span>
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                No se cuenta como ingreso propio de la escuela — es dinero cobrado para reenviar a la federación.
+              </p>
+            </Card>
+          )}
 
           {comparativa && comparativa.egresosAnterior > 0 && (
             <Card className="p-4 text-sm">

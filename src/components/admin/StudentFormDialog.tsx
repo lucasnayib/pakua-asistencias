@@ -7,7 +7,11 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Switch } from "@/components/ui/Switch";
 import { FORMACION_OPTIONS } from "@/lib/validations";
+import { getLocalNow } from "@/lib/time";
 import type { StudentListItem } from "@/types";
+
+const TODAY = getLocalNow().date;
+const MIN_BIRTH_DATE = `${Number(TODAY.slice(0, 4)) - 120}-01-01`;
 
 type OrientadorOption = { id: string; firstName: string; lastName: string };
 
@@ -148,8 +152,24 @@ export function StudentFormDialog({ open, student, orientadores, onClose, onSave
           </label>
         </div>
 
-        <Input label="Nombre" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
-        <Input label="Apellido" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
+        <Input
+          label="Nombre"
+          value={firstName}
+          onChange={(e) => setFirstName(e.target.value)}
+          required
+          maxLength={100}
+          pattern="[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ\s'-]*"
+          title="Solo letras, espacios, guiones y apóstrofes"
+        />
+        <Input
+          label="Apellido"
+          value={lastName}
+          onChange={(e) => setLastName(e.target.value)}
+          required
+          maxLength={100}
+          pattern="[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ\s'-]*"
+          title="Solo letras, espacios, guiones y apóstrofes"
+        />
         <Select label="Formación" value={formacion} onChange={(e) => handleFormacionChange(e.target.value)}>
           <option value="">Sin especificar</option>
           {FORMACION_OPTIONS.map((opt) => (
@@ -171,6 +191,7 @@ export function StudentFormDialog({ open, student, orientadores, onClose, onSave
               <Input
                 label="¿Cuándo fue entregado?"
                 type="date"
+                max={TODAY}
                 value={graduacionDeliveredAt}
                 onChange={(e) => setGraduacionDeliveredAt(e.target.value)}
                 required
@@ -181,18 +202,21 @@ export function StudentFormDialog({ open, student, orientadores, onClose, onSave
         <Input
           label={isGym ? "Fecha de Ingreso" : "¿Cuándo fue Autorizado?"}
           type="date"
+          max={TODAY}
           value={evaluationDate}
           onChange={(e) => setEvaluationDate(e.target.value)}
         />
         <Input
           label="D.N.I."
-          placeholder="42.358.937"
+          placeholder="00.000.000"
           value={dni}
           onChange={(e) => handleDniChange(e.target.value)}
         />
         <Input
           label="Fecha de Nacimiento"
           type="date"
+          max={TODAY}
+          min={MIN_BIRTH_DATE}
           value={birthDate}
           onChange={(e) => setBirthDate(e.target.value)}
         />

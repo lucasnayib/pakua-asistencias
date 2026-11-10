@@ -14,6 +14,11 @@ export type MovimientoRow = {
   alumnoArancelId?: string | null;
   month?: string;
   numero: string;
+  // true una vez que se exportó su recibo (ver reciboExportedAt en el schema): a partir de ahí
+  // no se puede borrar/desmarcar directo, solo pedirle el borrado al superadmin.
+  locked: boolean;
+  // Ya hay una solicitud de borrado sin resolver para este movimiento/pago puntual.
+  requestPending: boolean;
 };
 
 /** Mezcla los MovimientoFinanciero sueltos con las cuotas pagadas por alumno (PagoArancel),
@@ -41,10 +46,19 @@ export async function getMovimientosList(
         where: { adminId, ...(month ? { month } : {}) },
         include: {
           student: { select: { firstName: true, lastName: true } },
-          tipoArancel: { select: { name: true } },
+          tipoArancel: { select: { name: true, categoria: true } },
         },
         orderBy: { paidAt: "desc" },
       });
+
+  // Ids (con el mismo prefijo "pago:" que usa el resto de esta función) con una solicitud de
+  // borrado todavía sin resolver, para que el panel sepa mostrar "ya se pidió" en vez de dejar
+  // mandar una segunda solicitud para lo mismo.
+  const pendingRequests = await prisma.adminRequest.findMany({
+    where: { adminId, type: "ELIMINAR_MOVIMIENTO", status: "PENDIENTE" },
+    select: { targetId: true },
+  });
+  const pendingTargetIds = new Set(pendingRequests.map((r) => r.targetId));
 
   const enrollments = pagos.length
     ? await prisma.alumnoArancel.findMany({
@@ -60,7 +74,7 @@ export async function getMovimientosList(
   const pagoRows: MovimientoRow[] = pagos.map((p) => ({
     id: `pago:${p.id}`,
     tipo: "INGRESO",
-    categoria: "CUOTAS",
+    categoria: p.tipoArancel.categoria,
     concepto: `Cuota (${p.tipoArancel.name}), ${p.student.lastName} ${p.student.firstName}`,
     amount: p.amount,
     date: p.paidAt.toISOString().slice(0, 10),
@@ -72,6 +86,8 @@ export async function getMovimientosList(
     // Mismo cálculo que /api/aranceles/movimientos/recibo, para que el número que aparece
     // impreso en el recibo sea el mismo que se puede buscar/exportar.
     numero: p.id.slice(-8).toUpperCase(),
+    locked: Boolean(p.reciboExportedAt),
+    requestPending: pendingTargetIds.has(`pago:${p.id}`),
   }));
 
   const movimientoRows: MovimientoRow[] = movimientos.map((m) => ({
@@ -80,6 +96,8 @@ export async function getMovimientosList(
     estado: m.estado as "PAGADO" | "NO_PAGADO",
     source: "movimiento",
     numero: m.id.slice(-8).toUpperCase(),
+    locked: Boolean(m.reciboExportedAt),
+    requestPending: pendingTargetIds.has(m.id),
   }));
 
   return [...movimientoRows, ...pagoRows].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));

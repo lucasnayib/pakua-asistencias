@@ -113,7 +113,7 @@ export default function HorariosAdminPage() {
           {schedules.map((s) => (
             <Card key={s.id} className="flex flex-col gap-2 p-4">
               <p className="font-semibold">{s.name || formatTimeRange(s.startTime, s.endTime)}</p>
-              <p className="text-sm text-muted-foreground">{formatTimeRange(s.startTime, s.endTime)}</p>
+              {s.name && <p className="text-sm text-muted-foreground">{formatTimeRange(s.startTime, s.endTime)}</p>}
               <p className="text-xs text-muted-foreground">
                 {s.days.map((d) => dayName(d.dayOfWeek)).join(", ")}
               </p>

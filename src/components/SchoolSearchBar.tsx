@@ -37,6 +37,7 @@ export function SchoolSearchBar() {
   }, [query]);
 
   const showNoResults = results !== null && results.length === 0 && !loading;
+  const showMinCharsHint = query.trim().length === 1 && !loading;
 
   return (
     <div className="flex w-full flex-col gap-3">
@@ -54,6 +55,8 @@ export function SchoolSearchBar() {
         </div>
       )}
 
+      {showMinCharsHint && <p className="text-sm text-muted-foreground">Escribí al menos 2 letras para buscar.</p>}
+
       {results && results.length > 0 && (
         <div className="flex flex-col gap-2">
           {results.map((school) => (
@@ -70,7 +73,7 @@ export function SchoolSearchBar() {
       {showNoResults && (
         <p className="text-sm text-muted-foreground">
           No encontramos ninguna escuela con ese nombre.{" "}
-          <Link href="/registrar-escuela" className="text-accent hover:underline">
+          <Link href="/admin/login?mode=register" className="text-accent hover:underline">
             ¿Querés registrar la tuya?
           </Link>
         </p>

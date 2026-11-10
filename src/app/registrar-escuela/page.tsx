@@ -1,16 +1,8 @@
-import type { Metadata } from "next";
-import { RegistrarEscuelaForm } from "@/components/RegistrarEscuelaForm";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Registrá tu escuela",
-  description: "Registrá tu escuela de artes marciales en Pakua Asistencias y empezá a controlar la asistencia de tus alumnos gratis.",
-};
-
+// El registro dejó de ser una página aparte: ahora es el modo "register" de la misma tarjeta
+// animada de /admin/login (ver src/components/auth/AuthCard.tsx). Se deja este redirect por si
+// alguien tenía el enlace viejo guardado o compartido.
 export default function RegistrarEscuelaPage() {
-  return (
-    <RegistrarEscuelaForm
-      priceArs={process.env.SUBSCRIPTIONS_ENABLED === "true" ? (process.env.SUBSCRIPTION_PRICE_ARS ?? null) : null}
-      trialDays={process.env.SUBSCRIPTION_TRIAL_DAYS ?? "7"}
-    />
-  );
+  redirect("/admin/login?mode=register");
 }

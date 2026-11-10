@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { useExportDownload, type ExportFormat } from "@/hooks/useExportDownload";
 
@@ -27,7 +28,13 @@ export function ExportButton({
   return (
     <Button
       variant={variant}
-      onClick={() => runExport({ format, dateFrom, dateTo, scheduleId, adminId })}
+      onClick={() => {
+        if (dateFrom > dateTo) {
+          toast.error('"Desde" no puede ser posterior a "Hasta"');
+          return;
+        }
+        runExport({ format, dateFrom, dateTo, scheduleId, adminId });
+      }}
       loading={loading}
     >
       {label}

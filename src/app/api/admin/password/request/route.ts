@@ -30,9 +30,18 @@ export async function POST(request: Request) {
   if (status.locked) {
     return NextResponse.json({ error: "Demasiados pedidos. Probá de nuevo más tarde." }, { status: 429 });
   }
+
+  const { currentPassword, newPassword } = parsed.data;
+
+  // Defensa en profundidad además del código por mail: si alguien deja la sesión abierta en
+  // un dispositivo compartido, no alcanza con eso solo para arrancar un cambio de contraseña.
+  const currentPasswordOk = await bcrypt.compare(currentPassword, admin.passwordHash);
+  if (!currentPasswordOk) {
+    recordFailedAttempt(rateLimitKey);
+    return NextResponse.json({ error: "La contraseña actual es incorrecta" }, { status: 401 });
+  }
   recordFailedAttempt(rateLimitKey);
 
-  const { newPassword } = parsed.data;
   const newPasswordHash = await bcrypt.hash(newPassword, 10);
   const code = generateVerificationCode();
   const codeHash = await hashVerificationCode(code);

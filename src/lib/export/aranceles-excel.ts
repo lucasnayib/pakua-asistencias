@@ -1,4 +1,6 @@
 import ExcelJS from "exceljs";
+import { sanitizeExportCell } from "@/lib/export/sanitize";
+import { esIngresoPropio } from "@/lib/aranceles-calc";
 import type { MovimientoRow } from "@/lib/aranceles-server";
 
 export async function buildArancelesExcelBuffer(month: string | null, rows: MovimientoRow[]): Promise<Buffer> {
@@ -27,7 +29,7 @@ export async function buildArancelesExcelBuffer(month: string | null, rows: Movi
       date: row.date,
       tipo: row.tipo === "INGRESO" ? "Ingreso" : "Egreso",
       categoria: row.categoria,
-      concepto: row.concepto,
+      concepto: sanitizeExportCell(row.concepto),
       amount: row.amount,
       estado: row.estado === "PAGADO" ? "Pagado" : "No pagado",
       numero: row.numero,
@@ -35,9 +37,12 @@ export async function buildArancelesExcelBuffer(month: string | null, rows: Movi
   }
   sheet.getColumn("amount").numFmt = "#,##0";
 
-  // Solo lo PAGADO cuenta para los totales, mismo criterio que el resto de Aranceles
-  // (ver soloPagadas en src/lib/aranceles-calc.ts).
-  const ingresos = rows.filter((r) => r.tipo === "INGRESO" && r.estado === "PAGADO").reduce((s, r) => s + r.amount, 0);
+  // Solo lo PAGADO cuenta para los totales, y las categorías que no son ingreso propio de la
+  // escuela (ej. FEDERACION) quedan afuera — mismo criterio que el resto de Aranceles (ver
+  // soloPagadas/esIngresoPropio en src/lib/aranceles-calc.ts).
+  const ingresos = rows
+    .filter((r) => r.tipo === "INGRESO" && r.estado === "PAGADO" && esIngresoPropio(r))
+    .reduce((s, r) => s + r.amount, 0);
   const egresos = rows.filter((r) => r.tipo === "EGRESO" && r.estado === "PAGADO").reduce((s, r) => s + r.amount, 0);
 
   sheet.addRow({});

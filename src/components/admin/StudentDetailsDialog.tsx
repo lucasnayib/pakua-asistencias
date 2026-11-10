@@ -19,7 +19,7 @@ type StudentDetailsDialogProps = {
 };
 
 type ArancelRow = { id: string; tipoArancelId: string; name: string; amount: number; active: boolean; paid: boolean };
-type TipoArancelOption = { id: string; name: string; amount: number; active: boolean };
+type TipoArancelOption = { id: string; name: string; amount: number; categoria: string; active: boolean };
 
 export function StudentDetailsDialog({ open, student, onClose, onChanged }: StudentDetailsDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -423,6 +423,12 @@ export function StudentDetailsDialog({ open, student, onClose, onChanged }: Stud
               <dd className="mt-0.5">{student.dni ? `D.N.I. ${student.dni}` : "—"}</dd>
             </div>
             <div>
+              <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Fecha de Nacimiento
+              </dt>
+              <dd className="mt-0.5">{student.birthDate ? formatDateEs(student.birthDate) : "—"}</dd>
+            </div>
+            <div>
               <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Orientador</dt>
               <dd className="mt-0.5">
                 {student.orientador ? `${student.orientador.lastName}, ${student.orientador.firstName}` : "—"}
@@ -585,7 +591,8 @@ export function StudentDetailsDialog({ open, student, onClose, onChanged }: Stud
                     .filter((t) => t.active && !aranceles.some((a) => a.tipoArancelId === t.id))
                     .map((t) => (
                       <option key={t.id} value={t.id}>
-                        {t.name} ({formatMoney(t.amount)})
+                        {t.name} ({formatMoney(t.amount)}
+                        {t.categoria !== "CUOTAS" ? ` · ${t.categoria}` : ""})
                       </option>
                     ))}
                 </Select>

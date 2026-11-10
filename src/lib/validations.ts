@@ -1,35 +1,69 @@
 import { z } from "zod";
+import { getLocalNow } from "@/lib/time";
 
 const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 const timeWithSecondsRegex = /^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/;
 
+// Fecha de nacimiento: "YYYY-MM-DD", no en el futuro, y no más de 120 años atrás (filtra tanto
+// los años absurdos de varios dígitos que admite el input nativo como una fecha futura colada
+// a mano). Vacío/null sigue siendo válido — el campo es opcional.
+const MAX_AGE_YEARS = 120;
+const birthDateSchema = z
+  .string()
+  .trim()
+  .max(20)
+  .optional()
+  .nullable()
+  .refine(
+    (value) => {
+      if (!value) return true;
+      if (!dateRegex.test(value)) return false;
+      const today = getLocalNow().date;
+      if (value > today) return false;
+      const minYear = Number(today.slice(0, 4)) - MAX_AGE_YEARS;
+      return Number(value.slice(0, 4)) >= minYear;
+    },
+    { message: "Fecha de nacimiento inválida" }
+  );
+
 export const FORMACION_OPTIONS = ["Gym", "Arte Marcial", "Taichi", "Yoga", "Armas de Corte", "Jr"] as const;
 const formacionSchema = z.union([z.enum(FORMACION_OPTIONS), z.literal("")]).optional().nullable();
 
+// Letras (con acentos/ñ), espacios, guiones y apóstrofes — cubre nombres compuestos
+// ("María José", "D'Angelo") sin permitir etiquetas HTML ni símbolos sueltos.
+const nameRegex = /^[\p{L}][\p{L}\s'-]*$/u;
+const requiredNameSchema = z
+  .string()
+  .trim()
+  .min(1, "Este campo es obligatorio")
+  .max(100)
+  .regex(nameRegex, "Solo letras, espacios, guiones y apóstrofes");
+const optionalNameSchema = z.string().trim().min(1).max(100).regex(nameRegex, "Solo letras, espacios, guiones y apóstrofes").optional();
+
 export const studentCreateSchema = z.object({
-  firstName: z.string().trim().min(1, "El nombre es obligatorio").max(100),
-  lastName: z.string().trim().min(1, "El apellido es obligatorio").max(100),
+  firstName: requiredNameSchema,
+  lastName: requiredNameSchema,
   formacion: formacionSchema,
   graduacion: z.string().trim().max(200).optional().nullable(),
   evaluationDate: z.string().trim().max(20).optional().nullable(),
   graduacionDelivered: z.boolean().optional(),
   graduacionDeliveredAt: z.string().trim().max(20).optional().nullable(),
   dni: z.string().trim().max(20).optional().nullable(),
-  birthDate: z.string().trim().max(20).optional().nullable(),
+  birthDate: birthDateSchema,
   orientadorId: z.string().trim().min(1).optional().nullable(),
 });
 
 export const studentUpdateSchema = z.object({
-  firstName: z.string().trim().min(1).max(100).optional(),
-  lastName: z.string().trim().min(1).max(100).optional(),
+  firstName: optionalNameSchema,
+  lastName: optionalNameSchema,
   formacion: formacionSchema,
   graduacion: z.string().trim().max(200).optional().nullable(),
   evaluationDate: z.string().trim().max(20).optional().nullable(),
   graduacionDelivered: z.boolean().optional(),
   graduacionDeliveredAt: z.string().trim().max(20).optional().nullable(),
   dni: z.string().trim().max(20).optional().nullable(),
-  birthDate: z.string().trim().max(20).optional().nullable(),
+  birthDate: birthDateSchema,
   orientadorId: z.string().trim().min(1).optional().nullable(),
   active: z.boolean().optional(),
 });
@@ -63,18 +97,23 @@ export const assignmentSchema = z.object({
   scheduleId: z.string().min(1),
 });
 
+// Solo dígitos y los símbolos habituales de un teléfono (+, espacios, guiones, paréntesis) —
+// deja pasar formatos internacionales sin exigir uno exacto, pero rechaza letras sueltas.
+const phoneRegex = /^[0-9+\-()\s]{6,30}$/;
+const phoneSchema = z.union([z.string().trim().regex(phoneRegex, "Teléfono inválido"), z.literal("")]).optional();
+
 export const orientadorCreateSchema = z.object({
-  firstName: z.string().trim().min(1, "El nombre es obligatorio").max(100),
-  lastName: z.string().trim().min(1, "El apellido es obligatorio").max(100),
+  firstName: requiredNameSchema,
+  lastName: requiredNameSchema,
   email: z.union([z.string().trim().email("Email inválido"), z.literal("")]).optional(),
-  phone: z.string().trim().max(30).optional(),
+  phone: phoneSchema,
 });
 
 export const orientadorUpdateSchema = z.object({
-  firstName: z.string().trim().min(1).max(100).optional(),
-  lastName: z.string().trim().min(1).max(100).optional(),
+  firstName: optionalNameSchema,
+  lastName: optionalNameSchema,
   email: z.union([z.string().trim().email("Email inválido"), z.literal("")]).optional(),
-  phone: z.string().trim().max(30).optional(),
+  phone: phoneSchema,
   active: z.boolean().optional(),
 });
 
@@ -177,6 +216,7 @@ export const requestEmailChangeSchema = z.object({
 });
 
 export const requestPasswordChangeSchema = z.object({
+  currentPassword: z.string().min(1, "Ingresá tu contraseña actual"),
   newPassword: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
 });
 
@@ -217,14 +257,19 @@ export const twoFactorConfirmSchema = z.object({
 
 export const exportFormatSchema = z.enum(["XLSX", "PDF", "TXT"]);
 
-export const exportRequestSchema = z.object({
-  format: exportFormatSchema.default("XLSX"),
-  dateFrom: z.string().regex(dateRegex),
-  dateTo: z.string().regex(dateRegex),
-  scheduleId: z.string().min(1).optional(),
-  // Solo se usa cuando la exportación se pide sin sesión de admin (página pública de check-in).
-  adminId: z.string().min(1).optional(),
-});
+export const exportRequestSchema = z
+  .object({
+    format: exportFormatSchema.default("XLSX"),
+    dateFrom: z.string().regex(dateRegex),
+    dateTo: z.string().regex(dateRegex),
+    scheduleId: z.string().min(1).optional(),
+    // Solo se usa cuando la exportación se pide sin sesión de admin (página pública de check-in).
+    adminId: z.string().min(1).optional(),
+  })
+  .refine((data) => data.dateFrom <= data.dateTo, {
+    message: '"Desde" no puede ser posterior a "Hasta"',
+    path: ["dateTo"],
+  });
 
 // No existe selector de rol en ninguna UI ni endpoint: el único SUPER_ADMIN se crea por seed
 // y esa cuenta no se puede promover ni degradar desde acá. Toda cuenta creada u editada desde
@@ -255,8 +300,8 @@ export const adminUpdateSchema = z.object({
   approved: z.boolean().optional(),
 });
 
-// Formulario público de registro de escuela nueva (`/registrar-escuela`). La cuenta se crea
-// con `approved: false`: queda pendiente de revisión del super-admin antes de poder operar.
+// Formulario público de registro de escuela nueva (`/admin/login?mode=register`). La cuenta
+// se crea con `approved: false`: queda pendiente de revisión del super-admin antes de operar.
 export const encuentroVerifyCodeSchema = z.object({
   code: z.string().trim().min(1, "Ingresá el código"),
 });
@@ -291,14 +336,22 @@ export const schoolRegistrationSchema = z.object({
 // pagos mensuales, y un libro de gastos/ingresos sueltos. Ver src/lib/aranceles-calc.ts.
 const monthRegex = /^\d{4}-\d{2}$/;
 
+// FEDERACION: cuotas que la escuela cobra para reenviar a la federación — se registran como
+// ingreso de categoría FEDERACION pero no son ingreso propio de la escuela, así que se excluyen
+// de los totales (ver esIngresoPropio en src/lib/aranceles-calc.ts). Solo sirven de registro.
+export const CATEGORIAS_INGRESO = ["CUOTAS", "FEDERACION", "OTROS"] as const;
+export const CATEGORIAS_EGRESO = ["ALQUILER", "SERVICIOS", "INSUMOS", "MANTENIMIENTO", "SUELDOS", "OTROS"] as const;
+
 export const tipoArancelCreateSchema = z.object({
   name: z.string().trim().min(1, "El nombre es obligatorio").max(100),
   amount: z.number().int().min(0, "El monto no puede ser negativo").max(100_000_000),
+  categoria: z.enum(CATEGORIAS_INGRESO).default("CUOTAS"),
 });
 
 export const tipoArancelUpdateSchema = z.object({
   name: z.string().trim().min(1, "El nombre es obligatorio").max(100).optional(),
   amount: z.number().int().min(0).max(100_000_000).optional(),
+  categoria: z.enum(CATEGORIAS_INGRESO).optional(),
   active: z.boolean().optional(),
 });
 
@@ -309,9 +362,6 @@ export const alumnoArancelCreateSchema = z.object({
 export const pagoArancelMarkPaidSchema = z.object({
   month: z.string().regex(monthRegex, "Mes inválido (YYYY-MM)"),
 });
-
-export const CATEGORIAS_INGRESO = ["CUOTAS", "DONACIONES", "VENTA_MERCHANDISING", "OTROS"] as const;
-export const CATEGORIAS_EGRESO = ["ALQUILER", "SERVICIOS", "INSUMOS", "MANTENIMIENTO", "SUELDOS", "OTROS"] as const;
 
 export const movimientoFinancieroCreateSchema = z
   .object({
@@ -337,4 +387,17 @@ export const movimientoFinancieroUpdateSchema = z.object({
   amount: z.number().int().min(1).max(100_000_000).optional(),
   date: z.string().regex(dateRegex, "Fecha inválida (YYYY-MM-DD)").optional(),
   estado: z.enum(["PAGADO", "NO_PAGADO"]).optional(),
+});
+
+// Solicitud de borrado de un movimiento/pago ya protegido por tener un recibo exportado (ver
+// AdminRequest en el schema). La razón es obligatoria: es lo único que ve el superadmin para
+// decidir si aprueba o rechaza.
+export const solicitarBorradoMovimientoSchema = z.object({
+  id: z.string().trim().min(1),
+  reason: z.string().trim().min(5, "Contá brevemente por qué hay que borrarlo").max(500),
+});
+
+export const resolverSolicitudSchema = z.object({
+  action: z.enum(["APROBAR", "RECHAZAR"]),
+  note: z.string().trim().max(500).optional(),
 });

@@ -15,6 +15,7 @@ model Admin {
   username     String   @unique
   passwordHash String
   displayName  String   @default("")
+  photoUrl     String?
   slug         String   @unique
   role         String   @default("ADMIN") // "ADMIN" | "SUPER_ADMIN"
   active       Boolean  @default(true)
@@ -81,6 +82,7 @@ model Admin {
   tiposArancel           TipoArancel[]
   pagosArancel           PagoArancel[]
   movimientosFinancieros MovimientoFinanciero[]
+  adminRequests          AdminRequest[]
 }
 
 model Student {
@@ -301,6 +303,7 @@ model TipoArancel {
   admin     Admin    @relation(fields: [adminId], references: [id])
   name      String
   amount    Int // pesos enteros, sin decimales
+  categoria String   @default("CUOTAS") // una de CATEGORIAS_INGRESO (src/lib/validations.ts)
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -344,6 +347,12 @@ model PagoArancel {
   paidAt    DateTime @default(now())
   createdAt DateTime @default(now())
 
+  // Se completa la primera vez que se exporta/imprime el recibo de este pago (ver
+  // /api/aranceles/movimientos/recibo). A partir de ahí el pago queda protegido contra
+  // borrado directo — ya existe un comprobante entregado con estos datos — y desmarcarlo
+  // pasa a requerir una solicitud aprobada por el superadmin (ver AdminRequest).
+  reciboExportedAt DateTime?
+
   @@unique([studentId, tipoArancelId, month])
   @@index([adminId, month])
   @@index([studentId])
@@ -364,7 +373,34 @@ model MovimientoFinanciero {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Mismo criterio que PagoArancel.reciboExportedAt: una vez exportado su recibo, este
+  // movimiento queda protegido contra borrado directo.
+  reciboExportedAt DateTime?
+
   @@index([adminId, date])
+}
+
+// Solicitud de un admin de escuela hacia el superadmin, pensada como bandeja genérica de
+// "consultas" aunque hoy el único `type` que existe es ELIMINAR_MOVIMIENTO (borrar un ingreso
+// con recibo ya exportado — ver reciboExportedAt arriba). targetType/targetId/targetLabel solo
+// tienen sentido para ese tipo; se guardan sueltos (no una relación Prisma real) porque el
+// movimiento/pago referenciado puede dejar de existir antes de resolverse la solicitud.
+model AdminRequest {
+  id        String  @id @default(cuid())
+  adminId   String
+  admin     Admin   @relation(fields: [adminId], references: [id])
+  type      String // "ELIMINAR_MOVIMIENTO" por ahora
+  targetType String? // "PAGO" | "MOVIMIENTO"
+  targetId   String? // mismo id con prefijo "pago:" que usa /api/aranceles/movimientos/recibo
+  targetLabel String? // snapshot descriptivo (concepto + monto) para mostrar aunque se borre el original
+  reason         String
+  status         String    @default("PENDIENTE") // "PENDIENTE" | "APROBADA" | "RECHAZADA"
+  resolutionNote String?
+  createdAt      DateTime  @default(now())
+  resolvedAt     DateTime?
+
+  @@index([adminId])
+  @@index([status])
 }
 
 model AuditLog {

@@ -265,15 +265,20 @@ export default function AlumnosAdminPage() {
                   </span>
                 )}
               </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium">
+              <button
+                type="button"
+                onClick={() => setDetailsStudent(s)}
+                className="min-w-0 flex-1 text-left"
+                aria-label={`Ver más información de ${s.firstName} ${s.lastName}`}
+              >
+                <p className="line-clamp-2 font-medium" title={`${s.firstName} ${s.lastName}`}>
                   {s.firstName} {s.lastName}
                 </p>
                 {!s.active && <p className="text-xs text-danger">Dado de baja</p>}
                 {pendingAranceles.has(s.id) && (
                   <p className="text-xs text-danger">Cuota pendiente: {pendingAranceles.get(s.id)!.join(", ")}</p>
                 )}
-              </div>
+              </button>
               <OverflowMenu
                 items={[
                   { label: "Más información", onSelect: () => setDetailsStudent(s) },

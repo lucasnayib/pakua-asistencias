@@ -27,10 +27,9 @@ export default async function AdminDashboardPage() {
 
   const upcomingSchedules = todaySchedules.filter((s) => s.endTime > shortNow);
 
-  const stats = [
-    { label: "Alumnos activos", value: studentsCount },
-    { label: "Horarios configurados", value: schedulesCount },
+  const secondaryStats = [
     { label: "Asistencias registradas hoy", value: todayAttendanceCount },
+    { label: "Horarios configurados", value: schedulesCount },
   ];
 
   return (
@@ -48,13 +47,19 @@ export default async function AdminDashboardPage() {
         </GoToAttendanceLink>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {stats.map((s) => (
-          <Card key={s.label} className="p-5">
-            <p className="text-sm text-muted-foreground">{s.label}</p>
-            <p className="mt-1 text-3xl font-semibold">{s.value}</p>
-          </Card>
-        ))}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:items-start">
+        <Card className="flex flex-col justify-center p-6 md:col-span-2">
+          <p className="text-sm font-medium text-muted-foreground">Alumnos activos</p>
+          <p className="mt-2 text-6xl font-semibold tabular-nums">{studentsCount}</p>
+        </Card>
+        <div className="grid grid-cols-2 gap-4 md:flex md:flex-col">
+          {secondaryStats.map((s) => (
+            <Card key={s.label} className="flex flex-1 flex-col justify-center p-5">
+              <p className="text-sm text-muted-foreground">{s.label}</p>
+              <p className="mt-1 text-2xl font-semibold">{s.value}</p>
+            </Card>
+          ))}
+        </div>
       </div>
 
       <Card className="p-5">

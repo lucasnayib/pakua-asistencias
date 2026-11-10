@@ -24,7 +24,7 @@ export function ScheduleFormDialog({ open, schedule, onClose, onSaved }: Schedul
   const [endTime, setEndTime] = useState("19:00");
   const [days, setDays] = useState<number[]>([]);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<string[]>([]);
 
   useEffect(() => {
     if (open) {
@@ -32,7 +32,7 @@ export function ScheduleFormDialog({ open, schedule, onClose, onSaved }: Schedul
       setStartTime(schedule?.startTime ?? "18:00");
       setEndTime(schedule?.endTime ?? "19:00");
       setDays(schedule?.days.map((d) => d.dayOfWeek) ?? []);
-      setError(null);
+      setErrors([]);
     }
   }, [open, schedule]);
 
@@ -57,10 +57,25 @@ export function ScheduleFormDialog({ open, schedule, onClose, onSaved }: Schedul
     setDays((current) => (current.includes(day) ? current.filter((d) => d !== day) : [...current, day].sort()));
   }
 
+  // Se valida todo junto en el cliente antes de mandar nada al servidor (que solo devuelve el
+  // primer error que encuentra) para que el usuario vea de una todo lo que falta corregir, en
+  // vez de ir descubriendo un error, corregirlo, mandar de nuevo y recién ahí ver el siguiente.
+  function clientErrors(): string[] {
+    const issues: string[] = [];
+    if (days.length === 0) issues.push("Elegí al menos un día");
+    if (endTime <= startTime) issues.push("La hora de fin debe ser posterior a la hora de inicio");
+    return issues;
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    const validation = clientErrors();
+    if (validation.length > 0) {
+      setErrors(validation);
+      return;
+    }
     setSaving(true);
-    setError(null);
+    setErrors([]);
     try {
       const res = await fetch(schedule ? `/api/schedules/${schedule.id}` : "/api/schedules", {
         method: schedule ? "PATCH" : "POST",
@@ -69,13 +84,13 @@ export function ScheduleFormDialog({ open, schedule, onClose, onSaved }: Schedul
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "No se pudo guardar el horario");
+        setErrors([data.error ?? "No se pudo guardar el horario"]);
         return;
       }
       toast.success(schedule ? "Horario actualizado" : "Horario creado");
       onSaved();
     } catch {
-      setError("Error de conexión");
+      setErrors(["Error de conexión"]);
     } finally {
       setSaving(false);
     }
@@ -125,7 +140,15 @@ export function ScheduleFormDialog({ open, schedule, onClose, onSaved }: Schedul
           </div>
         </div>
 
-        {error && <p className="text-sm text-danger">{error}</p>}
+        {errors.length > 0 && (
+          <ul className="flex flex-col gap-1">
+            {errors.map((e) => (
+              <li key={e} className="text-sm text-danger">
+                {e}
+              </li>
+            ))}
+          </ul>
+        )}
 
         <div className="mt-2 flex justify-end gap-3">
           <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>

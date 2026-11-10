@@ -48,33 +48,6 @@ function HeroPhoto({
   );
 }
 
-/** Motivo decorativo Bagua (八卦): círculo con los 8 trigramas simplificados, muy tenue, solo de fondo. */
-function BaguaMotif({ className = "" }: { className?: string }) {
-  const trigrams = Array.from({ length: 8 }, (_, i) => i * 45);
-  return (
-    <svg viewBox="0 0 400 400" className={className} aria-hidden="true">
-      <circle cx="200" cy="200" r="150" fill="none" stroke="currentColor" strokeWidth="1.5" />
-      <circle cx="200" cy="200" r="110" fill="none" stroke="currentColor" strokeWidth="1" />
-      {trigrams.map((angle) => (
-        <g key={angle} transform={`rotate(${angle} 200 200)`}>
-          {[0, 1, 2].map((line) => (
-            <rect
-              key={line}
-              x={192}
-              y={54 + line * 14}
-              width={16}
-              height={7}
-              fill="currentColor"
-              opacity={line === 1 && angle % 90 === 45 ? 0 : 1}
-            />
-          ))}
-        </g>
-      ))}
-      <circle cx="200" cy="200" r="4" fill="currentColor" />
-    </svg>
-  );
-}
-
 const LEFT_TRIGRAMS = ["乾", "兌", "離", "震"];
 const RIGHT_TRIGRAMS = ["巽", "坎", "艮", "坤"];
 
@@ -119,9 +92,6 @@ export default function HomePage() {
       <AppHeader />
       <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-16 px-4 py-12">
         <section className="relative grid grid-cols-1 items-center gap-8 md:grid-cols-2">
-          <BaguaMotif className="pointer-events-none absolute -right-24 -top-24 hidden h-[420px] w-[420px] text-accent/[0.07] md:-right-32 md:block" />
-          <BaguaMotif className="pointer-events-none absolute left-1/2 top-0 h-72 w-72 -translate-x-1/2 text-accent/[0.08] md:hidden" />
-
           <div className="relative flex flex-col items-center gap-5 text-center md:items-start md:text-left">
             <div className="flex flex-col items-center gap-3 md:items-start">
               <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
@@ -137,7 +107,7 @@ export default function HomePage() {
               <SchoolSearchBar />
               <p className="mt-3 text-center text-sm text-muted-foreground md:text-left">
                 ¿Todavía no usás Pakua?{" "}
-                <Link href="/registrar-escuela" className="text-accent hover:underline">
+                <Link href="/admin/login?mode=register" className="text-accent hover:underline">
                   Registrá tu escuela gratis
                 </Link>
               </p>

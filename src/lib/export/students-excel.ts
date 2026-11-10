@@ -1,5 +1,6 @@
 import ExcelJS from "exceljs";
 import { formatDateEs } from "@/lib/time";
+import { sanitizeExportCell } from "@/lib/export/sanitize";
 
 export type StudentExportRow = {
   firstName: string;
@@ -49,12 +50,14 @@ export async function buildStudentsExcelBuffer(
 
   for (const row of rows) {
     sheet.addRow({
-      fullName: `${row.lastName}, ${row.firstName}`,
+      fullName: sanitizeExportCell(`${row.lastName}, ${row.firstName}`),
       formacion: row.formacion ?? "",
-      graduacion: row.graduacion ? `${row.graduacion}${row.graduacionDelivered ? " (Entregado)" : ""}` : "",
+      graduacion: sanitizeExportCell(
+        row.graduacion ? `${row.graduacion}${row.graduacionDelivered ? " (Entregado)" : ""}` : ""
+      ),
       evaluationDate: row.evaluationDate ? formatDateEs(row.evaluationDate) : "",
       dni: row.dni ? `D.N.I. ${row.dni}` : "",
-      orientadorName: row.orientadorName ?? "",
+      orientadorName: sanitizeExportCell(row.orientadorName ?? ""),
       active: row.active ? "Activo" : "Dado de baja",
     });
   }
@@ -75,8 +78,8 @@ export async function buildStudentsExcelBuffer(
 
   for (const row of historyRows) {
     historySheet.addRow({
-      fullName: `${row.studentLastName}, ${row.studentFirstName}`,
-      graduacion: row.graduacion,
+      fullName: sanitizeExportCell(`${row.studentLastName}, ${row.studentFirstName}`),
+      graduacion: sanitizeExportCell(row.graduacion),
       authorizedAt: row.authorizedAt ? formatDateEs(row.authorizedAt) : "",
       delivered: row.delivered ? "Sí" : "Pendiente",
       deliveredAt: row.deliveredAt ? formatDateEs(row.deliveredAt) : "",

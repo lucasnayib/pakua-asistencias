@@ -33,6 +33,8 @@ function isSuperAdminOnlyRoute(pathname: string): boolean {
   if (pathname.startsWith("/admin/dos-factores")) return true;
   if (pathname.startsWith("/api/admin/encuentro")) return true;
   if (pathname.startsWith("/admin/encuentro")) return true;
+  if (pathname.startsWith("/api/admin/solicitudes")) return true;
+  if (pathname.startsWith("/admin/solicitudes")) return true;
   return false;
 }
 
@@ -58,6 +60,8 @@ function isAdminOnlyApiRoute(pathname: string, method: string): boolean {
   if (pathname.startsWith("/api/admin/location")) return true;
   if (pathname.startsWith("/api/admin/contact-email")) return true;
   if (pathname.startsWith("/api/admin/password")) return true;
+  if (pathname.startsWith("/api/admin/onboarding")) return true;
+  if (pathname.startsWith("/api/admin/photo")) return true;
   if (pathname.startsWith("/api/subscription/checkout")) return true;
   // También tiene que estar acá, no solo en isSuperAdminOnlyRoute: la rama /api/ de abajo
   // solo evalúa isSuperAdminOnlyRoute si needsSession||isSchoolData ya dio true. Sin esta
@@ -85,6 +89,7 @@ const SCHOOL_DATA_API_PREFIXES = [
   "/api/attendance",
   "/api/export",
   "/api/stats",
+  "/api/aranceles",
 ];
 
 function isSchoolDataApiRoute(pathname: string): boolean {

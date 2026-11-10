@@ -7,6 +7,7 @@ import { randomUUID } from "node:crypto";
 // runtime se sirven dinámicamente vía /api/uploads/[grupo]/[filename] (route.ts).
 export const STUDENT_PHOTOS_DIR = path.join(process.cwd(), "storage", "uploads", "students");
 export const ORIENTADOR_PHOTOS_DIR = path.join(process.cwd(), "storage", "uploads", "orientadores");
+export const ADMIN_PHOTOS_DIR = path.join(process.cwd(), "storage", "uploads", "admins");
 
 const ALLOWED_TYPES: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -59,11 +60,10 @@ export async function deleteStudentPhoto(photoUrl: string | null | undefined): P
 
 /**
  * Copia la foto de un alumno a un archivo nuevo (nombre distinto, mismo directorio) y
- * devuelve su propia URL. Se usa al migrar un alumno a otra escuela: aunque la ruta que
- * sirve la foto no chequea adminId (ver /api/uploads/students/[filename]/route.ts) y la URL
- * ya "funcionaría" para las dos escuelas, reusarla tal cual acoplaría el archivo a dos
- * alumnos con ciclos de vida independientes — si uno edita o borra su foto después, el
- * otro se quedaría sin la suya. Devuelve null si no había foto para copiar.
+ * devuelve su propia URL. Se usa al migrar un alumno a otra escuela: reusar la URL original
+ * acoplaría el archivo a dos alumnos con ciclos de vida independientes — si uno edita o
+ * borra su foto después, el otro se quedaría sin la suya. Devuelve null si no había foto
+ * para copiar.
  */
 export async function copyStudentPhoto(photoUrl: string | null | undefined): Promise<string | null> {
   const prefix = "/api/uploads/students/";
@@ -88,4 +88,15 @@ export async function saveOrientadorPhoto(file: File): Promise<string> {
 /** Borra una foto previa de orientador. No lanza si el archivo no existe. */
 export async function deleteOrientadorPhoto(photoUrl: string | null | undefined): Promise<void> {
   await deletePhoto(ORIENTADOR_PHOTOS_DIR, "/api/uploads/orientadores/", photoUrl);
+}
+
+/** Guarda la foto de perfil de un admin y devuelve la URL pública (servida por una API route). */
+export async function saveAdminPhoto(file: File): Promise<string> {
+  const filename = await savePhoto(file, ADMIN_PHOTOS_DIR);
+  return `/api/uploads/admins/${filename}`;
+}
+
+/** Borra una foto previa de perfil de admin. No lanza si el archivo no existe. */
+export async function deleteAdminPhoto(photoUrl: string | null | undefined): Promise<void> {
+  await deletePhoto(ADMIN_PHOTOS_DIR, "/api/uploads/admins/", photoUrl);
 }

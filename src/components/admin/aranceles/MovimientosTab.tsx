@@ -9,11 +9,11 @@ import { Spinner } from "@/components/ui/Spinner";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { OverflowMenu } from "@/components/ui/OverflowMenu";
 import { Switch } from "@/components/ui/Switch";
+import { SidebarIcon } from "@/components/admin/SidebarIcon";
+import { SolicitarBorradoDialog } from "@/components/admin/aranceles/SolicitarBorradoDialog";
 import { formatDateEs, getLocalNow } from "@/lib/time";
-import { formatMoney } from "@/lib/aranceles-calc";
-
-const CATEGORIAS_INGRESO = ["CUOTAS", "DONACIONES", "VENTA_MERCHANDISING", "OTROS"] as const;
-const CATEGORIAS_EGRESO = ["ALQUILER", "SERVICIOS", "INSUMOS", "MANTENIMIENTO", "SUELDOS", "OTROS"] as const;
+import { formatMoney, formatMonth } from "@/lib/aranceles-calc";
+import { CATEGORIAS_EGRESO, CATEGORIAS_INGRESO } from "@/lib/validations";
 
 // Igual a la duración de modal-out en la variante "-pop" de globals.css.
 const CLOSE_ANIMATION_MS = 160;
@@ -34,9 +34,13 @@ type Movimiento = {
   alumnoArancelId?: string | null;
   month?: string;
   numero?: string;
+  // true desde que se exportó su recibo: ya no se puede borrar/desmarcar directo, solo pedirle
+  // el borrado al superadmin (ver SolicitarBorradoDialog).
+  locked?: boolean;
+  requestPending?: boolean;
 };
 
-type TipoArancel = { id: string; name: string; amount: number };
+type TipoArancel = { id: string; name: string; amount: number; categoria: string };
 type StudentOption = { id: string; firstName: string; lastName: string };
 
 export function MovimientosTab() {
@@ -60,6 +64,8 @@ export function MovimientosTab() {
   const [deleteTarget, setDeleteTarget] = useState<Movimiento | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [reciboWarningTarget, setReciboWarningTarget] = useState<Movimiento | null>(null);
+  const [solicitarTarget, setSolicitarTarget] = useState<Movimiento | null>(null);
 
   const [tiposArancel, setTiposArancel] = useState<TipoArancel[]>([]);
   const [cuotaTipoId, setCuotaTipoId] = useState("");
@@ -199,7 +205,7 @@ export function MovimientosTab() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (formTipo === "INGRESO" && formCategoria === "CUOTAS") {
+    if (esCategoriaCuota) {
       await handleCuotaSubmit();
       return;
     }
@@ -256,10 +262,36 @@ export function MovimientosTab() {
       // está pagada. Pasar el switch a "pendiente" la elimina de verdad, así que pide
       // confirmación primero (mismo diálogo que "Desmarcar pago" del menú) en vez de borrarla
       // al toque con un solo click.
-      setDeleteTarget(m);
+      requestDelete(m);
       return;
     }
     toggleEstadoMovimiento(m);
+  }
+
+  // Punto único de entrada para borrar/desmarcar, tanto desde el switch de estado como desde
+  // el menú de opciones: si ya se exportó el recibo, no deja borrar directo.
+  function requestDelete(m: Movimiento) {
+    if (!m.locked) {
+      setDeleteTarget(m);
+      return;
+    }
+    if (m.requestPending) {
+      toast.info("Ya hay una solicitud de borrado pendiente de aprobación del superadmin para esto.");
+      return;
+    }
+    setSolicitarTarget(m);
+  }
+
+  async function handleSolicitarBorrado(reason: string): Promise<{ ok: boolean; error?: string }> {
+    if (!solicitarTarget) return { ok: false, error: "Nada seleccionado" };
+    const res = await fetch("/api/aranceles/movimientos/solicitudes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: solicitarTarget.id, reason }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { ok: false, error: data.error };
+    return { ok: true };
   }
 
   async function toggleEstadoMovimiento(m: Movimiento) {
@@ -306,7 +338,22 @@ export function MovimientosTab() {
     }
   }
 
+  // Exportar el recibo (primera vez o reimpresión) siempre deja el movimiento bloqueado del
+  // lado del servidor (ver /api/aranceles/movimientos/recibo); acá solo reflejamos ese cambio
+  // en el estado local al toque, sin esperar a recargar toda la lista.
+  function abrirRecibo(m: Movimiento) {
+    window.open(`/api/aranceles/movimientos/recibo?id=${encodeURIComponent(m.id)}`, "_blank");
+    if (!m.locked) {
+      setMovimientos((current) => current.map((item) => (item.id === m.id ? { ...item, locked: true } : item)));
+    }
+  }
+
   const categoriasDisponibles = formTipo === "INGRESO" ? CATEGORIAS_INGRESO : CATEGORIAS_EGRESO;
+  // Categorías que arman un pago de cuota (alumno + actividad + mes) en vez de un movimiento
+  // suelto: CUOTAS (ingreso propio) y FEDERACION (se cobra para reenviar, no cuenta como
+  // ingreso propio — ver esIngresoPropio en aranceles-calc.ts), ambas con la misma mecánica.
+  const esCategoriaCuota = formTipo === "INGRESO" && (formCategoria === "CUOTAS" || formCategoria === "FEDERACION");
+  const tiposArancelDeLaCategoria = tiposArancel.filter((t) => t.categoria === formCategoria);
 
   const filteredMovimientos = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -373,7 +420,14 @@ export function MovimientosTab() {
               <option value="EGRESO">Egreso</option>
               <option value="INGRESO">Ingreso</option>
             </Select>
-            <Select label="Categoría" value={formCategoria} onChange={(e) => setFormCategoria(e.target.value)}>
+            <Select
+              label="Categoría"
+              value={formCategoria}
+              onChange={(e) => {
+                setFormCategoria(e.target.value);
+                setCuotaTipoId("");
+              }}
+            >
               {categoriasDisponibles.map((c) => (
                 <option key={c} value={c}>
                   {c}
@@ -381,7 +435,7 @@ export function MovimientosTab() {
               ))}
             </Select>
           </div>
-          {formTipo === "INGRESO" && formCategoria === "CUOTAS" ? (
+          {esCategoriaCuota ? (
             <div className="flex flex-col gap-2 rounded-lg border border-border bg-surface-2 p-3">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Alumno</p>
               {cuotaStudent ? (
@@ -429,14 +483,14 @@ export function MovimientosTab() {
               )}
 
               <p className="mt-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">Actividad</p>
-              {tiposArancel.length === 0 ? (
+              {tiposArancelDeLaCategoria.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  Todavía no hay ninguna cargada. Definilas en la pestaña &quot;Coste de
-                  actividades&quot;.
+                  Todavía no hay ninguna actividad con categoría {formCategoria}. Definilas en la
+                  pestaña &quot;Coste de actividades&quot;.
                 </p>
               ) : (
                 <ul className="flex flex-col divide-y divide-border">
-                  {tiposArancel.map((t) => (
+                  {tiposArancelDeLaCategoria.map((t) => (
                     <li key={t.id}>
                       <button
                         type="button"
@@ -505,10 +559,20 @@ export function MovimientosTab() {
           {filteredMovimientos.map((m) => (
             <li key={m.id} className="flex items-center justify-between gap-3 p-3 text-sm">
               <div className="min-w-0">
-                <p className="truncate font-medium">{m.concepto}</p>
+                <p className="flex items-center gap-1.5 truncate font-medium">
+                  {m.concepto}
+                  {m.locked && (
+                    <span title="Recibo exportado: protegido contra borrado directo" className="shrink-0 text-muted-foreground">
+                      <SidebarIcon name="lock" className="h-3.5 w-3.5" />
+                    </span>
+                  )}
+                </p>
                 <p className="text-xs text-muted-foreground">
                   {formatDateEs(m.date)} · {m.categoria}
                   {m.numero && ` · N.° ${m.numero}`}
+                  {m.month && m.date.slice(0, 7) !== m.month && ` · Cuota de ${formatMonth(m.month)}`}
+                  {m.tipo === "INGRESO" && m.categoria === "FEDERACION" && " · no cuenta como ingreso de la escuela"}
+                  {m.requestPending && " · Solicitud de borrado pendiente"}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-3">
@@ -530,16 +594,15 @@ export function MovimientosTab() {
                       ? [
                           {
                             label: "Imprimir recibo",
-                            onSelect: () =>
-                              window.open(`/api/aranceles/movimientos/recibo?id=${encodeURIComponent(m.id)}`, "_blank"),
+                            onSelect: () => (m.locked ? abrirRecibo(m) : setReciboWarningTarget(m)),
                           },
                         ]
                       : []),
                     ...(m.source === "pago"
-                      ? [{ label: "Desmarcar pago", onSelect: () => setDeleteTarget(m), danger: true }]
+                      ? [{ label: "Desmarcar pago", onSelect: () => requestDelete(m), danger: true }]
                       : [
                           { label: "Editar", onSelect: () => openEdit(m) },
-                          { label: "Eliminar", onSelect: () => setDeleteTarget(m), danger: true },
+                          { label: "Eliminar", onSelect: () => requestDelete(m), danger: true },
                         ]),
                   ]}
                 />
@@ -564,6 +627,33 @@ export function MovimientosTab() {
         loading={deleting}
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
+      />
+
+      <ConfirmDialog
+        open={reciboWarningTarget !== null}
+        title="Exportar recibo"
+        message={
+          reciboWarningTarget
+            ? `Una vez exportado el recibo de "${reciboWarningTarget.concepto}", este movimiento queda protegido: ya no se va a poder borrar directamente, solo pidiéndole el borrado al superadmin con una razón.`
+            : undefined
+        }
+        confirmLabel="Exportar de todos modos"
+        onConfirm={() => {
+          if (reciboWarningTarget) abrirRecibo(reciboWarningTarget);
+          setReciboWarningTarget(null);
+        }}
+        onCancel={() => setReciboWarningTarget(null)}
+      />
+
+      <SolicitarBorradoDialog
+        open={solicitarTarget !== null}
+        concepto={solicitarTarget?.concepto}
+        onClose={() => setSolicitarTarget(null)}
+        onSent={() => {
+          setSolicitarTarget(null);
+          loadMovimientos();
+        }}
+        onSubmit={handleSolicitarBorrado}
       />
     </div>
   );

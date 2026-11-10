@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { SIDEBAR_COLLAPSED_COOKIE } from "@/lib/admin-sidebar";
 import { GoToAttendanceLink } from "./GoToAttendanceLink";
 import { SidebarIcon, SidebarIconName } from "./SidebarIcon";
+import { AccountDialog } from "./AccountDialog";
 
 type NavItem = { href: string; label: string; icon: SidebarIconName; badge?: number };
 type NavGroup = { id: string; label: string; icon: SidebarIconName; items: NavItem[] };
@@ -52,9 +53,14 @@ export function AdminSidebar({
   username,
   role,
   schoolSlug,
+  contactEmail = null,
+  photoUrl = null,
   pendingAdminCount = 0,
-  pendingEncuentroCount = 0,
+  // pendingEncuentroCount: ver nota junto al nav item de "Encuentro" más abajo — se deja de
+  // desestructurar mientras ese link está apagado, pero sigue en el tipo para no tocar a
+  // quien ya la pasa (src/app/admin/(protected)/layout.tsx).
   pendingArancelCount = 0,
+  pendingSolicitudesCount = 0,
   itineranciasEnabled = false,
   defaultCollapsed = false,
   suspended = false,
@@ -63,9 +69,12 @@ export function AdminSidebar({
   username: string;
   role: string;
   schoolSlug?: string | null;
+  contactEmail?: string | null;
+  photoUrl?: string | null;
   pendingAdminCount?: number;
   pendingEncuentroCount?: number;
   pendingArancelCount?: number;
+  pendingSolicitudesCount?: number;
   itineranciasEnabled?: boolean;
   defaultCollapsed?: boolean;
   /** Suscripción suspendida: el proxy (src/proxy.ts) ya bloquea cualquier pantalla que no sea
@@ -76,6 +85,8 @@ export function AdminSidebar({
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [currentPhotoUrl, setCurrentPhotoUrl] = useState(photoUrl);
   // Solo aplica en md+ (en mobile la barra siempre es el menú deslizable completo).
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
 
@@ -98,9 +109,14 @@ export function AdminSidebar({
           icon: "shield",
           items: [
             { href: "/admin/admins", label: "Administradores", icon: "users", badge: pendingAdminCount },
+            { href: "/admin/solicitudes", label: "Solicitudes", icon: "mail", badge: pendingSolicitudesCount },
             { href: "/admin/backups", label: "Copias de seguridad", icon: "database" },
             { href: "/admin/dos-factores", label: "Seguridad", icon: "shield" },
-            { href: "/admin/encuentro", label: "Encuentro", icon: "camera", badge: pendingEncuentroCount },
+            // "Encuentro" se apagó a pedido (evento puntual ya cerrado): el código, las rutas
+            // y los datos siguen intactos (ver EVENT_UPLOADS_ENABLED en .env y galleryEnabled
+            // en storage/evento/config.json). Para reactivarlo: descomentar esta línea, poner
+            // EVENT_UPLOADS_ENABLED="true" y volver a prender la galería desde acá.
+            // { href: "/admin/encuentro", label: "Encuentro", icon: "camera", badge: pendingEncuentroCount },
           ],
         },
       ]
@@ -279,15 +295,18 @@ export function AdminSidebar({
                 <SidebarIcon name="user" className="h-5 w-5" />
               </div>
             ) : (
-              <Link
-                href="/admin/mi-cuenta"
+              <button
+                type="button"
+                onClick={() => setAccountOpen(true)}
                 title={`${displayName} · ${username} — Mi cuenta`}
-                className={`flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-surface-2 ${
-                  isActive("/admin/mi-cuenta") ? "bg-accent text-accent-foreground" : "bg-surface-2"
-                }`}
+                className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-surface-2 transition hover:bg-surface"
               >
-                <SidebarIcon name="user" className="h-5 w-5" />
-              </Link>
+                {currentPhotoUrl ? (
+                  <Image src={currentPhotoUrl} alt={displayName} fill sizes="40px" className="object-cover" />
+                ) : (
+                  <SidebarIcon name="user" className="h-5 w-5" />
+                )}
+              </button>
             )}
           </div>
 
@@ -375,37 +394,25 @@ export function AdminSidebar({
               </div>
             </div>
           ) : (
-            <Link
-              href="/admin/mi-cuenta"
+            <button
+              type="button"
+              onClick={() => setAccountOpen(true)}
               title="Mi cuenta"
-              className={`flex shrink-0 items-center gap-3 border-b border-border px-5 py-5 transition md:py-3 ${
-                isActive("/admin/mi-cuenta") ? "bg-accent text-accent-foreground" : "hover:bg-surface-2"
-              }`}
+              className="flex shrink-0 items-center gap-3 border-b border-border px-5 py-5 text-left transition hover:bg-surface-2 md:py-3"
             >
-              <div
-                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full md:h-10 md:w-10 ${
-                  isActive("/admin/mi-cuenta") ? "bg-accent-foreground/15" : "bg-background/60"
-                }`}
-              >
-                <SidebarIcon name="user" className="h-6 w-6" />
+              <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-background/60 md:h-10 md:w-10">
+                {currentPhotoUrl ? (
+                  <Image src={currentPhotoUrl} alt={displayName} fill sizes="48px" className="object-cover" />
+                ) : (
+                  <SidebarIcon name="user" className="h-6 w-6" />
+                )}
               </div>
               <div className="min-w-0 flex-1">
-                <p
-                  className={`truncate text-xs ${
-                    isActive("/admin/mi-cuenta") ? "text-accent-foreground/70" : "text-muted-foreground"
-                  }`}
-                >
-                  {displayName}
-                </p>
+                <p className="truncate text-xs text-muted-foreground">{displayName}</p>
                 <p className="truncate text-base font-semibold">Hola, {username}</p>
               </div>
-              <SidebarIcon
-                name="chevron-right"
-                className={`h-4 w-4 shrink-0 ${
-                  isActive("/admin/mi-cuenta") ? "text-accent-foreground/70" : "text-muted-foreground"
-                }`}
-              />
-            </Link>
+              <SidebarIcon name="chevron-right" className="h-4 w-4 shrink-0 text-muted-foreground" />
+            </button>
           )}
 
           <nav className="scrollbar-themed flex-1 overflow-y-auto px-3 py-4 md:py-3">
@@ -568,6 +575,18 @@ export function AdminSidebar({
           </div>
         </div>
       </aside>
+
+      {!isSuperAdmin && (
+        <AccountDialog
+          open={accountOpen}
+          onClose={() => setAccountOpen(false)}
+          displayName={displayName}
+          username={username}
+          contactEmail={contactEmail}
+          photoUrl={currentPhotoUrl}
+          onPhotoChanged={setCurrentPhotoUrl}
+        />
+      )}
     </>
   );
 }

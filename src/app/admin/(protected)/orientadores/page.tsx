@@ -102,10 +102,14 @@ export default function OrientadoresAdminPage() {
                   )}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">
+                  <p className="line-clamp-2 font-medium" title={`${o.firstName} ${o.lastName}`}>
                     {o.firstName} {o.lastName}
                   </p>
-                  {o.email && <p className="truncate text-xs text-muted-foreground">{o.email}</p>}
+                  {o.email && (
+                    <p className="truncate text-xs text-muted-foreground" title={o.email}>
+                      {o.email}
+                    </p>
+                  )}
                   {o.phone && <p className="truncate text-xs text-muted-foreground">{o.phone}</p>}
                 </div>
                 <OverflowMenu

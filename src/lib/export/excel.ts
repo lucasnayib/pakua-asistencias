@@ -1,5 +1,6 @@
 import ExcelJS from "exceljs";
 import { formatDateEs, formatTimeShort } from "@/lib/time";
+import { sanitizeExportCell } from "@/lib/export/sanitize";
 import type { ExportRow } from "@/lib/export/types";
 
 export async function buildExcelBuffer(rows: ExportRow[]): Promise<Buffer> {
@@ -24,8 +25,8 @@ export async function buildExcelBuffer(rows: ExportRow[]): Promise<Buffer> {
 
   for (const row of rows) {
     sheet.addRow({
-      firstName: row.firstName,
-      lastName: row.lastName,
+      firstName: sanitizeExportCell(row.firstName),
+      lastName: sanitizeExportCell(row.lastName),
       date: formatDateEs(row.date),
       time: formatTimeShort(row.time),
       schedule: row.scheduleLabel,

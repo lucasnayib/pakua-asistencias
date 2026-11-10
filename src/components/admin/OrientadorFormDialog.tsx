@@ -140,15 +140,38 @@ export function OrientadorFormDialog({ open, orientador, onClose, onSaved }: Ori
           </label>
         </div>
 
-        <Input label="Nombre" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
-        <Input label="Apellido" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
+        <Input
+          label="Nombre"
+          value={firstName}
+          onChange={(e) => setFirstName(e.target.value)}
+          required
+          maxLength={100}
+          pattern="[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ\s'-]*"
+          title="Solo letras, espacios, guiones y apóstrofes"
+        />
+        <Input
+          label="Apellido"
+          value={lastName}
+          onChange={(e) => setLastName(e.target.value)}
+          required
+          maxLength={100}
+          pattern="[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ\s'-]*"
+          title="Solo letras, espacios, guiones y apóstrofes"
+        />
         <Input
           label="Email (opcional)"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
-        <Input label="Teléfono (opcional)" value={phone} onChange={(e) => setPhone(e.target.value)} />
+        <Input
+          label="Teléfono (opcional)"
+          type="tel"
+          placeholder="Ej: +54 9 11 1234-5678"
+          pattern="[0-9+\-() ]{6,30}"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+        />
 
         <div className="flex flex-col gap-2 border-t border-border pt-4">
           <div className="flex items-center justify-between">

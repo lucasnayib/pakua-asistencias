@@ -66,10 +66,14 @@ export function movimientoToLedgerRow(m: {
   };
 }
 
-export function pagoToLedgerRow(p: { amount: number; month: string; tipoArancel: { name: string } }): LedgerRow {
+export function pagoToLedgerRow(p: {
+  amount: number;
+  month: string;
+  tipoArancel: { name: string; categoria: string };
+}): LedgerRow {
   return {
     tipo: "INGRESO",
-    categoria: "CUOTAS",
+    categoria: p.tipoArancel.categoria,
     concepto: p.tipoArancel.name,
     amount: p.amount,
     month: p.month,
@@ -83,9 +87,27 @@ export function soloPagadas(rows: LedgerRow[]): LedgerRow[] {
   return rows.filter((r) => r.estado === "PAGADO");
 }
 
+// Categorías de ingreso que no son ingreso propio de la escuela: se cobran para reenviar a un
+// tercero (ej. FEDERACION) y solo quedan como registro de que se cobró y se pagó, sin sumar en
+// los totales/KPIs ni en el desglose por categoría.
+const CATEGORIAS_INGRESO_NO_PROPIO = new Set(["FEDERACION"]);
+
+export function esIngresoPropio(row: { tipo: string; categoria: string }): boolean {
+  return row.tipo !== "INGRESO" || !CATEGORIAS_INGRESO_NO_PROPIO.has(row.categoria);
+}
+
 export function totalPorTipo(rows: LedgerRow[], tipo: "INGRESO" | "EGRESO"): number {
   return soloPagadas(rows)
-    .filter((r) => r.tipo === tipo)
+    .filter((r) => r.tipo === tipo && esIngresoPropio(r))
+    .reduce((sum, r) => sum + r.amount, 0);
+}
+
+/** Total pagado de una categoría puntual, sin importar si cuenta como ingreso propio —
+ * se usa para mostrar por separado lo recaudado para terceros (ej. FEDERACION), que no
+ * debe sumar en "Ingresos" pero sí tiene que poder verse cuánto es. */
+export function totalCategoria(rows: LedgerRow[], tipo: "INGRESO" | "EGRESO", categoria: string): number {
+  return soloPagadas(rows)
+    .filter((r) => r.tipo === tipo && r.categoria === categoria)
     .reduce((sum, r) => sum + r.amount, 0);
 }
 
@@ -97,7 +119,7 @@ export function calcularKpis(rows: LedgerRow[]) {
 
 export function desglosePorCategoria(rows: LedgerRow[], tipo: "INGRESO" | "EGRESO") {
   const porCategoria = new Map<string, number>();
-  for (const row of soloPagadas(rows).filter((r) => r.tipo === tipo)) {
+  for (const row of soloPagadas(rows).filter((r) => r.tipo === tipo && esIngresoPropio(r))) {
     porCategoria.set(row.categoria, (porCategoria.get(row.categoria) ?? 0) + row.amount);
   }
   return Array.from(porCategoria.entries())

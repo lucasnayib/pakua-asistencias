@@ -6,6 +6,7 @@ import { getSession, requireAdmin } from "@/lib/auth";
 import { requireSchoolAccess } from "@/lib/school-access";
 import { logChange } from "@/lib/audit";
 import { autoEnrollByFormacion } from "@/lib/aranceles-server";
+import { compareByGraduacionDesc } from "@/lib/graduacion-rank";
 
 const studentInclude = {
   orientadores: {
@@ -74,6 +75,10 @@ export async function GET(request: NextRequest) {
     }),
     prisma.student.count({ where: { adminId, active: false } }),
   ]);
+
+  // De mayor a menor graduación (sin graduación = Cinto Blanco); ver compareByGraduacionDesc
+  // para el criterio de desempate dentro de un mismo rank.
+  students.sort(compareByGraduacionDesc);
 
   return NextResponse.json({ students: students.map(toStudentResponse), inactiveCount });
 }

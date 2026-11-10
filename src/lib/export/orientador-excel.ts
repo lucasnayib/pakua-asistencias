@@ -1,4 +1,5 @@
 import ExcelJS from "exceljs";
+import { sanitizeExportCell } from "@/lib/export/sanitize";
 
 export type OrientadorStudentRow = {
   firstName: string;
@@ -25,8 +26,8 @@ export async function buildOrientadorStudentsExcelBuffer(rows: OrientadorStudent
 
   for (const row of rows) {
     sheet.addRow({
-      firstName: row.firstName,
-      lastName: row.lastName,
+      firstName: sanitizeExportCell(row.firstName),
+      lastName: sanitizeExportCell(row.lastName),
       status: row.active ? "Activo" : "Dado de baja",
     });
   }

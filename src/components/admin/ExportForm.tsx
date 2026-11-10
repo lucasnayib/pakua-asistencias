@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -21,6 +22,10 @@ export function ExportForm({ schedules }: { schedules: ScheduleOption[] }) {
     <form
       onSubmit={(e) => {
         e.preventDefault();
+        if (dateFrom > dateTo) {
+          toast.error('"Desde" no puede ser posterior a "Hasta"');
+          return;
+        }
         runExport({ format, dateFrom, dateTo, scheduleId: scheduleId || undefined });
       }}
       className="flex flex-wrap items-end gap-3"

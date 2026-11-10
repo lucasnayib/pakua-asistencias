@@ -1,188 +1,21 @@
-"use client";
+import { Suspense } from "react";
+import { redirect } from "next/navigation";
+import { getSession } from "@/lib/auth";
+import { AuthPageClient } from "@/components/auth/AuthPageClient";
 
-import { FormEvent, Suspense, useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { PasswordInput } from "@/components/ui/PasswordInput";
-import { Card } from "@/components/ui/Card";
-
-function LoginForm() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [tempToken, setTempToken] = useState<string | null>(null);
-  const [twoFactorCode, setTwoFactorCode] = useState("");
-
-  function goAfterLogin(role: string) {
-    const from = searchParams.get("from");
-    // El super-admin no tiene escuela: si no pidió explícitamente una pantalla de cuentas
-    // (la única a la que tiene acceso), lo mandamos directo ahí en vez del dashboard.
-    const isSuperAdmin = role === "SUPER_ADMIN";
-    const canReachFrom = from && (!isSuperAdmin || from.startsWith("/admin/admins"));
-    const destination = canReachFrom ? from : isSuperAdmin ? "/admin/admins" : "/admin";
-    router.push(destination);
-    router.refresh();
+export default async function AdminLoginPage() {
+  const session = await getSession();
+  if (session) {
+    redirect(session.role === "SUPER_ADMIN" ? "/admin/admins" : "/admin");
   }
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-    try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "No se pudo iniciar sesión");
-        return;
-      }
-      if (data.requiresTwoFactor) {
-        setTempToken(data.tempToken);
-        return;
-      }
-      goAfterLogin(data.role);
-    } catch {
-      setError("Error de conexión");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const priceArs =
+    process.env.SUBSCRIPTIONS_ENABLED === "true" ? (process.env.SUBSCRIPTION_PRICE_ARS ?? null) : null;
+  const trialDays = process.env.SUBSCRIPTION_TRIAL_DAYS ?? "7";
 
-  async function handleVerifyTwoFactor(e: FormEvent) {
-    e.preventDefault();
-    if (!tempToken) return;
-    setError(null);
-    setLoading(true);
-    try {
-      const res = await fetch("/api/auth/verify-2fa", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tempToken, code: twoFactorCode }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "No se pudo verificar el código");
-        return;
-      }
-      goAfterLogin(data.role);
-    } catch {
-      setError("Error de conexión");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  if (tempToken) {
-    return (
-      <main className="flex min-h-dvh items-center justify-center bg-background px-4">
-        <Card className="w-full max-w-sm p-8">
-          <Image
-            src="/logo.png"
-            alt="Pakua"
-            width={1554}
-            height={514}
-            priority
-            className="mx-auto mb-4 block h-12 w-auto dark:invert"
-          />
-          <h1 className="mb-1 text-center text-xl font-semibold">Verificación en dos pasos</h1>
-          <p className="mb-6 text-center text-sm text-muted-foreground">
-            Ingresá el código de tu app de autenticación, o un código de respaldo.
-          </p>
-          <form onSubmit={handleVerifyTwoFactor} className="flex flex-col gap-4">
-            <Input
-              label="Código"
-              autoComplete="one-time-code"
-              value={twoFactorCode}
-              onChange={(e) => setTwoFactorCode(e.target.value)}
-              required
-            />
-            {error && <p className="text-sm text-danger">{error}</p>}
-            <Button type="submit" loading={loading} className="mt-2 w-full">
-              Verificar
-            </Button>
-          </form>
-          <button
-            type="button"
-            onClick={() => {
-              setTempToken(null);
-              setTwoFactorCode("");
-              setError(null);
-            }}
-            className="mt-4 block w-full text-center text-sm text-muted-foreground hover:underline"
-          >
-            Volver
-          </button>
-        </Card>
-      </main>
-    );
-  }
-
-  return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-background px-4">
-      <Link href="/" className="block w-full max-w-sm text-sm text-muted-foreground hover:underline">
-        ← Volver al inicio
-      </Link>
-      <Card className="w-full max-w-sm p-8">
-        <Image
-          src="/logo.png"
-          alt="Pakua"
-          width={1554}
-          height={514}
-          priority
-          className="mx-auto mb-4 block h-12 w-auto dark:invert"
-        />
-        <h1 className="mb-1 text-center text-xl font-semibold">Panel de administración</h1>
-        <p className="mb-6 text-center text-sm text-muted-foreground">Ingresá tus credenciales para continuar</p>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <Input
-            label="Usuario"
-            autoComplete="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-          />
-          <PasswordInput
-            label="Contraseña"
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-          {error && <p className="text-sm text-danger">{error}</p>}
-          <Button type="submit" loading={loading} className="mt-2 w-full">
-            Ingresar
-          </Button>
-        </form>
-        <Link
-          href="/admin/olvide-password"
-          className="mt-4 block text-center text-sm text-muted-foreground hover:underline"
-        >
-          ¿Olvidaste tu contraseña?
-        </Link>
-        <Link
-          href="/registrar-escuela"
-          className="mt-2 block text-center text-sm text-muted-foreground hover:underline"
-        >
-          ¿Sos una escuela nueva? Registrate acá
-        </Link>
-      </Card>
-    </main>
-  );
-}
-
-export default function AdminLoginPage() {
   return (
     <Suspense>
-      <LoginForm />
+      <AuthPageClient priceArs={priceArs} trialDays={trialDays} />
     </Suspense>
   );
 }

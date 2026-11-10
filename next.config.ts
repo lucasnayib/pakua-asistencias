@@ -18,6 +18,10 @@ const baseHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  // Ninguna página de la app usa la cámara/micrófono/ubicación del navegador del lado del
+  // admin, y el check-in público ya dejó de pedir geolocalización (ver src/lib/itinerancias.ts) —
+  // se desactivan explícitamente en vez de dejarlas en el default "permitido".
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
 ];
 
 // CSP y HSTS solo en producción: en desarrollo, Turbopack/React usan eval() para el hot
@@ -30,6 +34,8 @@ const productionOnlyHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // No hay motivo para anunciar el framework al mundo en cada response.
+  poweredByHeader: false,
   // Default de Next 16 es 10MB y trunca el body en silencio si se supera (sin error) — las
   // partes de 8MB de la subida de Encuentro (src/app/api/encuentro/upload/.../chunk) necesitan
   // margen real por encima de eso. No tiene nada que ver con experimental.serverActions

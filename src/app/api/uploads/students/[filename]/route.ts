@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { STUDENT_PHOTOS_DIR } from "@/lib/upload";
+import { prisma } from "@/lib/prisma";
+import { requireSchoolAccess } from "@/lib/school-access";
 
 const CONTENT_TYPES: Record<string, string> = {
   jpg: "image/jpeg",
@@ -27,13 +29,24 @@ export async function GET(_request: Request, { params }: Params) {
     return NextResponse.json({ error: "Tipo de archivo no soportado" }, { status: 400 });
   }
 
+  const student = await prisma.student.findFirst({
+    where: { photoUrl: `/api/uploads/students/${filename}` },
+    select: { adminId: true },
+  });
+  if (!student) {
+    return NextResponse.json({ error: "Foto no encontrada" }, { status: 404 });
+  }
+
+  const access = await requireSchoolAccess(student.adminId);
+  if (access instanceof NextResponse) return access;
+
   try {
     const buffer = await readFile(path.join(STUDENT_PHOTOS_DIR, filename));
     return new NextResponse(new Uint8Array(buffer), {
       status: 200,
       headers: {
         "Content-Type": contentType,
-        "Cache-Control": "public, max-age=86400",
+        "Cache-Control": "private, max-age=86400",
       },
     });
   } catch {

@@ -5,12 +5,14 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { Spinner } from "@/components/ui/Spinner";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { OverflowMenu } from "@/components/ui/OverflowMenu";
 import { formatMoney } from "@/lib/aranceles-calc";
+import { CATEGORIAS_INGRESO } from "@/lib/validations";
 
-type TipoArancel = { id: string; name: string; amount: number; active: boolean };
+type TipoArancel = { id: string; name: string; amount: number; categoria: string; active: boolean };
 
 export function ActividadesTab() {
   const [tipos, setTipos] = useState<TipoArancel[]>([]);
@@ -20,6 +22,7 @@ export function ActividadesTab() {
   const [editingTipo, setEditingTipo] = useState<TipoArancel | null>(null);
   const [formName, setFormName] = useState("");
   const [formAmount, setFormAmount] = useState("");
+  const [formCategoria, setFormCategoria] = useState<string>(CATEGORIAS_INGRESO[0]);
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<TipoArancel | null>(null);
@@ -41,6 +44,7 @@ export function ActividadesTab() {
     setEditingTipo(null);
     setFormName("");
     setFormAmount("");
+    setFormCategoria(CATEGORIAS_INGRESO[0]);
     setFormError(null);
     setFormOpen(true);
   }
@@ -49,6 +53,7 @@ export function ActividadesTab() {
     setEditingTipo(tipo);
     setFormName(tipo.name);
     setFormAmount(String(tipo.amount));
+    setFormCategoria(tipo.categoria);
     setFormError(null);
     setFormOpen(true);
   }
@@ -66,7 +71,7 @@ export function ActividadesTab() {
       const res = await fetch(editingTipo ? `/api/aranceles/tipos/${editingTipo.id}` : "/api/aranceles/tipos", {
         method: editingTipo ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: formName.trim(), amount }),
+        body: JSON.stringify({ name: formName.trim(), amount, categoria: formCategoria }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -126,6 +131,13 @@ export function ActividadesTab() {
             onChange={(e) => setFormAmount(e.target.value)}
             required
           />
+          <Select label="Categoría" value={formCategoria} onChange={(e) => setFormCategoria(e.target.value)}>
+            {CATEGORIAS_INGRESO.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </Select>
           {formError && <p className="text-xs text-danger">{formError}</p>}
           <div className="mt-1 flex justify-end gap-2">
             <Button type="button" variant="ghost" size="sm" onClick={() => setFormOpen(false)} disabled={saving}>
@@ -152,7 +164,9 @@ export function ActividadesTab() {
             <Card key={t.id} className="flex items-center justify-between gap-3 p-4">
               <div className="min-w-0">
                 <p className="truncate font-medium">{t.name}</p>
-                <p className="text-xs text-muted-foreground">{formatMoney(t.amount)}</p>
+                <p className="text-xs text-muted-foreground">
+                  {formatMoney(t.amount)} · {t.categoria}
+                </p>
               </div>
               <OverflowMenu
                 items={[

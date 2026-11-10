@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { StudentCard } from "@/components/students/StudentCard";
-import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { getLocalNow } from "@/lib/time";
 import { getCurrentLocation } from "@/lib/geolocation-client";
 import type { RosterStudent } from "@/types";
@@ -18,8 +17,6 @@ type RosterViewProps = {
 export function RosterView({ scheduleId, date, initialRoster, requiresLocation }: RosterViewProps) {
   const [roster, setRoster] = useState(initialRoster);
   const [pendingId, setPendingId] = useState<string | null>(null);
-  const [confirmTarget, setConfirmTarget] = useState<RosterStudent | null>(null);
-  const [removing, setRemoving] = useState(false);
 
   async function markPresent(student: RosterStudent) {
     setPendingId(student.id);
@@ -65,33 +62,32 @@ export function RosterView({ scheduleId, date, initialRoster, requiresLocation }
     }
   }
 
-  async function unmarkPresent() {
-    if (!confirmTarget?.attendanceId) return;
-    setRemoving(true);
+  async function unmarkPresent(student: RosterStudent) {
+    if (!student.attendanceId) return;
+    setPendingId(student.id);
     try {
-      const res = await fetch(`/api/attendance/${confirmTarget.attendanceId}`, { method: "DELETE" });
+      const res = await fetch(`/api/attendance/${student.attendanceId}`, { method: "DELETE" });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         toast.error(data.error ?? "No se pudo quitar la asistencia");
         return;
       }
       setRoster((current) =>
-        current.map((s) =>
-          s.id === confirmTarget.id ? { ...s, present: false, attendanceId: null, time: null } : s
-        )
+        current.map((s) => (s.id === student.id ? { ...s, present: false, attendanceId: null, time: null } : s))
       );
-      toast.success(`Asistencia quitada: ${confirmTarget.firstName} ${confirmTarget.lastName}`);
-      setConfirmTarget(null);
+      toast.success(`Asistencia quitada: ${student.firstName} ${student.lastName}`, {
+        action: { label: "Deshacer", onClick: () => markPresent(student) },
+      });
     } catch {
       toast.error("Error de conexión");
     } finally {
-      setRemoving(false);
+      setPendingId(null);
     }
   }
 
   function handleCardClick(student: RosterStudent) {
     if (student.present) {
-      setConfirmTarget(student);
+      unmarkPresent(student);
     } else {
       markPresent(student);
     }
@@ -106,35 +102,18 @@ export function RosterView({ scheduleId, date, initialRoster, requiresLocation }
   }
 
   return (
-    <>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-        {roster.map((student) => (
-          <StudentCard
-            key={student.id}
-            firstName={student.firstName}
-            lastName={student.lastName}
-            photoUrl={student.photoUrl}
-            present={student.present}
-            disabled={pendingId === student.id}
-            onClick={() => handleCardClick(student)}
-          />
-        ))}
-      </div>
-
-      <ConfirmDialog
-        open={confirmTarget !== null}
-        title="Quitar asistencia"
-        message={
-          confirmTarget
-            ? `¿Querés quitar la asistencia registrada a ${confirmTarget.firstName} ${confirmTarget.lastName}?`
-            : ""
-        }
-        confirmLabel="Quitar"
-        danger
-        loading={removing}
-        onConfirm={unmarkPresent}
-        onCancel={() => setConfirmTarget(null)}
-      />
-    </>
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+      {roster.map((student) => (
+        <StudentCard
+          key={student.id}
+          firstName={student.firstName}
+          lastName={student.lastName}
+          photoUrl={student.photoUrl}
+          present={student.present}
+          disabled={pendingId === student.id}
+          onClick={() => handleCardClick(student)}
+        />
+      ))}
+    </div>
   );
 }

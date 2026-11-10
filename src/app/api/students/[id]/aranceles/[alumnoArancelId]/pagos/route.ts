@@ -79,6 +79,21 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Mes inválido" }, { status: 400 });
   }
 
+  const existingPago = await prisma.pagoArancel.findUnique({
+    where: {
+      studentId_tipoArancelId_month: { studentId: id, tipoArancelId: enrollment.tipoArancelId, month: parsed.data.month },
+    },
+  });
+
+  // Ya se exportó un recibo de esta cuota: no se puede desmarcar directo, hay que pedírselo al
+  // superadmin (ver AdminRequest y POST /api/aranceles/movimientos/solicitudes).
+  if (existingPago?.reciboExportedAt) {
+    return NextResponse.json(
+      { error: "Esta cuota ya tiene un recibo exportado y no se puede desmarcar directamente. Pedí su borrado al superadmin." },
+      { status: 409 }
+    );
+  }
+
   await prisma.pagoArancel.deleteMany({
     where: { studentId: id, tipoArancelId: enrollment.tipoArancelId, month: parsed.data.month },
   });

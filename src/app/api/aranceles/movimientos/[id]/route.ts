@@ -49,6 +49,15 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Movimiento no encontrado" }, { status: 404 });
   }
 
+  // Ya se exportó un recibo de este movimiento: no se borra directo, hay que pedírselo al
+  // superadmin (ver AdminRequest y POST /api/aranceles/movimientos/solicitudes).
+  if (existing.reciboExportedAt) {
+    return NextResponse.json(
+      { error: "Este movimiento ya tiene un recibo exportado y no se puede borrar directamente. Pedí su borrado al superadmin." },
+      { status: 409 }
+    );
+  }
+
   await prisma.movimientoFinanciero.delete({ where: { id, adminId: session.adminId } });
 
   await logChange({

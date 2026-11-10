@@ -37,7 +37,7 @@ export default function OlvidePasswordPage() {
   }
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-background px-4">
+    <main className="bg-dot-grid flex min-h-dvh items-center justify-center bg-background px-4">
       <Card className="w-full max-w-sm p-8">
         <Image
           src="/logo.png"
