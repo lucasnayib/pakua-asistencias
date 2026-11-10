@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 import { SESSION_COOKIE } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isSubscriptionSuspended } from "@/lib/subscription";
 
 type SessionRole = { adminId: string; role: string } | null;
 
@@ -122,15 +123,16 @@ export default async function proxy(request: NextRequest) {
     if (session.role === "SUPER_ADMIN") {
       return NextResponse.redirect(new URL("/admin/admins", request.url));
     }
-    // Suscripción suspendida: se bloquea el panel (no el login), salvo la propia pantalla
-    // de facturación donde el admin puede reactivar pagando. El super-admin no factura,
-    // así que este chequeo va después del bloque de arriba, solo aplica a role "ADMIN".
+    // Suscripción cortada (nunca pagó, o pagó y se le venció): se bloquea el panel (no el
+    // login), salvo la propia pantalla de facturación donde el admin puede activarse
+    // pagando. El super-admin no factura, así que este chequeo va después del bloque de
+    // arriba, solo aplica a role "ADMIN".
     if (process.env.SUBSCRIPTIONS_ENABLED === "true" && pathname !== "/admin/facturacion") {
       const admin = await prisma.admin.findUnique({
         where: { id: session.adminId },
         select: { subscriptionStatus: true },
       });
-      if (admin?.subscriptionStatus === "SUSPENDED") {
+      if (admin && isSubscriptionSuspended(admin.subscriptionStatus)) {
         return NextResponse.redirect(new URL("/admin/facturacion", request.url));
       }
     }

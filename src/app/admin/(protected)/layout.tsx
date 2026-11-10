@@ -35,11 +35,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const suspended = admin ? isSubscriptionSuspended(admin.subscriptionStatus) : false;
 
   // La guía interactiva solo se ofrece una vez: cuando el admin ya tiene acceso real al panel
-  // (en prueba gratis o pago, da igual) y todavía no se le mostró ni completó. Antes exigía
-  // subscriptionStatus === "ACTIVE", lo que dejaba afuera a cualquier cuenta en TRIALING — con
-  // la prueba gratis restaurada, la gran mayoría de las cuentas nuevas arrancan en TRIALING, así
-  // que nunca veían el cartel. isSubscriptionSuspended ya es el único criterio que decide en
-  // todo el resto de la app si una cuenta puede usar el panel o no; se reusa acá por lo mismo.
+  // (pagando, o un caso EXEMPT) y todavía no se le mostró ni completó. isSubscriptionSuspended
+  // ya es el único criterio que decide en todo el resto de la app si una cuenta puede usar el
+  // panel o no; se reusa acá por lo mismo.
   const showOnboardingPrompt =
     session.role === "ADMIN" &&
     admin != null &&

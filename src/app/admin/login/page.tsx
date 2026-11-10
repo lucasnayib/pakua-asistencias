@@ -11,11 +11,10 @@ export default async function AdminLoginPage() {
 
   const priceArs =
     process.env.SUBSCRIPTIONS_ENABLED === "true" ? (process.env.SUBSCRIPTION_PRICE_ARS ?? null) : null;
-  const trialDays = process.env.SUBSCRIPTION_TRIAL_DAYS ?? "7";
 
   return (
     <Suspense>
-      <AuthPageClient priceArs={priceArs} trialDays={trialDays} />
+      <AuthPageClient priceArs={priceArs} />
     </Suspense>
   );
 }

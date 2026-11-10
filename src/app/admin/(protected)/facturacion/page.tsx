@@ -16,7 +16,6 @@ export default async function FacturacionAdminPage() {
         where: { id: session.adminId },
         select: {
           subscriptionStatus: true,
-          trialEndsAt: true,
           currentPeriodEnd: true,
           graceEndsAt: true,
         },
@@ -32,8 +31,7 @@ export default async function FacturacionAdminPage() {
 
       {subscriptionsEnabled ? (
         <SubscriptionSettings
-          subscriptionStatus={admin?.subscriptionStatus ?? "TRIALING"}
-          trialEndsAt={admin?.trialEndsAt?.toISOString() ?? null}
+          subscriptionStatus={admin?.subscriptionStatus ?? "UNPAID"}
           currentPeriodEnd={admin?.currentPeriodEnd?.toISOString() ?? null}
           graceEndsAt={admin?.graceEndsAt?.toISOString() ?? null}
           priceArs={process.env.SUBSCRIPTION_PRICE_ARS ?? null}

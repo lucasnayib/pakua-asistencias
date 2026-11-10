@@ -6,9 +6,10 @@ const WARNING_WINDOW_MS = 12 * 60 * 60 * 1000; // 12 horas
 
 /**
  * Job periódico (corre cada hora vía el Programador de tareas de Windows, ver
- * scripts/check-subscriptions.ts) que hace cumplir el trial y la gracia de pago sin
- * depender solo de que lleguen webhooks. No usa sesión de admin — se protege con un
- * secreto simple en el header `x-cron-secret`.
+ * scripts/check-subscriptions.ts) que hace cumplir el aviso de vencimiento de período y la
+ * gracia de pago sin depender solo de que lleguen webhooks. No toca cuentas UNPAID — esas
+ * quedan bloqueadas hasta que paguen, no hay nada que vencer ahí. No usa sesión de admin —
+ * se protege con un secreto simple en el header `x-cron-secret`.
  */
 export async function POST(request: Request) {
   const secret = process.env.INTERNAL_CRON_SECRET;
@@ -24,39 +25,10 @@ export async function POST(request: Request) {
 
   const admins = await prisma.admin.findMany({ where: { role: "ADMIN" } });
 
-  let trialWarnings = 0;
-  let trialSuspensions = 0;
   let periodWarnings = 0;
   let graceSuspensions = 0;
 
   for (const admin of admins) {
-    if (admin.subscriptionStatus === "TRIALING" && admin.trialEndsAt) {
-      if (admin.trialEndsAt <= now) {
-        await prisma.admin.update({ where: { id: admin.id }, data: { subscriptionStatus: "SUSPENDED" } });
-        if (admin.contactEmail) {
-          await sendSubscriptionSuspendedEmail({
-            contactEmail: admin.contactEmail,
-            displayName: admin.displayName,
-            reason: "TRIAL_ENDED",
-          });
-        }
-        trialSuspensions++;
-        continue;
-      }
-      if (!admin.trialWarningSentAt && admin.trialEndsAt <= warningThreshold) {
-        await prisma.admin.update({ where: { id: admin.id }, data: { trialWarningSentAt: now } });
-        if (admin.contactEmail) {
-          await sendSubscriptionWarningEmail({
-            contactEmail: admin.contactEmail,
-            displayName: admin.displayName,
-            reason: "TRIAL_ENDING",
-          });
-        }
-        trialWarnings++;
-      }
-      continue;
-    }
-
     if (admin.subscriptionStatus === "ACTIVE" && admin.currentPeriodEnd) {
       if (!admin.periodWarningSentAt && admin.currentPeriodEnd <= warningThreshold && admin.currentPeriodEnd > now) {
         await prisma.admin.update({ where: { id: admin.id }, data: { periodWarningSentAt: now } });
@@ -85,5 +57,5 @@ export async function POST(request: Request) {
     }
   }
 
-  return NextResponse.json({ ok: true, trialWarnings, trialSuspensions, periodWarnings, graceSuspensions });
+  return NextResponse.json({ ok: true, periodWarnings, graceSuspensions });
 }
