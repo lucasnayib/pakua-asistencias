@@ -13,10 +13,9 @@ import { AuthCard, type AuthMode } from "./AuthCard";
 
 type AuthPageClientProps = {
   priceArs: string | null;
-  trialDays: string;
 };
 
-export function AuthPageClient({ priceArs, trialDays }: AuthPageClientProps) {
+export function AuthPageClient({ priceArs }: AuthPageClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const mode: AuthMode = searchParams.get("mode") === "register" ? "register" : "login";
@@ -226,7 +225,6 @@ export function AuthPageClient({ priceArs, trialDays }: AuthPageClientProps) {
         mode={mode}
         onModeChange={setMode}
         priceArs={priceArs}
-        trialDays={trialDays}
         loginForm={
           <div className="w-full max-w-xs">
             <Image

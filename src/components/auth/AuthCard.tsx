@@ -11,7 +11,6 @@ type AuthCardProps = {
   loginForm: React.ReactNode;
   registerForm: React.ReactNode;
   priceArs: string | null;
-  trialDays: string;
 };
 
 /** Tarjeta de login/registro con panel ilustrado deslizante — misma idea que los diseños de
@@ -21,7 +20,7 @@ type AuthCardProps = {
  * ancho de la tarjeta (dos "páginas" completas, una por modo) y se desliza con un solo
  * transform — así, al cambiar de modo, el panel de fotos se mueve naturalmente de un lado al
  * otro sin tener que animar cada mitad por separado. */
-export function AuthCard({ mode, onModeChange, loginForm, registerForm, priceArs, trialDays }: AuthCardProps) {
+export function AuthCard({ mode, onModeChange, loginForm, registerForm, priceArs }: AuthCardProps) {
   return (
     <div className="relative mx-auto w-full max-w-4xl overflow-hidden rounded-2xl border border-border bg-surface shadow-drawer">
       <div
@@ -64,8 +63,8 @@ export function AuthCard({ mode, onModeChange, loginForm, registerForm, priceArs
                 </p>
               )}
               <p className="max-w-xs text-xs text-white/70">
-                {trialDays} días de prueba gratis. Asistencia digital, alumnos, horarios y
-                orientadores, todo en un solo lugar.
+                Pago mensual automático. Asistencia digital, alumnos, horarios y orientadores,
+                todo en un solo lugar.
               </p>
               <Button
                 type="button"
