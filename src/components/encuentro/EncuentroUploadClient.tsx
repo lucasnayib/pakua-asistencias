@@ -185,8 +185,8 @@ export function EncuentroUploadClient() {
         <div>
           <h1 className="text-2xl font-semibold">Subí tus fotos y videos</h1>
           <p className="text-sm text-muted-foreground">
-            Elegí todas las fotos y videos que quieras del encuentro. Se suben en el fondo,
-            podés seguir usando el celular mientras tanto.
+            Elegí todas las fotos y videos que quieras. Se suben en el fondo, podés seguir
+            usando el celular mientras tanto.
           </p>
         </div>
 

@@ -56,9 +56,7 @@ export function AdminSidebar({
   contactEmail = null,
   photoUrl = null,
   pendingAdminCount = 0,
-  // pendingEncuentroCount: ver nota junto al nav item de "Encuentro" más abajo — se deja de
-  // desestructurar mientras ese link está apagado, pero sigue en el tipo para no tocar a
-  // quien ya la pasa (src/app/admin/(protected)/layout.tsx).
+  pendingEncuentroCount = 0,
   pendingArancelCount = 0,
   pendingSolicitudesCount = 0,
   itineranciasEnabled = false,
@@ -112,11 +110,7 @@ export function AdminSidebar({
             { href: "/admin/solicitudes", label: "Solicitudes", icon: "mail", badge: pendingSolicitudesCount },
             { href: "/admin/backups", label: "Copias de seguridad", icon: "database" },
             { href: "/admin/dos-factores", label: "Seguridad", icon: "shield" },
-            // "Encuentro" se apagó a pedido (evento puntual ya cerrado): el código, las rutas
-            // y los datos siguen intactos (ver EVENT_UPLOADS_ENABLED en .env y galleryEnabled
-            // en storage/evento/config.json). Para reactivarlo: descomentar esta línea, poner
-            // EVENT_UPLOADS_ENABLED="true" y volver a prender la galería desde acá.
-            // { href: "/admin/encuentro", label: "Encuentro", icon: "camera", badge: pendingEncuentroCount },
+            { href: "/admin/encuentro", label: "Fotos", icon: "camera", badge: pendingEncuentroCount },
           ],
         },
       ]

@@ -198,7 +198,7 @@ export function EncuentroAdminClient() {
   function shareLink() {
     if (!gallery.galleryUrl) return;
     if (typeof navigator.share === "function") {
-      navigator.share({ title: "Galería del Encuentro", url: gallery.galleryUrl }).catch(() => {});
+      navigator.share({ title: "Galería de fotos", url: gallery.galleryUrl }).catch(() => {});
     }
   }
 
@@ -359,7 +359,7 @@ export function EncuentroAdminClient() {
         {qr ? (
           <Card className="flex flex-col items-center gap-3 p-6 print:border-0 print:shadow-none">
             {/* eslint-disable-next-line @next/next/no-img-element -- data URL generado en el servidor */}
-            <img src={qr.dataUrl} alt="Código QR del Encuentro" className="h-56 w-56" />
+            <img src={qr.dataUrl} alt="Código QR de la galería" className="h-56 w-56" />
             <p className="max-w-full break-all text-center text-xs text-muted-foreground">{qr.url}</p>
             <Button size="sm" variant="secondary" className="print:hidden" onClick={() => window.print()}>
               Imprimir

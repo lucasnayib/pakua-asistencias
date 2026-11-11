@@ -30,7 +30,7 @@ export default async function EncuentroPage({ searchParams }: Props) {
         <main className="flex flex-1 flex-col items-center justify-center gap-2 px-4 text-center">
           <h1 className="text-xl font-semibold">La carga ya cerró</h1>
           <p className="text-sm text-muted-foreground">
-            Gracias por tus fotos y videos del encuentro. La carga ya no está disponible.
+            Gracias por tus fotos y videos. La carga ya no está disponible.
           </p>
         </main>
       </div>

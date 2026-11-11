@@ -66,7 +66,7 @@ export function EncuentroCodeGate({ initialCode }: EncuentroCodeGateProps) {
       <EncuentroHeader />
       <main className="flex flex-1 flex-col items-center justify-center gap-4 px-4 py-10">
         <Card className="w-full max-w-sm p-8">
-          <h1 className="mb-1 text-center text-xl font-semibold">Encuentro</h1>
+          <h1 className="mb-1 text-center text-xl font-semibold">Fotos</h1>
           <p className="mb-6 text-center text-sm text-muted-foreground">
             Ingresá el código del cartel para subir tus fotos y videos
           </p>

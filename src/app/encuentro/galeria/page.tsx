@@ -20,7 +20,7 @@ export default async function EncuentroGaleriaPage({ searchParams }: Props) {
         <EncuentroHeader />
         <main className="flex flex-1 flex-col items-center justify-center gap-2 px-4 text-center">
           <h1 className="text-xl font-semibold">La galería no está disponible</h1>
-          <p className="text-sm text-muted-foreground">Pedile el link actualizado a la organización.</p>
+          <p className="text-sm text-muted-foreground">Pedile el link actualizado a la escuela.</p>
         </main>
       </div>
     );

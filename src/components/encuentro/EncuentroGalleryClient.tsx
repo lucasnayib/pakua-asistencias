@@ -81,8 +81,8 @@ export function EncuentroGalleryClient() {
       <EncuentroHeader />
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 px-4 py-6 sm:px-6">
         <div>
-          <h1 className="text-2xl font-semibold">Fotos y videos del encuentro</h1>
-          <p className="text-sm text-muted-foreground">Todo lo que subieron los asistentes, ya revisado.</p>
+          <h1 className="text-2xl font-semibold">Fotos y videos</h1>
+          <p className="text-sm text-muted-foreground">Todo lo que subió la gente, ya revisado.</p>
         </div>
 
         <EncuentroPrivacyNotice />

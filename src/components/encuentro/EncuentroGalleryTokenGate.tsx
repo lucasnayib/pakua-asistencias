@@ -57,9 +57,9 @@ export function EncuentroGalleryTokenGate({ initialToken }: EncuentroGalleryToke
       <EncuentroHeader />
       <main className="flex flex-1 flex-col items-center justify-center gap-4 px-4 py-10">
         <Card className="w-full max-w-sm p-8">
-          <h1 className="mb-1 text-center text-xl font-semibold">Galería del Encuentro</h1>
+          <h1 className="mb-1 text-center text-xl font-semibold">Galería de fotos</h1>
           <p className="mb-6 text-center text-sm text-muted-foreground">
-            Este link es privado. Si no tenés uno, pedíselo a la organización.
+            Este link es privado. Si no tenés uno, pedíselo a la escuela.
           </p>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <Input
