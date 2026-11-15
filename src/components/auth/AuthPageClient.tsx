@@ -45,8 +45,15 @@ export function AuthPageClient({ priceArs }: AuthPageClientProps) {
     const isSuperAdmin = role === "SUPER_ADMIN";
     const canReachFrom = from && (!isSuperAdmin || from.startsWith("/admin/admins"));
     const destination = canReachFrom ? from : isSuperAdmin ? "/admin/admins" : "/admin";
-    router.push(destination);
-    router.refresh();
+    // Navegación dura (no router.push + router.refresh): justo acabamos de setear la cookie
+    // de sesión con un fetch aparte, y pedirle al router de Next que haga una navegación
+    // blanda + un refresh de Server Components a la vez corre contra esa cookie recién
+    // puesta — a veces el proxy (src/proxy.ts) todavía no la ve en esa request y rebota a
+    // /admin/login?from=..., dejando al router de Next en un estado intermedio (pantalla en
+    // negro, y Chrome llega a frenar la navegación por "demasiados cambios seguidos"). Una
+    // navegación de página completa no tiene ese problema: es un pedido nuevo de cero, con
+    // la cookie ya puesta de antes.
+    window.location.href = destination;
   }
 
   async function handleLoginSubmit(e: FormEvent) {
