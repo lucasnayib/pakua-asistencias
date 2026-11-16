@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { buildStudentsExcelBuffer } from "@/lib/export/students-excel";
 import { logChange } from "@/lib/audit";
+import { toArgentinaISODate } from "@/lib/time";
 
 export async function GET() {
   const session = await requireAdmin();
@@ -43,7 +44,7 @@ export async function GET() {
   );
 
   const buffer = await buildStudentsExcelBuffer(rows, historyRows);
-  const filename = `alumnos_${new Date().toISOString().slice(0, 10)}.xlsx`;
+  const filename = `alumnos_${toArgentinaISODate(new Date())}.xlsx`;
 
   await logChange({
     actor: session.displayName,

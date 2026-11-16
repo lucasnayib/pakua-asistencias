@@ -294,16 +294,28 @@ model ItineranciaStudentRegistration {
   @@unique([activityId, studentId])
 }
 
-// Catálogo de tipos de arancel de la escuela (abierto: el admin agrega los que necesite —
-// Yoga, Arte Marcial, Clases de Mejoramiento, un curso puntual, etc.). El monto es el mismo
-// para todos los alumnos anotados a ese tipo.
+// Catálogo de actividades de la escuela (abierto: el admin agrega las que necesite — Yoga,
+// Arte Marcial, Clases de Mejoramiento, un curso puntual, etc.). Ya no tienen un precio fijo
+// propio: el monto se carga cada vez que se registra un pago/movimiento contra la actividad
+// (ver PagoArancel.amount), así que puede variar de un mes a otro o de un alumno a otro.
 model TipoArancel {
   id        String   @id @default(cuid())
   adminId   String
   admin     Admin    @relation(fields: [adminId], references: [id])
   name      String
-  amount    Int // pesos enteros, sin decimales
+  // Histórico: hasta que se sacó el precio fijo, esto guardaba el monto de la actividad. Ya no
+  // se escribe desde ningún formulario (ver tipoArancelCreateSchema/tipoArancelUpdateSchema en
+  // src/lib/validations.ts) — se deja nullable para no perder los valores viejos ni romper las
+  // filas ya creadas.
+  amount    Int?
   categoria String   @default("CUOTAS") // una de CATEGORIAS_INGRESO (src/lib/validations.ts)
+  // Solo aplica a categoria FEDERACION: porcentaje que le queda a la escuela por registrar el
+  // pago (el resto se le pasa a la federación). No es fijo — la federación lo cambia cada
+  // cierto tiempo y varía según la actividad — así que es apenas el valor por defecto que se
+  // autocompleta al cargar un pago nuevo de esta actividad; el dato que de verdad cuenta para
+  // los totales es PagoArancel.escuelaPorcentaje / MovimientoFinanciero.escuelaPorcentaje,
+  // tomado en el momento de cada pago (no cambia retroactivamente si esto se actualiza después).
+  federacionPorcentaje Int?
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -347,6 +359,21 @@ model PagoArancel {
   paidAt    DateTime @default(now())
   createdAt DateTime @default(now())
 
+  // Solo tiene sentido cuando tipoArancel.categoria es FEDERACION: qué porcentaje de `amount`
+  // le queda a la escuela como ingreso propio (el resto se le pasa a la federación). null =
+  // todavía no se cargó este dato (pagos de antes de que existiera, o un ingreso que no es de
+  // categoría FEDERACION) — se trata como 0% en los totales, igual que antes de que existiera
+  // este campo. Se guarda acá, no se deriva de TipoArancel.federacionPorcentaje, porque ese
+  // valor cambia con el tiempo y esto es una foto de lo que correspondía en el momento de pagar.
+  escuelaPorcentaje Int?
+
+  // Solo aplica a categoria CUOTAS: cuando el admin marca "pago parcial" al cargarlo, acá
+  // queda qué porcentaje de la cuota total representa este pago (ej. 50 = pagó la mitad).
+  // null = pago completo (el default, y el valor de todos los pagos de antes de que existiera
+  // este campo). No afecta ningún cálculo de totales — `amount` ya es lo efectivamente
+  // cobrado — es solo para que quede registrado que fue parcial y de cuánto.
+  porcentajePagado Int?
+
   // Se completa la primera vez que se exporta/imprime el recibo de este pago (ver
   // /api/aranceles/movimientos/recibo). A partir de ahí el pago queda protegido contra
   // borrado directo — ya existe un comprobante entregado con estos datos — y desmarcarlo
@@ -372,6 +399,10 @@ model MovimientoFinanciero {
   estado    String   @default("PAGADO") // "PAGADO" | "NO_PAGADO" — solo lo PAGADO entra en los totales
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Mismo criterio y mismo significado que PagoArancel.escuelaPorcentaje: solo aplica cuando
+  // categoria es FEDERACION, es una foto del porcentaje en el momento de cargar el movimiento.
+  escuelaPorcentaje Int?
 
   // Mismo criterio que PagoArancel.reciboExportedAt: una vez exportado su recibo, este
   // movimiento queda protegido contra borrado directo.

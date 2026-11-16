@@ -18,8 +18,8 @@ type StudentDetailsDialogProps = {
   onChanged: () => void;
 };
 
-type ArancelRow = { id: string; tipoArancelId: string; name: string; amount: number; active: boolean; paid: boolean };
-type TipoArancelOption = { id: string; name: string; amount: number; categoria: string; active: boolean };
+type ArancelRow = { id: string; tipoArancelId: string; name: string; amount: number | null; active: boolean; paid: boolean };
+type TipoArancelOption = { id: string; name: string; categoria: string; active: boolean };
 
 export function StudentDetailsDialog({ open, student, onClose, onChanged }: StudentDetailsDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -46,6 +46,8 @@ export function StudentDetailsDialog({ open, student, onClose, onChanged }: Stud
   const [aranceles, setAranceles] = useState<ArancelRow[]>([]);
   const [tiposDisponibles, setTiposDisponibles] = useState<TipoArancelOption[]>([]);
   const [arancelTogglingId, setArancelTogglingId] = useState<string | null>(null);
+  const [markPaidTarget, setMarkPaidTarget] = useState<ArancelRow | null>(null);
+  const [markPaidAmount, setMarkPaidAmount] = useState("");
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [enrollTipoId, setEnrollTipoId] = useState("");
   const [enrollBusy, setEnrollBusy] = useState(false);
@@ -70,6 +72,8 @@ export function StudentDetailsDialog({ open, student, onClose, onChanged }: Stud
       setCurrentDeliveryFormOpen(false);
       setEnrollOpen(false);
       setEnrollTipoId("");
+      setMarkPaidTarget(null);
+      setMarkPaidAmount("");
     }
   }, [open, student]);
 
@@ -87,24 +91,54 @@ export function StudentDetailsDialog({ open, student, onClose, onChanged }: Stud
 
   if (!student) return null;
 
-  async function toggleArancelPaid(row: ArancelRow) {
+  async function unmarkArancelPaid(row: ArancelRow) {
     if (!student) return;
     setArancelTogglingId(row.id);
     try {
       const month = getLocalNow().date.slice(0, 7);
-      const res = row.paid
-        ? await fetch(`/api/students/${student.id}/aranceles/${row.id}/pagos?month=${month}`, { method: "DELETE" })
-        : await fetch(`/api/students/${student.id}/aranceles/${row.id}/pagos`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ month }),
-          });
+      const res = await fetch(`/api/students/${student.id}/aranceles/${row.id}/pagos?month=${month}`, {
+        method: "DELETE",
+      });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         toast.error(data.error ?? "No se pudo actualizar");
         return;
       }
-      setAranceles((current) => current.map((a) => (a.id === row.id ? { ...a, paid: !row.paid } : a)));
+      setAranceles((current) => current.map((a) => (a.id === row.id ? { ...a, paid: false, amount: null } : a)));
+      onChanged();
+    } finally {
+      setArancelTogglingId(null);
+    }
+  }
+
+  // Las actividades ya no tienen un precio fijo (ver TipoArancel en el schema): marcar como
+  // pagado ahora pide el monto en el momento, en vez de copiarlo de un precio predefinido.
+  async function handleMarkPaidSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!student || !markPaidTarget) return;
+    const amount = Math.round(Number(markPaidAmount));
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error("Completá un monto válido");
+      return;
+    }
+    setArancelTogglingId(markPaidTarget.id);
+    try {
+      const month = getLocalNow().date.slice(0, 7);
+      const res = await fetch(`/api/students/${student.id}/aranceles/${markPaidTarget.id}/pagos`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ month, amount }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error ?? "No se pudo actualizar");
+        return;
+      }
+      setAranceles((current) =>
+        current.map((a) => (a.id === markPaidTarget.id ? { ...a, paid: true, amount } : a))
+      );
+      setMarkPaidTarget(null);
+      setMarkPaidAmount("");
       onChanged();
     } finally {
       setArancelTogglingId(null);
@@ -129,7 +163,7 @@ export function StudentDetailsDialog({ open, student, onClose, onChanged }: Stud
       const tipo = tiposDisponibles.find((t) => t.id === enrollTipoId);
       setAranceles((current) => [
         ...current,
-        { id: data.enrollment.id, tipoArancelId: enrollTipoId, name: tipo?.name ?? "", amount: tipo?.amount ?? 0, active: true, paid: false },
+        { id: data.enrollment.id, tipoArancelId: enrollTipoId, name: tipo?.name ?? "", amount: null, active: true, paid: false },
       ]);
       toast.success("Alumno anotado al arancel");
       setEnrollOpen(false);
@@ -551,10 +585,13 @@ export function StudentDetailsDialog({ open, student, onClose, onChanged }: Stud
             {aranceles.length > 0 && (
               <ul className="flex flex-col divide-y divide-border text-sm">
                 {aranceles.map((row) => (
-                  <li key={row.id} className="flex items-center justify-between gap-2 py-2">
+                  <li key={row.id} className="flex flex-col gap-2 py-2">
+                  <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0">
                       <p className="truncate font-medium">{row.name}</p>
-                      <p className="text-xs text-muted-foreground">{formatMoney(row.amount)}</p>
+                      {row.paid && row.amount !== null && (
+                        <p className="text-xs text-muted-foreground">{formatMoney(row.amount)} este mes</p>
+                      )}
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <span className={`text-xs ${row.paid ? "text-success" : "text-danger"}`}>
@@ -562,7 +599,14 @@ export function StudentDetailsDialog({ open, student, onClose, onChanged }: Stud
                       </span>
                       <Switch
                         checked={row.paid}
-                        onChange={() => toggleArancelPaid(row)}
+                        onChange={() => {
+                          if (row.paid) {
+                            unmarkArancelPaid(row);
+                          } else {
+                            setMarkPaidTarget(row);
+                            setMarkPaidAmount("");
+                          }
+                        }}
                         disabled={arancelTogglingId === row.id}
                       />
                       <button
@@ -573,6 +617,35 @@ export function StudentDetailsDialog({ open, student, onClose, onChanged }: Stud
                         Desanotar
                       </button>
                     </div>
+                  </div>
+
+                  {markPaidTarget?.id === row.id && (
+                    <form onSubmit={handleMarkPaidSubmit} className="flex items-end gap-2">
+                      <Input
+                        label="Monto a pagar"
+                        type="number"
+                        min={1}
+                        step={1}
+                        autoFocus
+                        value={markPaidAmount}
+                        onChange={(e) => setMarkPaidAmount(e.target.value)}
+                        className="h-9"
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setMarkPaidTarget(null)}
+                        disabled={arancelTogglingId === row.id}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button type="submit" size="sm" loading={arancelTogglingId === row.id}>
+                        Confirmar
+                      </Button>
+                    </form>
+                  )}
                   </li>
                 ))}
               </ul>
@@ -591,8 +664,8 @@ export function StudentDetailsDialog({ open, student, onClose, onChanged }: Stud
                     .filter((t) => t.active && !aranceles.some((a) => a.tipoArancelId === t.id))
                     .map((t) => (
                       <option key={t.id} value={t.id}>
-                        {t.name} ({formatMoney(t.amount)}
-                        {t.categoria !== "CUOTAS" ? ` · ${t.categoria}` : ""})
+                        {t.name}
+                        {t.categoria !== "CUOTAS" ? ` (${t.categoria})` : ""}
                       </option>
                     ))}
                 </Select>

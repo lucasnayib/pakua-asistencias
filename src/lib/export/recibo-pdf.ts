@@ -11,6 +11,13 @@ export type ReciboData = {
   amount: number;
   date: string; // "YYYY-MM-DD"
   alumno?: string; // apellido, nombre — solo para cuotas ligadas a un alumno puntual
+  // Mes que cubre la cuota (ya formateado, ej. "Noviembre 2026") — distinto de `date`, que es
+  // cuándo se pagó: alguien puede pagar en diciembre la cuota de noviembre. Solo aplica a
+  // cuotas (PagoArancel); un movimiento suelto no tiene un "período" propio.
+  mesCuota?: string;
+  // % de la cuota total que representa este pago, solo cuando se cargó como "pago parcial"
+  // (ver PagoArancel.porcentajePagado). undefined/null = pago completo, no se muestra nada.
+  porcentajePagado?: number | null;
   numero: string; // identificador corto para que el recibo sea trazable
   contactEmail?: string | null;
   contactPhone?: string | null;
@@ -115,11 +122,20 @@ function getLogoBase64(): string | null {
 // acento rojo de marca) para que se sienta parte del mismo producto sin perder la seriedad de
 // un comprobante de pago.
 export function buildReciboPdf(data: ReciboData): Buffer {
-  const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: [480, 350], compress: true });
   const pageWidth = 480;
-  const pageHeight = 350;
   const margin = 32;
   const contentWidth = pageWidth - margin * 2;
+
+  // Alto dinámico: cada campo opcional (alumno, mes de la cuota) agrega una fila fija de 42pt
+  // antes del recuadro de monto, así que el alto de la página se deriva del mismo cálculo que
+  // el de la caja de datos en vez de dejar un tamaño fijo con hueco de sobra (o, peor, que se
+  // quede corto si se suman más campos a futuro).
+  const boxTop = 114;
+  const boxHeight = (data.alumno ? 108 : 78) + (data.mesCuota ? 42 : 0) + (data.porcentajePagado != null ? 42 : 0);
+  const amountHeight = 72;
+  const pageHeight = boxTop + boxHeight + 128; // 16 (gap) + amountHeight + 4 (gap) + 12 + 24 (pie)
+
+  const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: [pageWidth, pageHeight], compress: true });
 
   // --- Encabezado: logo a la izquierda, identificación del comprobante a la derecha ---
   const logo = getLogoBase64();
@@ -153,9 +169,7 @@ export function buildReciboPdf(data: ReciboData): Buffer {
 
   // --- Caja de datos: mismo patrón "etiqueta chica en mayúsculas + valor" que el resto de la
   // app (ver StudentDetailsDialog, MovimientosTab) ---
-  const boxTop = 114;
   const boxPadding = 16;
-  const boxHeight = data.alumno ? 108 : 78;
   doc.setDrawColor(...COLOR_BORDER);
   doc.setLineWidth(1);
   doc.roundedRect(margin, boxTop, contentWidth, boxHeight, 6, 6, "S");
@@ -186,10 +200,19 @@ export function buildReciboPdf(data: ReciboData): Buffer {
   }
   fieldY += 42;
 
+  if (data.mesCuota) {
+    field("MES DE LA CUOTA", data.mesCuota, colLeftX, fieldY);
+    fieldY += 42;
+  }
+
+  if (data.porcentajePagado != null) {
+    field("PAGO PARCIAL", `${data.porcentajePagado}% de la cuota total`, colLeftX, fieldY, COLOR_ACCENT);
+    fieldY += 42;
+  }
+
   // --- Monto: barra destacada con tinte del color de marca, igual criterio que los badges
   // bg-accent/10 que ya usa la app para resaltar un valor sin ser un botón ---
   const amountTop = boxTop + boxHeight + 16;
-  const amountHeight = 72;
   doc.setFillColor(...COLOR_ACCENT_TINT);
   doc.roundedRect(margin, amountTop, contentWidth, amountHeight, 6, 6, "F");
 

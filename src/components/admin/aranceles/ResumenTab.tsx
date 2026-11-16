@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/Card";
-import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { Spinner } from "@/components/ui/Spinner";
 import { getLocalNow } from "@/lib/time";
 import {
@@ -14,14 +14,28 @@ import {
   movimientoToLedgerRow,
   pagoToLedgerRow,
   totalCategoria,
+  totalIngresoPropioCategoria,
   type LedgerRow,
 } from "@/lib/aranceles-calc";
 
 type ResumenResponse = {
   month: string;
   prevMonth: string;
-  movimientos: { tipo: string; categoria: string; concepto: string; amount: number; date: string; estado: string }[];
-  pagos: { amount: number; month: string; tipoArancel: { name: string; categoria: string } }[];
+  movimientos: {
+    tipo: string;
+    categoria: string;
+    concepto: string;
+    amount: number;
+    date: string;
+    estado: string;
+    escuelaPorcentaje?: number | null;
+  }[];
+  pagos: {
+    amount: number;
+    month: string;
+    escuelaPorcentaje?: number | null;
+    tipoArancel: { name: string; categoria: string };
+  }[];
 };
 
 function KpiCard({ label, value, tone }: { label: string; value: string; tone?: "success" | "danger" }) {
@@ -37,6 +51,7 @@ function KpiCard({ label, value, tone }: { label: string; value: string; tone?: 
 
 export function ResumenTab() {
   const [month, setMonth] = useState(() => getLocalNow().date.slice(0, 7));
+  const [mesesConDatos, setMesesConDatos] = useState<string[]>(() => [getLocalNow().date.slice(0, 7)]);
   const [data, setData] = useState<ResumenResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -48,6 +63,15 @@ export function ResumenTab() {
       .finally(() => setLoading(false));
   }, [month]);
 
+  // Desplegable con los meses que ya tienen algo cargado, en vez de un selector de mes libre
+  // donde hay que tipear — mismo criterio y mismo endpoint que el filtro de Gastos e ingresos.
+  useEffect(() => {
+    fetch("/api/aranceles/movimientos/meses")
+      .then((r) => r.json())
+      .then((d) => setMesesConDatos(d.meses ?? []))
+      .catch(() => {});
+  }, []);
+
   const rows: LedgerRow[] = useMemo(() => {
     if (!data) return [];
     return [...data.movimientos.map(movimientoToLedgerRow), ...data.pagos.map(pagoToLedgerRow)];
@@ -58,6 +82,10 @@ export function ResumenTab() {
   const desgloseIngresos = useMemo(() => desglosePorCategoria(rowsThisMonth, "INGRESO"), [rowsThisMonth]);
   const desgloseEgresos = useMemo(() => desglosePorCategoria(rowsThisMonth, "EGRESO"), [rowsThisMonth]);
   const totalFederacion = useMemo(() => totalCategoria(rowsThisMonth, "INGRESO", "FEDERACION"), [rowsThisMonth]);
+  const totalFederacionPropio = useMemo(
+    () => totalIngresoPropioCategoria(rowsThisMonth, "FEDERACION"),
+    [rowsThisMonth]
+  );
   const comparativa = useMemo(
     () => (data ? calcularComparativaMensual(rows, data.month, data.prevMonth) : null),
     [rows, data]
@@ -67,7 +95,13 @@ export function ResumenTab() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">{formatMonth(month)}</h2>
-        <Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="w-40" />
+        <Select value={month} onChange={(e) => setMonth(e.target.value)} className="w-48">
+          {mesesConDatos.map((m) => (
+            <option key={m} value={m}>
+              {formatMonth(m)}
+            </option>
+          ))}
+        </Select>
       </div>
 
       {loading ? (
@@ -88,9 +122,19 @@ export function ResumenTab() {
                 <span className="text-muted-foreground">Recaudado para la Federación este mes</span>
                 <span className="font-semibold">{formatMoney(totalFederacion)}</span>
               </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                No se cuenta como ingreso propio de la escuela — es dinero cobrado para reenviar a la federación.
-              </p>
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2">
+                <span className="text-xs text-muted-foreground">Le queda a la escuela (ya incluido en &quot;Ingresos&quot;)</span>
+                <span className="text-sm font-medium text-success">{formatMoney(totalFederacionPropio)}</span>
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs text-muted-foreground">Se le pasa a la Federación</span>
+                <span className="text-sm font-medium">{formatMoney(totalFederacion - totalFederacionPropio)}</span>
+              </div>
+              {totalFederacionPropio === 0 && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Todavía no se cargó el % que le corresponde a la escuela en estos pagos — se está contando como $0.
+                </p>
+              )}
             </Card>
           )}
 

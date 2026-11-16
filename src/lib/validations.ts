@@ -336,31 +336,63 @@ export const schoolRegistrationSchema = z.object({
 // pagos mensuales, y un libro de gastos/ingresos sueltos. Ver src/lib/aranceles-calc.ts.
 const monthRegex = /^\d{4}-\d{2}$/;
 
-// FEDERACION: cuotas que la escuela cobra para reenviar a la federación — se registran como
-// ingreso de categoría FEDERACION pero no son ingreso propio de la escuela, así que se excluyen
-// de los totales (ver esIngresoPropio en src/lib/aranceles-calc.ts). Solo sirven de registro.
+// FEDERACION: cuotas que la escuela cobra para reenviar a la federación. No son 100% ingreso
+// propio: la federación le reconoce a la escuela un porcentaje (variable, según la actividad y
+// el momento) por registrar el cobro — ver escuelaPorcentaje más abajo y montoIngresoPropio en
+// src/lib/aranceles-calc.ts. El resto (lo que se le pasa a la federación) no suma en los totales.
 export const CATEGORIAS_INGRESO = ["CUOTAS", "FEDERACION", "OTROS"] as const;
 export const CATEGORIAS_EGRESO = ["ALQUILER", "SERVICIOS", "INSUMOS", "MANTENIMIENTO", "SUELDOS", "OTROS"] as const;
 
+const porcentajeSchema = z.number().int().min(0, "El porcentaje no puede ser negativo").max(100, "El porcentaje no puede superar 100");
+
+// Las actividades ya no tienen un precio fijo propio: el monto se carga cada vez que se
+// registra un movimiento/pago (ver pagoArancelCreateSchema más abajo), así que
+// TipoArancel.amount quedó como campo histórico (ver el schema de Prisma) y no se acepta más
+// acá, ni al crear ni al editar. federacionPorcentaje sí se acepta: es el % por defecto que se
+// autocompleta al cargar un pago de categoría FEDERACION de esta actividad (ver
+// pagoArancelCreateSchema/movimientoFinancieroCreateSchema).
 export const tipoArancelCreateSchema = z.object({
   name: z.string().trim().min(1, "El nombre es obligatorio").max(100),
-  amount: z.number().int().min(0, "El monto no puede ser negativo").max(100_000_000),
   categoria: z.enum(CATEGORIAS_INGRESO).default("CUOTAS"),
+  federacionPorcentaje: porcentajeSchema.optional(),
 });
 
 export const tipoArancelUpdateSchema = z.object({
   name: z.string().trim().min(1, "El nombre es obligatorio").max(100).optional(),
-  amount: z.number().int().min(0).max(100_000_000).optional(),
   categoria: z.enum(CATEGORIAS_INGRESO).optional(),
   active: z.boolean().optional(),
+  federacionPorcentaje: porcentajeSchema.nullable().optional(),
 });
 
 export const alumnoArancelCreateSchema = z.object({
   tipoArancelId: z.string().trim().min(1),
 });
 
-export const pagoArancelMarkPaidSchema = z.object({
+export const pagoArancelMonthSchema = z.object({
   month: z.string().regex(monthRegex, "Mes inválido (YYYY-MM)"),
+});
+
+// El monto es obligatorio: ya no existe un precio fijo del que copiarlo (ver
+// tipoArancelCreateSchema), así que hay que pedirlo cada vez que se marca un pago.
+// escuelaPorcentaje solo tiene sentido en pagos de categoría FEDERACION (ver el campo
+// homónimo en PagoArancel) — en cualquier otra categoría se ignora. porcentajePagado solo
+// tiene sentido en pagos de categoría CUOTAS marcados como "pago parcial" (1-99: 100 sería un
+// pago completo, no parcial).
+export const pagoArancelCreateSchema = pagoArancelMonthSchema.extend({
+  amount: z.number().int().min(1, "El monto debe ser mayor a 0").max(100_000_000),
+  escuelaPorcentaje: porcentajeSchema.optional(),
+  porcentajePagado: z
+    .number()
+    .int()
+    .min(1, "El porcentaje tiene que ser mayor a 0")
+    .max(99, "Si es el 100%, no es un pago parcial")
+    .optional(),
+});
+
+// Para cargar (o corregir) el % retroactivamente en un pago de FEDERACION ya existente, sin
+// tocar su monto/mes — ver PATCH en pagos/route.ts.
+export const pagoArancelUpdatePorcentajeSchema = pagoArancelMonthSchema.extend({
+  escuelaPorcentaje: porcentajeSchema,
 });
 
 export const movimientoFinancieroCreateSchema = z
@@ -371,6 +403,7 @@ export const movimientoFinancieroCreateSchema = z
     amount: z.number().int().min(1, "El monto debe ser mayor a 0").max(100_000_000),
     date: z.string().regex(dateRegex, "Fecha inválida (YYYY-MM-DD)"),
     estado: z.enum(["PAGADO", "NO_PAGADO"]).default("PAGADO"),
+    escuelaPorcentaje: porcentajeSchema.optional(),
   })
   .refine(
     (v) =>
@@ -387,6 +420,7 @@ export const movimientoFinancieroUpdateSchema = z.object({
   amount: z.number().int().min(1).max(100_000_000).optional(),
   date: z.string().regex(dateRegex, "Fecha inválida (YYYY-MM-DD)").optional(),
   estado: z.enum(["PAGADO", "NO_PAGADO"]).optional(),
+  escuelaPorcentaje: porcentajeSchema.nullable().optional(),
 });
 
 // Solicitud de borrado de un movimiento/pago ya protegido por tener un recibo exportado (ver

@@ -1,11 +1,15 @@
 // Funciones puras (sin Prisma): seguras para importar tanto desde componentes de cliente
 // como desde rutas de servidor. Las consultas a la base (que sí necesitan Prisma) viven en
 // src/lib/aranceles-server.ts.
-import { getLocalNow } from "@/lib/time";
+import { toArgentinaISODate } from "@/lib/time";
 
-/** "YYYY-MM" del día de hoy (hora local del dispositivo/servidor según dónde se llame). */
+// "YYYY-MM" del mes actual en Argentina. A diferencia de getLocalNow() (pensado para usarse
+// del lado del cliente, donde "la hora local" es la del dispositivo de quien está mirando la
+// pantalla, en Argentina), esta función se llama solo del lado del servidor — y el servidor
+// puede estar corriendo en cualquier huso horario (UTC es lo más común). "Qué mes es hoy" para
+// calcular cuotas pendientes tiene que ser el mes en Argentina, no el del servidor.
 export function currentMonth(): string {
-  return getLocalNow().date.slice(0, 7);
+  return toArgentinaISODate(new Date()).slice(0, 7);
 }
 
 export function formatMoney(amount: number): string {
@@ -46,6 +50,9 @@ export type LedgerRow = {
   amount: number;
   month: string; // "YYYY-MM"
   estado: "PAGADO" | "NO_PAGADO";
+  // Solo tiene valor en filas de categoría FEDERACION: % de `amount` que es ingreso propio de
+  // la escuela (ver montoIngresoPropio). null/undefined = todavía no se cargó, se trata como 0%.
+  escuelaPorcentaje?: number | null;
 };
 
 export function movimientoToLedgerRow(m: {
@@ -55,6 +62,7 @@ export function movimientoToLedgerRow(m: {
   amount: number;
   date: string;
   estado: string;
+  escuelaPorcentaje?: number | null;
 }): LedgerRow {
   return {
     tipo: m.tipo as "INGRESO" | "EGRESO",
@@ -63,12 +71,14 @@ export function movimientoToLedgerRow(m: {
     amount: m.amount,
     month: m.date.slice(0, 7),
     estado: m.estado as "PAGADO" | "NO_PAGADO",
+    escuelaPorcentaje: m.escuelaPorcentaje,
   };
 }
 
 export function pagoToLedgerRow(p: {
   amount: number;
   month: string;
+  escuelaPorcentaje?: number | null;
   tipoArancel: { name: string; categoria: string };
 }): LedgerRow {
   return {
@@ -78,6 +88,7 @@ export function pagoToLedgerRow(p: {
     amount: p.amount,
     month: p.month,
     estado: "PAGADO",
+    escuelaPorcentaje: p.escuelaPorcentaje,
   };
 }
 
@@ -87,19 +98,26 @@ export function soloPagadas(rows: LedgerRow[]): LedgerRow[] {
   return rows.filter((r) => r.estado === "PAGADO");
 }
 
-// Categorías de ingreso que no son ingreso propio de la escuela: se cobran para reenviar a un
-// tercero (ej. FEDERACION) y solo quedan como registro de que se cobró y se pagó, sin sumar en
-// los totales/KPIs ni en el desglose por categoría.
-const CATEGORIAS_INGRESO_NO_PROPIO = new Set(["FEDERACION"]);
+// Categorías de ingreso que la escuela cobra para reenviar a un tercero (hoy solo FEDERACION):
+// no son 100% ingreso propio, sino un porcentaje variable que depende de la actividad y del
+// momento (ver escuelaPorcentaje en LedgerRow) — el resto no suma en los totales/KPIs ni en el
+// desglose por categoría, solo queda como registro de que se cobró y se pagó.
+const CATEGORIAS_INGRESO_CON_PORCENTAJE = new Set(["FEDERACION"]);
 
-export function esIngresoPropio(row: { tipo: string; categoria: string }): boolean {
-  return row.tipo !== "INGRESO" || !CATEGORIAS_INGRESO_NO_PROPIO.has(row.categoria);
+/** Cuánto de esta fila es de verdad ingreso propio de la escuela. Para la mayoría de las
+ * categorías es el monto completo; para FEDERACION es solo el porcentaje acordado (0 si
+ * todavía no se cargó ese dato — mismo comportamiento que antes de que existiera el %, cuando
+ * FEDERACION se excluía por completo). */
+export function montoIngresoPropio(row: { tipo: string; categoria: string; amount: number; escuelaPorcentaje?: number | null }): number {
+  if (row.tipo !== "INGRESO") return 0;
+  if (!CATEGORIAS_INGRESO_CON_PORCENTAJE.has(row.categoria)) return row.amount;
+  return Math.round((row.amount * (row.escuelaPorcentaje ?? 0)) / 100);
 }
 
 export function totalPorTipo(rows: LedgerRow[], tipo: "INGRESO" | "EGRESO"): number {
-  return soloPagadas(rows)
-    .filter((r) => r.tipo === tipo && esIngresoPropio(r))
-    .reduce((sum, r) => sum + r.amount, 0);
+  const pagadas = soloPagadas(rows).filter((r) => r.tipo === tipo);
+  if (tipo === "EGRESO") return pagadas.reduce((sum, r) => sum + r.amount, 0);
+  return pagadas.reduce((sum, r) => sum + montoIngresoPropio(r), 0);
 }
 
 /** Total pagado de una categoría puntual, sin importar si cuenta como ingreso propio —
@@ -111,6 +129,15 @@ export function totalCategoria(rows: LedgerRow[], tipo: "INGRESO" | "EGRESO", ca
     .reduce((sum, r) => sum + r.amount, 0);
 }
 
+/** De lo recaudado para una categoría con porcentaje variable (ver montoIngresoPropio), cuánto
+ * de eso es de verdad ingreso propio de la escuela — complementa totalCategoria (que da el
+ * total recaudado, sin descontar nada) para poder mostrar el desglose completo. */
+export function totalIngresoPropioCategoria(rows: LedgerRow[], categoria: string): number {
+  return soloPagadas(rows)
+    .filter((r) => r.tipo === "INGRESO" && r.categoria === categoria)
+    .reduce((sum, r) => sum + montoIngresoPropio(r), 0);
+}
+
 export function calcularKpis(rows: LedgerRow[]) {
   const ingresosTotales = totalPorTipo(rows, "INGRESO");
   const egresosTotales = totalPorTipo(rows, "EGRESO");
@@ -119,8 +146,10 @@ export function calcularKpis(rows: LedgerRow[]) {
 
 export function desglosePorCategoria(rows: LedgerRow[], tipo: "INGRESO" | "EGRESO") {
   const porCategoria = new Map<string, number>();
-  for (const row of soloPagadas(rows).filter((r) => r.tipo === tipo && esIngresoPropio(r))) {
-    porCategoria.set(row.categoria, (porCategoria.get(row.categoria) ?? 0) + row.amount);
+  for (const row of soloPagadas(rows).filter((r) => r.tipo === tipo)) {
+    const monto = tipo === "EGRESO" ? row.amount : montoIngresoPropio(row);
+    if (monto === 0) continue;
+    porCategoria.set(row.categoria, (porCategoria.get(row.categoria) ?? 0) + monto);
   }
   return Array.from(porCategoria.entries())
     .map(([categoria, total]) => ({ categoria, total }))

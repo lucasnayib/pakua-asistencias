@@ -15,6 +15,10 @@
   --success-foreground: #ffffff;
   --danger: #dc2626;
   --danger-foreground: #ffffff;
+  --warning: #d97706;
+  --warning-foreground: #ffffff;
+  --info: #2563eb;
+  --info-foreground: #ffffff;
 }
 
 .dark {
@@ -33,6 +37,10 @@
   /* Texto blanco sobre este rojo da ~3.9:1 (falla AA 4.5:1 para texto normal); un foreground
      oscuro da ~5.3:1 — el mismo criterio que ya usa --success-foreground acá arriba. */
   --danger-foreground: #040506;
+  --warning: #f0a93b;
+  --warning-foreground: #040506;
+  --info: #5b9bf2;
+  --info-foreground: #040506;
 }
 
 @theme inline {
@@ -49,6 +57,10 @@
   --color-success-foreground: var(--success-foreground);
   --color-danger: var(--danger);
   --color-danger-foreground: var(--danger-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
   --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
 }

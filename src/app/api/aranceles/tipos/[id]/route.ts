@@ -34,7 +34,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     action: "UPDATE_TIPO_ARANCEL",
     entity: "TipoArancel",
     entityId: tipo.id,
-    detail: `${tipo.name} ($${tipo.amount})`,
+    detail: `${tipo.name} (${tipo.categoria})`,
   });
 
   // Cubre renombrar a un nombre que ahora coincide con una formación, o reactivar un tipo

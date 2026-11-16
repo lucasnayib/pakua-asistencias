@@ -75,6 +75,23 @@ export function daysBetweenISODates(fromIsoDate: string, toIsoDate: string): num
   return days >= 0 ? days : null;
 }
 
+/** "YYYY-MM-DD" de un DateTime (ej. paidAt) según el huso horario de Argentina, sin importar
+ * en qué huso corra el servidor. Argentina es UTC-3 todo el año (sin horario de verano desde
+ * 2009), pero conviene resolverlo con el motor de zonas horarias (Intl) en vez de restar 3
+ * horas a mano — evita tener que pensar en eso si algún día cambia. Sin esto, convertir un
+ * DateTime a fecha con .toISOString() usa UTC: un pago hecho después de las 21:00 (ART)
+ * aparece fechado al día siguiente. */
+export function toArgentinaISODate(date: Date): string {
+  // en-CA formatea como YYYY-MM-DD de entrada — es el único motivo de elegir ese locale acá,
+  // no tiene que ver con mostrarle nada a nadie en inglés canadiense.
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
 /** Fecha/hora local del dispositivo, no depende de la zona horaria del servidor. */
 export function getLocalNow(date: Date = new Date()) {
   return {

@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { SidebarIcon, SidebarIconName } from "./SidebarIcon";
 import { ContactEmailDialog } from "./ContactEmailDialog";
 import { PasswordChangeDialog } from "./PasswordChangeDialog";
+import { InactivityDeactivationDialog } from "./InactivityDeactivationDialog";
 import { useTour } from "./tour/TourProvider";
 
 // Igual a la duración de modal-out en globals.css.
@@ -69,6 +70,7 @@ export function AccountDialog({
   const [contactEmail, setContactEmail] = useState(initialContactEmail);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [inactivityDialogOpen, setInactivityDialogOpen] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   useEffect(() => {
@@ -227,6 +229,12 @@ export function AccountDialog({
             subtitle="Repetir el recorrido guiado"
             onClick={handleStartTour}
           />
+          <SettingsRow
+            icon="sliders"
+            title="Configurar baja por inactividad"
+            subtitle="Dar de baja alumnos inactivos automáticamente"
+            onClick={() => setInactivityDialogOpen(true)}
+          />
         </div>
       </dialog>
 
@@ -245,6 +253,7 @@ export function AccountDialog({
         onClose={() => setPasswordDialogOpen(false)}
         onChanged={() => {}}
       />
+      <InactivityDeactivationDialog open={inactivityDialogOpen} onClose={() => setInactivityDialogOpen(false)} />
     </>
   );
 }

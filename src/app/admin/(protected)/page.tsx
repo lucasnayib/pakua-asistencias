@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
-import { formatTimeRange, formatTimeShort, getLocalNow } from "@/lib/time";
+import { formatTimeRange, formatTimeShort, getLocalNow, toArgentinaISODate } from "@/lib/time";
 import { getSession } from "@/lib/auth";
 import { GoToAttendanceLink } from "@/components/admin/GoToAttendanceLink";
+import { getMovimientosList } from "@/lib/aranceles-server";
+import { calcularKpis, currentMonth, formatMoney, type LedgerRow } from "@/lib/aranceles-calc";
 
 export default async function AdminDashboardPage() {
   const session = await getSession();
@@ -13,23 +15,55 @@ export default async function AdminDashboardPage() {
 
   const { date: today, dayOfWeek, time } = getLocalNow();
   const shortNow = formatTimeShort(time);
+  const month = currentMonth();
+  // "Hoy" para cumpleaños se calcula del lado del servidor (a diferencia de `today`/`dayOfWeek`
+  // de arriba, que usan la hora del dispositivo porque son para la toma de asistencia en vivo):
+  // necesita la fecha de Argentina, no la del huso horario del servidor — mismo criterio que
+  // currentMonth() en aranceles-calc.ts.
+  const monthDay = toArgentinaISODate(new Date()).slice(5); // "MM-DD"
 
-  const [studentsCount, schedulesCount, todayAttendanceCount, todaySchedules, admin] = await Promise.all([
-    prisma.student.count({ where: { active: true, adminId: session.adminId } }),
-    prisma.schedule.count({ where: { adminId: session.adminId } }),
-    prisma.attendance.count({ where: { date: today, schedule: { adminId: session.adminId } } }),
-    prisma.schedule.findMany({
-      where: { adminId: session.adminId, days: { some: { dayOfWeek } } },
-      orderBy: { startTime: "asc" },
-    }),
-    prisma.admin.findUnique({ where: { id: session.adminId }, select: { slug: true } }),
-  ]);
+  const [studentsCount, schedulesCount, todayAttendanceCount, todaySchedules, admin, movimientosDelMes, birthdayStudents] =
+    await Promise.all([
+      prisma.student.count({ where: { active: true, adminId: session.adminId } }),
+      prisma.schedule.count({ where: { adminId: session.adminId } }),
+      prisma.attendance.count({ where: { date: today, schedule: { adminId: session.adminId } } }),
+      prisma.schedule.findMany({
+        where: { adminId: session.adminId, days: { some: { dayOfWeek } } },
+        orderBy: { startTime: "asc" },
+      }),
+      prisma.admin.findUnique({ where: { id: session.adminId }, select: { slug: true } }),
+      getMovimientosList(session.adminId, { month, tipo: "INGRESO" }),
+      // birthDate se guarda como "YYYY-MM-DD": un alumno cumple años hoy si sus últimos 5
+      // caracteres ("MM-DD") coinciden con los de hoy, sin importar el año de nacimiento.
+      prisma.student.findMany({
+        where: { active: true, adminId: session.adminId, birthDate: { endsWith: `-${monthDay}` } },
+        select: { id: true, firstName: true, lastName: true },
+        orderBy: { firstName: "asc" },
+      }),
+    ]);
 
   const upcomingSchedules = todaySchedules.filter((s) => s.endTime > shortNow);
+
+  // "Ingresos del mes" sale de los mismos datos reales que ya usa la pestaña Resumen de
+  // Aranceles (ver src/lib/aranceles-calc.ts) — nada inventado ni aproximado. getMovimientosList
+  // ya devuelve las filas normalizadas (movimientos sueltos + cuotas pagadas), así que alcanza
+  // con llevarlas al shape de LedgerRow sin pasar de nuevo por movimientoToLedgerRow/pagoToLedgerRow
+  // (esos esperan las filas crudas de Prisma, no esta vista ya combinada).
+  const ledgerRows: LedgerRow[] = movimientosDelMes.map((m) => ({
+    tipo: m.tipo,
+    categoria: m.categoria,
+    concepto: m.concepto,
+    amount: m.amount,
+    month: m.month ?? m.date.slice(0, 7),
+    estado: m.estado,
+    escuelaPorcentaje: m.escuelaPorcentaje,
+  }));
+  const ingresosDelMes = calcularKpis(ledgerRows).ingresosTotales;
 
   const secondaryStats = [
     { label: "Asistencias registradas hoy", value: todayAttendanceCount },
     { label: "Horarios configurados", value: schedulesCount },
+    { label: "Ingresos del mes", value: formatMoney(ingresosDelMes) },
   ];
 
   return (
@@ -47,20 +81,28 @@ export default async function AdminDashboardPage() {
         </GoToAttendanceLink>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:items-start">
-        <Card className="flex flex-col justify-center p-6 md:col-span-2">
+      <Card className="grid grid-cols-2 divide-y divide-border sm:grid-cols-4 sm:divide-y-0 sm:divide-x">
+        <div className="flex flex-col justify-center p-6">
           <p className="text-sm font-medium text-muted-foreground">Alumnos activos</p>
-          <p className="mt-2 text-6xl font-semibold tabular-nums">{studentsCount}</p>
-        </Card>
-        <div className="grid grid-cols-2 gap-4 md:flex md:flex-col">
-          {secondaryStats.map((s) => (
-            <Card key={s.label} className="flex flex-1 flex-col justify-center p-5">
-              <p className="text-sm text-muted-foreground">{s.label}</p>
-              <p className="mt-1 text-2xl font-semibold">{s.value}</p>
-            </Card>
-          ))}
+          <p className="mt-2 text-4xl font-semibold tabular-nums">{studentsCount}</p>
         </div>
-      </div>
+        {secondaryStats.map((s) => (
+          <div key={s.label} className="flex flex-col justify-center p-6">
+            <p className="text-sm text-muted-foreground">{s.label}</p>
+            <p className="mt-2 text-2xl font-semibold">{s.value}</p>
+          </div>
+        ))}
+      </Card>
+
+      {birthdayStudents.length > 0 && (
+        <Card className="flex flex-col gap-1.5 border-accent/40 bg-accent/5 p-5">
+          {birthdayStudents.map((s) => (
+            <p key={s.id} className="text-sm font-medium">
+              Hoy es el cumpleaños de {s.firstName} {s.lastName}
+            </p>
+          ))}
+        </Card>
+      )}
 
       <Card className="p-5">
         <p className="text-sm font-medium">Próximas clases de hoy</p>

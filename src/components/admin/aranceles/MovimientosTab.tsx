@@ -11,6 +11,7 @@ import { OverflowMenu } from "@/components/ui/OverflowMenu";
 import { Switch } from "@/components/ui/Switch";
 import { SidebarIcon } from "@/components/admin/SidebarIcon";
 import { SolicitarBorradoDialog } from "@/components/admin/aranceles/SolicitarBorradoDialog";
+import { PorcentajeFederacionDialog } from "@/components/admin/aranceles/PorcentajeFederacionDialog";
 import { formatDateEs, getLocalNow } from "@/lib/time";
 import { formatMoney, formatMonth } from "@/lib/aranceles-calc";
 import { CATEGORIAS_EGRESO, CATEGORIAS_INGRESO } from "@/lib/validations";
@@ -38,15 +39,20 @@ type Movimiento = {
   // el borrado al superadmin (ver SolicitarBorradoDialog).
   locked?: boolean;
   requestPending?: boolean;
+  // Solo tiene valor en filas INGRESO de categoría FEDERACION.
+  escuelaPorcentaje?: number | null;
+  // Solo tiene valor en pagos de CUOTAS marcados como "pago parcial".
+  porcentajePagado?: number | null;
 };
 
-type TipoArancel = { id: string; name: string; amount: number; categoria: string };
+type TipoArancel = { id: string; name: string; categoria: string; federacionPorcentaje?: number | null };
 type StudentOption = { id: string; firstName: string; lastName: string };
 
 export function MovimientosTab() {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
   const [month, setMonth] = useState(() => getLocalNow().date.slice(0, 7));
+  const [mesesConDatos, setMesesConDatos] = useState<string[]>(() => [getLocalNow().date.slice(0, 7)]);
   const [showAllMonths, setShowAllMonths] = useState(false);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -66,9 +72,13 @@ export function MovimientosTab() {
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [reciboWarningTarget, setReciboWarningTarget] = useState<Movimiento | null>(null);
   const [solicitarTarget, setSolicitarTarget] = useState<Movimiento | null>(null);
+  const [porcentajeTarget, setPorcentajeTarget] = useState<Movimiento | null>(null);
 
   const [tiposArancel, setTiposArancel] = useState<TipoArancel[]>([]);
   const [cuotaTipoId, setCuotaTipoId] = useState("");
+  const [cuotaEscuelaPorcentaje, setCuotaEscuelaPorcentaje] = useState("");
+  const [cuotaEsParcial, setCuotaEsParcial] = useState(false);
+  const [cuotaPorcentajePagado, setCuotaPorcentajePagado] = useState("");
   const [cuotaMonth, setCuotaMonth] = useState(() => getLocalNow().date.slice(0, 7));
   const [cuotaStudentQuery, setCuotaStudentQuery] = useState("");
   const [cuotaStudentResults, setCuotaStudentResults] = useState<StudentOption[]>([]);
@@ -83,9 +93,23 @@ export function MovimientosTab() {
       .finally(() => setLoading(false));
   }, [month, showAllMonths]);
 
+  // Meses disponibles para el desplegable del filtro (ver más abajo): solo los que ya tienen
+  // algún movimiento/pago cargado, más el mes actual. Se recarga junto con la lista para que un
+  // movimiento recién cargado en un mes nuevo aparezca en el desplegable sin recargar la página.
+  const loadMesesConDatos = useCallback(() => {
+    fetch("/api/aranceles/movimientos/meses")
+      .then((r) => r.json())
+      .then((data) => setMesesConDatos(data.meses ?? []))
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     loadMovimientos();
   }, [loadMovimientos]);
+
+  useEffect(() => {
+    loadMesesConDatos();
+  }, [loadMesesConDatos]);
 
   useEffect(() => {
     fetch("/api/aranceles/tipos")
@@ -137,6 +161,9 @@ export function MovimientosTab() {
     setFormEstado("PAGADO");
     setFormError(null);
     setCuotaTipoId("");
+    setCuotaEscuelaPorcentaje("");
+    setCuotaEsParcial(false);
+    setCuotaPorcentajePagado("");
     setCuotaMonth(getLocalNow().date.slice(0, 7));
     setCuotaStudentQuery("");
     setCuotaStudentResults([]);
@@ -160,6 +187,29 @@ export function MovimientosTab() {
     if (!cuotaStudent || !cuotaTipoId) {
       setFormError("Elegí un alumno y una actividad");
       return;
+    }
+    const amount = Math.round(Number(formAmount));
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setFormError("Completá un monto válido");
+      return;
+    }
+    let escuelaPorcentaje: number | undefined;
+    if (formCategoria === "FEDERACION") {
+      const pct = Math.round(Number(cuotaEscuelaPorcentaje));
+      if (!Number.isFinite(pct) || pct < 0 || pct > 100) {
+        setFormError("Completá el % que le queda a la escuela (entre 0 y 100)");
+        return;
+      }
+      escuelaPorcentaje = pct;
+    }
+    let porcentajePagado: number | undefined;
+    if (formCategoria === "CUOTAS" && cuotaEsParcial) {
+      const pct = Math.round(Number(cuotaPorcentajePagado));
+      if (!Number.isFinite(pct) || pct < 1 || pct > 99) {
+        setFormError("Completá el % de la cuota que se está pagando (entre 1 y 99)");
+        return;
+      }
+      porcentajePagado = pct;
     }
     setSaving(true);
     setFormError(null);
@@ -188,7 +238,7 @@ export function MovimientosTab() {
       const payRes = await fetch(`/api/students/${cuotaStudent.id}/aranceles/${alumnoArancelId}/pagos`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ month: cuotaMonth }),
+        body: JSON.stringify({ month: cuotaMonth, amount, escuelaPorcentaje, porcentajePagado }),
       });
       const payData = await payRes.json();
       if (!payRes.ok) {
@@ -198,6 +248,7 @@ export function MovimientosTab() {
       toast.success("Cuota marcada como pagada");
       setFormOpen(false);
       loadMovimientos();
+      loadMesesConDatos();
     } finally {
       setSaving(false);
     }
@@ -238,6 +289,7 @@ export function MovimientosTab() {
       toast.success(editing ? "Movimiento actualizado" : "Movimiento cargado");
       setFormOpen(false);
       loadMovimientos();
+      loadMesesConDatos();
     } finally {
       setSaving(false);
     }
@@ -280,6 +332,30 @@ export function MovimientosTab() {
       return;
     }
     setSolicitarTarget(m);
+  }
+
+  // Carga o corrige el % que le queda a la escuela en un pago/movimiento de FEDERACION ya
+  // existente — ver PorcentajeFederacionDialog. No pisa monto ni mes, solo este dato.
+  async function handlePorcentajeSubmit(porcentaje: number): Promise<{ ok: boolean; error?: string }> {
+    if (!porcentajeTarget) return { ok: false, error: "Nada seleccionado" };
+    const res =
+      porcentajeTarget.source === "pago"
+        ? await fetch(
+            `/api/students/${porcentajeTarget.studentId}/aranceles/${porcentajeTarget.alumnoArancelId}/pagos`,
+            {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ month: porcentajeTarget.month, escuelaPorcentaje: porcentaje }),
+            }
+          )
+        : await fetch(`/api/aranceles/movimientos/${porcentajeTarget.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ escuelaPorcentaje: porcentaje }),
+          });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { ok: false, error: data.error };
+    return { ok: true };
   }
 
   async function handleSolicitarBorrado(reason: string): Promise<{ ok: boolean; error?: string }> {
@@ -350,8 +426,9 @@ export function MovimientosTab() {
 
   const categoriasDisponibles = formTipo === "INGRESO" ? CATEGORIAS_INGRESO : CATEGORIAS_EGRESO;
   // Categorías que arman un pago de cuota (alumno + actividad + mes) en vez de un movimiento
-  // suelto: CUOTAS (ingreso propio) y FEDERACION (se cobra para reenviar, no cuenta como
-  // ingreso propio — ver esIngresoPropio en aranceles-calc.ts), ambas con la misma mecánica.
+  // suelto: CUOTAS (100% ingreso propio) y FEDERACION (solo un % es ingreso propio, el resto se
+  // le pasa a la federación — ver montoIngresoPropio en aranceles-calc.ts), ambas con la misma
+  // mecánica de alumno + actividad + mes, FEDERACION con el % extra.
   const esCategoriaCuota = formTipo === "INGRESO" && (formCategoria === "CUOTAS" || formCategoria === "FEDERACION");
   const tiposArancelDeLaCategoria = tiposArancel.filter((t) => t.categoria === formCategoria);
 
@@ -367,13 +444,18 @@ export function MovimientosTab() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
-          <Input
-            type="month"
+          <Select
             value={month}
             onChange={(e) => setMonth(e.target.value)}
             disabled={showAllMonths}
-            className="w-40 disabled:opacity-50"
-          />
+            className="w-48 disabled:opacity-50"
+          >
+            {mesesConDatos.map((m) => (
+              <option key={m} value={m}>
+                {formatMonth(m)}
+              </option>
+            ))}
+          </Select>
           <Switch checked={showAllMonths} onChange={setShowAllMonths} label="Ver todos" />
           <Input
             placeholder="Buscar por nombre o N.° de recibo…"
@@ -486,7 +568,7 @@ export function MovimientosTab() {
               {tiposArancelDeLaCategoria.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   Todavía no hay ninguna actividad con categoría {formCategoria}. Definilas en la
-                  pestaña &quot;Coste de actividades&quot;.
+                  pestaña &quot;Actividades&quot;.
                 </p>
               ) : (
                 <ul className="flex flex-col divide-y divide-border">
@@ -494,20 +576,78 @@ export function MovimientosTab() {
                     <li key={t.id}>
                       <button
                         type="button"
-                        onClick={() => setCuotaTipoId(t.id)}
-                        className={`flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-sm transition hover:bg-surface ${
+                        onClick={() => {
+                          setCuotaTipoId(t.id);
+                          if (formCategoria === "FEDERACION") {
+                            setCuotaEscuelaPorcentaje(t.federacionPorcentaje != null ? String(t.federacionPorcentaje) : "");
+                          }
+                        }}
+                        className={`flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm transition hover:bg-surface ${
                           cuotaTipoId === t.id ? "bg-surface font-medium" : ""
                         }`}
                       >
-                        <span>{t.name}</span>
-                        <span className="text-xs text-muted-foreground">{formatMoney(t.amount)}</span>
+                        {t.name}
                       </button>
                     </li>
                   ))}
                 </ul>
               )}
 
-              <Input label="Mes" type="month" value={cuotaMonth} onChange={(e) => setCuotaMonth(e.target.value)} />
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  label="Monto"
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={formAmount}
+                  onChange={(e) => setFormAmount(e.target.value)}
+                  required
+                />
+                <Input label="Mes" type="month" value={cuotaMonth} onChange={(e) => setCuotaMonth(e.target.value)} />
+              </div>
+
+              {formCategoria === "CUOTAS" && (
+                <div className="flex flex-col gap-1">
+                  <Switch checked={cuotaEsParcial} onChange={setCuotaEsParcial} label="Pago parcial" />
+                  {cuotaEsParcial && (
+                    <Input
+                      label="% de la cuota que se está pagando"
+                      type="number"
+                      min={1}
+                      max={99}
+                      step={1}
+                      value={cuotaPorcentajePagado}
+                      onChange={(e) => setCuotaPorcentajePagado(e.target.value)}
+                      required
+                    />
+                  )}
+                </div>
+              )}
+
+              {formCategoria === "FEDERACION" && (
+                <div className="flex flex-col gap-1">
+                  <Input
+                    label="% para la escuela"
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={cuotaEscuelaPorcentaje}
+                    onChange={(e) => setCuotaEscuelaPorcentaje(e.target.value)}
+                    required
+                  />
+                  {(() => {
+                    const pct = Number(cuotaEscuelaPorcentaje);
+                    const amt = Math.round(Number(formAmount));
+                    if (!Number.isFinite(pct) || pct < 0 || pct > 100 || !Number.isFinite(amt) || amt <= 0) return null;
+                    return (
+                      <p className="text-xs text-muted-foreground">
+                        Le queda a la escuela: {formatMoney(Math.round((amt * pct) / 100))} de {formatMoney(amt)}
+                      </p>
+                    );
+                  })()}
+                </div>
+              )}
             </div>
           ) : (
             <>
@@ -571,7 +711,12 @@ export function MovimientosTab() {
                   {formatDateEs(m.date)} · {m.categoria}
                   {m.numero && ` · N.° ${m.numero}`}
                   {m.month && m.date.slice(0, 7) !== m.month && ` · Cuota de ${formatMonth(m.month)}`}
-                  {m.tipo === "INGRESO" && m.categoria === "FEDERACION" && " · no cuenta como ingreso de la escuela"}
+                  {m.porcentajePagado != null && ` · Pago parcial (${m.porcentajePagado}%)`}
+                  {m.tipo === "INGRESO" &&
+                    m.categoria === "FEDERACION" &&
+                    (m.escuelaPorcentaje != null
+                      ? ` · ${m.escuelaPorcentaje}% para la escuela (${formatMoney(Math.round((m.amount * m.escuelaPorcentaje) / 100))})`
+                      : " · falta cargar el % para la escuela")}
                   {m.requestPending && " · Solicitud de borrado pendiente"}
                 </p>
               </div>
@@ -597,6 +742,9 @@ export function MovimientosTab() {
                             onSelect: () => (m.locked ? abrirRecibo(m) : setReciboWarningTarget(m)),
                           },
                         ]
+                      : []),
+                    ...(m.tipo === "INGRESO" && m.categoria === "FEDERACION"
+                      ? [{ label: "% para la escuela", onSelect: () => setPorcentajeTarget(m) }]
                       : []),
                     ...(m.source === "pago"
                       ? [{ label: "Desmarcar pago", onSelect: () => requestDelete(m), danger: true }]
@@ -654,6 +802,19 @@ export function MovimientosTab() {
           loadMovimientos();
         }}
         onSubmit={handleSolicitarBorrado}
+      />
+
+      <PorcentajeFederacionDialog
+        open={porcentajeTarget !== null}
+        concepto={porcentajeTarget?.concepto}
+        amount={porcentajeTarget?.amount}
+        currentPorcentaje={porcentajeTarget?.escuelaPorcentaje}
+        onClose={() => setPorcentajeTarget(null)}
+        onSaved={() => {
+          setPorcentajeTarget(null);
+          loadMovimientos();
+        }}
+        onSubmit={handlePorcentajeSubmit}
       />
     </div>
   );

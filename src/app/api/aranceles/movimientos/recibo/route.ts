@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { logChange } from "@/lib/audit";
 import { buildReciboPdf } from "@/lib/export/recibo-pdf";
+import { formatMonth } from "@/lib/aranceles-calc";
+import { toArgentinaISODate } from "@/lib/time";
 
 // Recibo de un ingreso puntual: sirve tanto para una cuota pagada por un alumno (PagoArancel,
 // id con el prefijo "pago:" que ya usa el listado de /api/aranceles/movimientos) como para un
@@ -29,6 +31,8 @@ export async function GET(request: NextRequest) {
     amount: number;
     date: string;
     alumno?: string;
+    mesCuota?: string;
+    porcentajePagado?: number | null;
     numero: string;
   };
 
@@ -45,8 +49,10 @@ export async function GET(request: NextRequest) {
       concepto: `Cuota — ${pago.tipoArancel.name}`,
       categoria: pago.tipoArancel.categoria,
       amount: pago.amount,
-      date: pago.paidAt.toISOString().slice(0, 10),
+      date: toArgentinaISODate(pago.paidAt),
       alumno: `${pago.student.lastName}, ${pago.student.firstName}`,
+      mesCuota: formatMonth(pago.month),
+      porcentajePagado: pago.porcentajePagado,
       numero: pagoId.slice(-8).toUpperCase(),
     };
     // A partir de acá el pago queda protegido contra borrado directo (ver reciboExportedAt

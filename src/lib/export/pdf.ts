@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { formatDateEs, formatTimeShort } from "@/lib/time";
+import { formatDateEs, formatTimeShort, toArgentinaISODate } from "@/lib/time";
 import type { ExportRow } from "@/lib/export/types";
 
 export function buildPdfBuffer(rows: ExportRow[], title: string): Buffer {
@@ -10,7 +10,7 @@ export function buildPdfBuffer(rows: ExportRow[], title: string): Buffer {
   doc.text(title, 40, 40);
   doc.setFontSize(9);
   doc.setTextColor(120);
-  doc.text(`Generado el ${formatDateEs(new Date().toISOString().slice(0, 10))}`, 40, 56);
+  doc.text(`Generado el ${formatDateEs(toArgentinaISODate(new Date()))}`, 40, 56);
 
   autoTable(doc, {
     startY: 72,

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { RosterView } from "@/components/attendance/RosterView";
 import { Spinner } from "@/components/ui/Spinner";
-import { Input } from "@/components/ui/Input";
+import { DatePicker } from "@/components/ui/DatePicker";
 import { dayOfWeekFromISODate, formatTimeRange, getLocalNow } from "@/lib/time";
 import type { RosterResponse, ScheduleListItem } from "@/types";
 
@@ -54,14 +54,7 @@ export function ClasesAnterioresClient({ slug, adminId }: ClasesAnterioresClient
         </div>
 
         <div className="flex flex-wrap items-end gap-4">
-          <Input
-            type="date"
-            label="Fecha"
-            value={date}
-            max={getLocalNow().date}
-            onChange={(e) => setDate(e.target.value)}
-            className="w-auto"
-          />
+          <DatePicker label="Fecha" value={date} max={getLocalNow().date} onChange={setDate} className="w-56" />
         </div>
 
         {loadingSchedules && (

@@ -28,18 +28,23 @@ export async function GET(request: NextRequest, { params }: Params) {
   const payments = await prisma.pagoArancel.findMany({
     where: { studentId: id, month, tipoArancelId: { in: enrollments.map((e) => e.tipoArancelId) } },
   });
-  const paidIds = new Set(payments.map((p) => p.tipoArancelId));
+  const paymentByTipo = new Map(payments.map((p) => [p.tipoArancelId, p]));
 
   return NextResponse.json({
     month,
-    aranceles: enrollments.map((e) => ({
-      id: e.id,
-      tipoArancelId: e.tipoArancelId,
-      name: e.tipoArancel.name,
-      amount: e.tipoArancel.amount,
-      active: e.tipoArancel.active,
-      paid: paidIds.has(e.tipoArancelId),
-    })),
+    aranceles: enrollments.map((e) => {
+      const pago = paymentByTipo.get(e.tipoArancelId);
+      return {
+        id: e.id,
+        tipoArancelId: e.tipoArancelId,
+        name: e.tipoArancel.name,
+        // Las actividades ya no tienen un precio fijo: esto es lo que efectivamente se pagó
+        // este mes (null si todavía no se cargó ningún pago).
+        amount: pago?.amount ?? null,
+        active: e.tipoArancel.active,
+        paid: pago !== undefined,
+      };
+    }),
   });
 }
 

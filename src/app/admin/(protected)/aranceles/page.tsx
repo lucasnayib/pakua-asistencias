@@ -9,7 +9,7 @@ type Tab = "resumen" | "actividades" | "movimientos";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "resumen", label: "Resumen" },
-  { id: "actividades", label: "Coste de actividades" },
+  { id: "actividades", label: "Actividades" },
   { id: "movimientos", label: "Gastos e ingresos" },
 ];
 

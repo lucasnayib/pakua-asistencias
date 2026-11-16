@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { currentMonth } from "@/lib/aranceles-calc";
+import { toArgentinaISODate } from "@/lib/time";
 
 export type MovimientoRow = {
   id: string;
@@ -19,6 +20,12 @@ export type MovimientoRow = {
   locked: boolean;
   // Ya hay una solicitud de borrado sin resolver para este movimiento/pago puntual.
   requestPending: boolean;
+  // Solo tiene valor en filas de categoría FEDERACION — ver montoIngresoPropio en
+  // src/lib/aranceles-calc.ts.
+  escuelaPorcentaje?: number | null;
+  // Solo tiene valor en pagos de CUOTAS marcados como "pago parcial" — ver PagoArancel en el
+  // schema de Prisma.
+  porcentajePagado?: number | null;
 };
 
 /** Mezcla los MovimientoFinanciero sueltos con las cuotas pagadas por alumno (PagoArancel),
@@ -77,7 +84,7 @@ export async function getMovimientosList(
     categoria: p.tipoArancel.categoria,
     concepto: `Cuota (${p.tipoArancel.name}), ${p.student.lastName} ${p.student.firstName}`,
     amount: p.amount,
-    date: p.paidAt.toISOString().slice(0, 10),
+    date: toArgentinaISODate(p.paidAt),
     estado: "PAGADO",
     source: "pago",
     studentId: p.studentId,
@@ -88,6 +95,8 @@ export async function getMovimientosList(
     numero: p.id.slice(-8).toUpperCase(),
     locked: Boolean(p.reciboExportedAt),
     requestPending: pendingTargetIds.has(`pago:${p.id}`),
+    escuelaPorcentaje: p.escuelaPorcentaje,
+    porcentajePagado: p.porcentajePagado,
   }));
 
   const movimientoRows: MovimientoRow[] = movimientos.map((m) => ({
@@ -143,6 +152,21 @@ export async function getPendingAranceles(adminId: string, month: string) {
 export async function countStudentsWithUnpaidAranceles(adminId: string, month: string): Promise<number> {
   const pending = await getPendingAranceles(adminId, month);
   return pending.length;
+}
+
+/** Meses ("YYYY-MM") que tienen al menos un movimiento o pago cargado, para poblar el
+ * desplegable de la pestaña Gastos e ingresos en vez de un selector de mes libre (ver
+ * MovimientosTab) — siempre incluye el mes actual aunque todavía no tenga nada, para poder
+ * elegirlo antes de cargar el primer movimiento. Orden descendente (más reciente primero). */
+export async function getMesesConDatos(adminId: string): Promise<string[]> {
+  const [movimientos, pagos] = await Promise.all([
+    prisma.movimientoFinanciero.findMany({ where: { adminId }, select: { date: true } }),
+    prisma.pagoArancel.findMany({ where: { adminId }, select: { month: true } }),
+  ]);
+  const meses = new Set<string>([currentMonth()]);
+  for (const m of movimientos) meses.add(m.date.slice(0, 7));
+  for (const p of pagos) meses.add(p.month);
+  return Array.from(meses).sort((a, b) => (a < b ? 1 : a > b ? -1 : 0));
 }
 
 async function enrollIfNeeded(studentId: string, tipoArancelId: string): Promise<void> {

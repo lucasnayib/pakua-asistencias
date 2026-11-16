@@ -4,7 +4,6 @@ import { FormEvent, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Card } from "@/components/ui/Card";
 import { Switch } from "@/components/ui/Switch";
 
 export function InactivityDeactivationSettings() {
@@ -64,9 +63,8 @@ export function InactivityDeactivationSettings() {
   if (loading) return null;
 
   return (
-    <Card className="max-w-md p-6">
-      <h2 className="text-lg font-semibold">Baja automática por inactividad</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
+    <div>
+      <p className="text-sm text-muted-foreground">
         Si la activás, todos los días se revisa: un alumno que ya tuvo al menos una asistencia
         y luego pasa este plazo sin ninguna asistencia nueva queda dado de baja solo, igual que
         si lo dieras de baja a mano. Se te avisa por mail cada vez que pase.
@@ -90,6 +88,6 @@ export function InactivityDeactivationSettings() {
           </Button>
         </form>
       )}
-    </Card>
+    </div>
   );
 }

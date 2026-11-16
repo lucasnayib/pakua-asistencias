@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     action: "CREATE_TIPO_ARANCEL",
     entity: "TipoArancel",
     entityId: tipo.id,
-    detail: `${tipo.name} ($${tipo.amount})`,
+    detail: `${tipo.name} (${tipo.categoria})`,
   });
 
   // Si ya había alumnos con esta formación cargada (Yoga, Arte Marcial, etc.), anotarlos
