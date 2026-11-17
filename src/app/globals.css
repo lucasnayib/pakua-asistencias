@@ -319,6 +319,27 @@ body {
   }
 }
 
+/* Aparición al scrollear en la landing (ver ScrollReveal): arranca oculta/corrida, y JS agrega
+   .is-visible la primera vez que entra en el viewport. */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 600ms ease-out, transform 600ms ease-out;
+}
+
+.scroll-reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
 /* El navegador pinta de celeste los campos que autocompletó (usuario/contraseña
    guardados), ignorando nuestros colores. Se fuerza el fondo con box-shadow (el único
    truco que funciona sobre autofill) para que combine con el tema. */

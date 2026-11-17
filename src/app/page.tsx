@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { SchoolSearchBar } from "@/components/SchoolSearchBar";
 import { DashboardPreview } from "@/components/marketing/DashboardPreview";
+import { ScrollReveal } from "@/components/marketing/ScrollReveal";
 import { Card } from "@/components/ui/Card";
 import { SidebarIcon, SidebarIconName } from "@/components/admin/SidebarIcon";
 
@@ -128,94 +129,98 @@ export default function HomePage() {
         {/* --- Los tres módulos principales, alternando texto/panel de un lado al otro --- */}
         <div className="flex flex-col gap-20">
           {MAIN_MODULES.map((module, i) => (
-            <section
-              key={module.title}
-              className="grid grid-cols-1 items-center gap-8 md:grid-cols-2 md:gap-12"
-            >
-              <div className={`flex flex-col gap-4 ${i % 2 === 1 ? "md:order-2" : ""}`}>
-                <span className="text-sm font-semibold text-accent">{module.eyebrow}</span>
-                <h2 className="text-2xl font-semibold tracking-tight">{module.title}</h2>
-                <p className="text-muted-foreground">{module.description}</p>
-                <ul className="flex flex-col gap-2.5">
-                  {module.bullets.map((bullet) => (
-                    <li key={bullet} className="flex items-start gap-2.5 text-sm">
-                      <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
-                      <span>{bullet}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div
-                className={`relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-border bg-surface-2 ${
-                  i % 2 === 1 ? "md:order-1" : ""
-                }`}
-              >
-                <Image
-                  src={module.photo}
-                  alt={module.photoAlt}
-                  fill
-                  sizes="(min-width: 768px) 50vw, 100vw"
-                  className="object-cover"
-                />
-              </div>
-            </section>
+            <ScrollReveal key={module.title}>
+              <section className="grid grid-cols-1 items-center gap-8 md:grid-cols-2 md:gap-12">
+                <div className={`flex flex-col gap-4 ${i % 2 === 1 ? "md:order-2" : ""}`}>
+                  <span className="text-sm font-semibold text-accent">{module.eyebrow}</span>
+                  <h2 className="text-2xl font-semibold tracking-tight">{module.title}</h2>
+                  <p className="text-muted-foreground">{module.description}</p>
+                  <ul className="flex flex-col gap-2.5">
+                    {module.bullets.map((bullet) => (
+                      <li key={bullet} className="flex items-start gap-2.5 text-sm">
+                        <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+                        <span>{bullet}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div
+                  className={`relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-border bg-surface-2 ${
+                    i % 2 === 1 ? "md:order-1" : ""
+                  }`}
+                >
+                  <Image
+                    src={module.photo}
+                    alt={module.photoAlt}
+                    fill
+                    sizes="(min-width: 768px) 50vw, 100vw"
+                    className="object-cover"
+                  />
+                </div>
+              </section>
+            </ScrollReveal>
           ))}
         </div>
 
         {/* --- Funcionalidades secundarias, en grilla --- */}
-        <section className="flex flex-col gap-8">
-          <div className="text-center">
-            <h2 className="text-2xl font-semibold tracking-tight">Y todo lo demás que ya necesitás</h2>
-            <p className="mt-2 text-muted-foreground">Sin agregar una herramienta más a la pila.</p>
-          </div>
-          <div className="grid w-full grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {SECONDARY_FEATURES.map((f) => (
-              <Card key={f.title} className="flex flex-col gap-3 p-6">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent">
-                  <SidebarIcon name={f.icon} className="h-5 w-5" />
-                </span>
-                <h3 className="font-semibold">{f.title}</h3>
-                <p className="text-sm leading-relaxed text-muted-foreground">{f.description}</p>
-              </Card>
-            ))}
-          </div>
-        </section>
+        <ScrollReveal>
+          <section className="flex flex-col gap-8">
+            <div className="text-center">
+              <h2 className="text-2xl font-semibold tracking-tight">Y todo lo demás que ya necesitás</h2>
+              <p className="mt-2 text-muted-foreground">Sin agregar una herramienta más a la pila.</p>
+            </div>
+            <div className="grid w-full grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              {SECONDARY_FEATURES.map((f) => (
+                <Card key={f.title} className="flex flex-col gap-3 p-6">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                    <SidebarIcon name={f.icon} className="h-5 w-5" />
+                  </span>
+                  <h3 className="font-semibold">{f.title}</h3>
+                  <p className="text-sm leading-relaxed text-muted-foreground">{f.description}</p>
+                </Card>
+              ))}
+            </div>
+          </section>
+        </ScrollReveal>
 
         {/* --- Confianza: todavía no hay testimonios reales que mostrar, así que en su lugar
             se explica cómo se cuidan los datos de cada escuela --- */}
-        <section className="grid grid-cols-1 items-center gap-10 md:grid-cols-2 md:gap-12">
-          <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-border bg-surface-2">
-            <Image
-              src="/images/team-banner.jpg"
-              alt="Equipo de instructores de Pakua Federación Mundial"
-              fill
-              sizes="(min-width: 768px) 50vw, 100vw"
-              className="object-cover"
-            />
-          </div>
-          <div className="flex flex-col gap-4">
-            <h2 className="text-2xl font-semibold tracking-tight">Pensado para cuidar los datos de tu escuela</h2>
-            <ul className="flex flex-col gap-3 text-sm text-muted-foreground">
-              <li className="flex items-start gap-2.5">
-                <SidebarIcon name="lock" className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-                <span>Las contraseñas nunca se guardan en texto plano, y cada escuela solo ve sus propios datos.</span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <SidebarIcon name="shield" className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-                <span>Los cambios importantes quedan en un registro de auditoría, no se pierden.</span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <SidebarIcon name="database" className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-                <span>Copias de seguridad periódicas de toda la información cargada.</span>
-              </li>
-            </ul>
-          </div>
-        </section>
+        <ScrollReveal>
+          <section className="grid grid-cols-1 items-center gap-10 md:grid-cols-2 md:gap-12">
+            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-border bg-surface-2">
+              <Image
+                src="/images/team-banner.jpg"
+                alt="Equipo de instructores de Pakua Federación Mundial"
+                fill
+                sizes="(min-width: 768px) 50vw, 100vw"
+                className="object-cover"
+              />
+            </div>
+            <div className="flex flex-col gap-4">
+              <h2 className="text-2xl font-semibold tracking-tight">Pensado para cuidar los datos de tu escuela</h2>
+              <ul className="flex flex-col gap-3 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2.5">
+                  <SidebarIcon name="lock" className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+                  <span>Las contraseñas nunca se guardan en texto plano, y cada escuela solo ve sus propios datos.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <SidebarIcon name="shield" className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+                  <span>Los cambios importantes quedan en un registro de auditoría, no se pierden.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <SidebarIcon name="database" className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+                  <span>Copias de seguridad periódicas de toda la información cargada.</span>
+                </li>
+              </ul>
+            </div>
+          </section>
+        </ScrollReveal>
 
         {/* --- Precios: misma composición de dos columnas que la referencia (texto + pasos a
             la izquierda, tarjeta de precio a la derecha), pero con el plan real — sin
             descuentos, prueba gratis ni condiciones que no existan. --- */}
         {priceArs && (
+          <ScrollReveal>
           <section className="grid grid-cols-1 items-center gap-10 md:grid-cols-2 md:gap-14">
             <div className="flex flex-col gap-6">
               <span className="text-xs font-semibold tracking-[0.2em] text-accent uppercase">Precio</span>
@@ -290,21 +295,24 @@ export default function HomePage() {
               </p>
             </Card>
           </section>
+          </ScrollReveal>
         )}
 
         {/* --- Cierre --- */}
-        <section className="flex flex-col items-center gap-4 text-center">
-          <h2 className="text-2xl font-semibold tracking-tight">¿Listo para dejar las planillas?</h2>
-          <p className="max-w-md text-muted-foreground">
-            Registrá tu escuela y empezá a usar Pakua hoy mismo.
-          </p>
-          <Link
-            href="/admin/login?mode=register"
-            className="rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-accent-foreground transition hover:brightness-110"
-          >
-            Registrar mi escuela
-          </Link>
-        </section>
+        <ScrollReveal>
+          <section className="flex flex-col items-center gap-4 text-center">
+            <h2 className="text-2xl font-semibold tracking-tight">¿Listo para dejar las planillas?</h2>
+            <p className="max-w-md text-muted-foreground">
+              Registrá tu escuela y empezá a usar Pakua hoy mismo.
+            </p>
+            <Link
+              href="/admin/login?mode=register"
+              className="rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-accent-foreground transition hover:brightness-110"
+            >
+              Registrar mi escuela
+            </Link>
+          </section>
+        </ScrollReveal>
       </main>
 
       <footer className="border-t border-border px-4 py-8 text-center text-sm text-muted-foreground">

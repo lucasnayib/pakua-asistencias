@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
+import { SidebarIcon, type SidebarIconName } from "@/components/admin/SidebarIcon";
 import { formatTimeRange, formatTimeShort, getLocalNow, toArgentinaISODate } from "@/lib/time";
 import { getSession } from "@/lib/auth";
 import { GoToAttendanceLink } from "@/components/admin/GoToAttendanceLink";
@@ -60,10 +61,11 @@ export default async function AdminDashboardPage() {
   }));
   const ingresosDelMes = calcularKpis(ledgerRows).ingresosTotales;
 
-  const secondaryStats = [
-    { label: "Asistencias registradas hoy", value: todayAttendanceCount },
-    { label: "Horarios configurados", value: schedulesCount },
-    { label: "Ingresos del mes", value: formatMoney(ingresosDelMes) },
+  const stats: { label: string; value: string | number; icon: SidebarIconName }[] = [
+    { label: "Alumnos activos", value: studentsCount, icon: "users" },
+    { label: "Asistencias registradas hoy", value: todayAttendanceCount, icon: "clipboard-check" },
+    { label: "Horarios configurados", value: schedulesCount, icon: "clock" },
+    { label: "Ingresos del mes", value: formatMoney(ingresosDelMes), icon: "wallet" },
   ];
 
   return (
@@ -81,18 +83,19 @@ export default async function AdminDashboardPage() {
         </GoToAttendanceLink>
       </div>
 
-      <Card className="grid grid-cols-2 divide-y divide-border sm:grid-cols-4 sm:divide-y-0 sm:divide-x">
-        <div className="flex flex-col justify-center p-6">
-          <p className="text-sm font-medium text-muted-foreground">Alumnos activos</p>
-          <p className="mt-2 text-4xl font-semibold tabular-nums">{studentsCount}</p>
-        </div>
-        {secondaryStats.map((s) => (
-          <div key={s.label} className="flex flex-col justify-center p-6">
-            <p className="text-sm text-muted-foreground">{s.label}</p>
-            <p className="mt-2 text-2xl font-semibold">{s.value}</p>
-          </div>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {stats.map((s) => (
+          <Card key={s.label} className="flex flex-col gap-3 p-5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/10 text-accent">
+              <SidebarIcon name={s.icon} className="h-[18px] w-[18px]" />
+            </div>
+            <div>
+              <p className="text-2xl font-semibold tabular-nums">{s.value}</p>
+              <p className="text-sm text-muted-foreground">{s.label}</p>
+            </div>
+          </Card>
         ))}
-      </Card>
+      </div>
 
       {birthdayStudents.length > 0 && (
         <Card className="flex flex-col gap-1.5 border-accent/40 bg-accent/5 p-5">
