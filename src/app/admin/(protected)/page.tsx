@@ -83,14 +83,14 @@ export default async function AdminDashboardPage() {
         </GoToAttendanceLink>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {stats.map((s) => (
-          <Card key={s.label} className="flex flex-col gap-3 p-5">
+          <Card key={s.label} className="flex min-w-0 flex-col gap-3 p-5">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/10 text-accent">
               <SidebarIcon name={s.icon} className="h-[18px] w-[18px]" />
             </div>
-            <div>
-              <p className="text-2xl font-semibold tabular-nums">{s.value}</p>
+            <div className="min-w-0">
+              <p className="break-words text-xl font-semibold tabular-nums sm:text-2xl">{s.value}</p>
               <p className="text-sm text-muted-foreground">{s.label}</p>
             </div>
           </Card>

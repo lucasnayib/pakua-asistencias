@@ -18,6 +18,10 @@ export type ReciboData = {
   // % de la cuota total que representa este pago, solo cuando se cargó como "pago parcial"
   // (ver PagoArancel.porcentajePagado). undefined/null = pago completo, no se muestra nada.
   porcentajePagado?: number | null;
+  // Solo relevante junto con porcentajePagado: una vez que el alumno terminó de pagar el resto
+  // (ver PagoArancel.pagoCompletado), el recibo deja de mostrar el % original y pasa a avisar
+  // que ya está completo — el monto de arriba ya incluye el total acumulado.
+  pagoCompletado?: boolean;
   numero: string; // identificador corto para que el recibo sea trazable
   contactEmail?: string | null;
   contactPhone?: string | null;
@@ -206,7 +210,11 @@ export function buildReciboPdf(data: ReciboData): Buffer {
   }
 
   if (data.porcentajePagado != null) {
-    field("PAGO PARCIAL", `${data.porcentajePagado}% de la cuota total`, colLeftX, fieldY, COLOR_ACCENT);
+    if (data.pagoCompletado) {
+      field("PAGO COMPLETADO", "100% de la cuota total", colLeftX, fieldY, COLOR_ACCENT);
+    } else {
+      field("PAGO PARCIAL", `${data.porcentajePagado}% de la cuota total`, colLeftX, fieldY, COLOR_ACCENT);
+    }
     fieldY += 42;
   }
 

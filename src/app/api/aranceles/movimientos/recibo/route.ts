@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
     alumno?: string;
     mesCuota?: string;
     porcentajePagado?: number | null;
+    pagoCompletado?: boolean;
     numero: string;
   };
 
@@ -53,6 +54,7 @@ export async function GET(request: NextRequest) {
       alumno: `${pago.student.lastName}, ${pago.student.firstName}`,
       mesCuota: formatMonth(pago.month),
       porcentajePagado: pago.porcentajePagado,
+      pagoCompletado: pago.pagoCompletado,
       numero: pagoId.slice(-8).toUpperCase(),
     };
     // A partir de acá el pago queda protegido contra borrado directo (ver reciboExportedAt

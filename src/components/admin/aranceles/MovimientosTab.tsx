@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { DatePicker } from "@/components/ui/DatePicker";
+import { MonthPicker } from "@/components/ui/MonthPicker";
 import { Spinner } from "@/components/ui/Spinner";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { OverflowMenu } from "@/components/ui/OverflowMenu";
@@ -12,6 +14,7 @@ import { Switch } from "@/components/ui/Switch";
 import { SidebarIcon } from "@/components/admin/SidebarIcon";
 import { SolicitarBorradoDialog } from "@/components/admin/aranceles/SolicitarBorradoDialog";
 import { PorcentajeFederacionDialog } from "@/components/admin/aranceles/PorcentajeFederacionDialog";
+import { CompletarPagoDialog } from "@/components/admin/aranceles/CompletarPagoDialog";
 import { formatDateEs, getLocalNow } from "@/lib/time";
 import { formatMoney, formatMonth } from "@/lib/aranceles-calc";
 import { CATEGORIAS_EGRESO, CATEGORIAS_INGRESO } from "@/lib/validations";
@@ -43,6 +46,9 @@ type Movimiento = {
   escuelaPorcentaje?: number | null;
   // Solo tiene valor en pagos de CUOTAS marcados como "pago parcial".
   porcentajePagado?: number | null;
+  // Solo relevante cuando porcentajePagado no es null: false = todavía falta que el alumno
+  // pague el resto (ver CompletarPagoDialog).
+  pagoCompletado?: boolean;
 };
 
 type TipoArancel = { id: string; name: string; categoria: string; federacionPorcentaje?: number | null };
@@ -73,6 +79,7 @@ export function MovimientosTab() {
   const [reciboWarningTarget, setReciboWarningTarget] = useState<Movimiento | null>(null);
   const [solicitarTarget, setSolicitarTarget] = useState<Movimiento | null>(null);
   const [porcentajeTarget, setPorcentajeTarget] = useState<Movimiento | null>(null);
+  const [completarTarget, setCompletarTarget] = useState<Movimiento | null>(null);
 
   const [tiposArancel, setTiposArancel] = useState<TipoArancel[]>([]);
   const [cuotaTipoId, setCuotaTipoId] = useState("");
@@ -358,6 +365,25 @@ export function MovimientosTab() {
     return { ok: true };
   }
 
+  // Marca un pago parcial (CUOTAS) como completado: suma lo que el alumno pagó ahora del resto
+  // al monto ya registrado — ver CompletarPagoDialog y el PATCH de pagos/route.ts.
+  async function handleCompletarSubmit(montoAdicional: number): Promise<{ ok: boolean; error?: string }> {
+    if (!completarTarget?.studentId || !completarTarget.alumnoArancelId || !completarTarget.month) {
+      return { ok: false, error: "Nada seleccionado" };
+    }
+    const res = await fetch(
+      `/api/students/${completarTarget.studentId}/aranceles/${completarTarget.alumnoArancelId}/pagos`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ month: completarTarget.month, montoAdicional }),
+      }
+    );
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { ok: false, error: data.error };
+    return { ok: true };
+  }
+
   async function handleSolicitarBorrado(reason: string): Promise<{ ok: boolean; error?: string }> {
     if (!solicitarTarget) return { ok: false, error: "Nada seleccionado" };
     const res = await fetch("/api/aranceles/movimientos/solicitudes", {
@@ -483,7 +509,7 @@ export function MovimientosTab() {
           e.preventDefault();
           setFormOpen(false);
         }}
-        className="modal-dialog modal-dialog-pop m-auto w-[min(92vw,30rem)] rounded-2xl border border-border bg-surface p-0 text-foreground backdrop:bg-black/50"
+        className="modal-dialog modal-dialog-pop scrollbar-themed m-auto max-h-[85vh] w-[min(92vw,30rem)] overflow-y-auto rounded-2xl border border-border bg-surface p-0 text-foreground backdrop:bg-black/50"
       >
         <form onSubmit={handleSubmit} className="flex flex-col gap-2 p-6">
           <h2 className="mb-1 text-lg font-semibold">
@@ -603,7 +629,7 @@ export function MovimientosTab() {
                   onChange={(e) => setFormAmount(e.target.value)}
                   required
                 />
-                <Input label="Mes" type="month" value={cuotaMonth} onChange={(e) => setCuotaMonth(e.target.value)} />
+                <MonthPicker label="Mes" value={cuotaMonth} onChange={setCuotaMonth} align="right" />
               </div>
 
               {formCategoria === "CUOTAS" && (
@@ -662,7 +688,7 @@ export function MovimientosTab() {
                   onChange={(e) => setFormAmount(e.target.value)}
                   required
                 />
-                <Input label="Fecha" type="date" value={formDate} onChange={(e) => setFormDate(e.target.value)} required />
+                <DatePicker label="Fecha" value={formDate} onChange={setFormDate} align="right" />
               </div>
               <Select label="Estado" value={formEstado} onChange={(e) => setFormEstado(e.target.value as "PAGADO" | "NO_PAGADO")}>
                 <option value="PAGADO">Pagado</option>
@@ -711,7 +737,8 @@ export function MovimientosTab() {
                   {formatDateEs(m.date)} · {m.categoria}
                   {m.numero && ` · N.° ${m.numero}`}
                   {m.month && m.date.slice(0, 7) !== m.month && ` · Cuota de ${formatMonth(m.month)}`}
-                  {m.porcentajePagado != null && ` · Pago parcial (${m.porcentajePagado}%)`}
+                  {m.porcentajePagado != null &&
+                    ` · Pago parcial (${m.porcentajePagado}%)${m.pagoCompletado ? " · Completado" : ""}`}
                   {m.tipo === "INGRESO" &&
                     m.categoria === "FEDERACION" &&
                     (m.escuelaPorcentaje != null
@@ -725,6 +752,11 @@ export function MovimientosTab() {
                   {m.tipo === "INGRESO" ? "+" : "-"}
                   {formatMoney(m.amount)}
                 </span>
+                {m.porcentajePagado != null && !m.pagoCompletado && (
+                  <span className="rounded-full bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning">
+                    Falta completar
+                  </span>
+                )}
                 <span className={`text-xs font-medium ${m.estado === "PAGADO" ? "text-success" : "text-danger"}`}>
                   {m.estado === "PAGADO" ? "Pagado ✓" : "Pendiente"}
                 </span>
@@ -745,6 +777,9 @@ export function MovimientosTab() {
                       : []),
                     ...(m.tipo === "INGRESO" && m.categoria === "FEDERACION"
                       ? [{ label: "% para la escuela", onSelect: () => setPorcentajeTarget(m) }]
+                      : []),
+                    ...(m.source === "pago" && m.porcentajePagado != null && !m.pagoCompletado
+                      ? [{ label: "Completar pago", onSelect: () => setCompletarTarget(m) }]
                       : []),
                     ...(m.source === "pago"
                       ? [{ label: "Desmarcar pago", onSelect: () => requestDelete(m), danger: true }]
@@ -815,6 +850,19 @@ export function MovimientosTab() {
           loadMovimientos();
         }}
         onSubmit={handlePorcentajeSubmit}
+      />
+
+      <CompletarPagoDialog
+        open={completarTarget !== null}
+        concepto={completarTarget?.concepto}
+        amount={completarTarget?.amount}
+        porcentajePagado={completarTarget?.porcentajePagado}
+        onClose={() => setCompletarTarget(null)}
+        onSaved={() => {
+          setCompletarTarget(null);
+          loadMovimientos();
+        }}
+        onSubmit={handleCompletarSubmit}
       />
     </div>
   );

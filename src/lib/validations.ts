@@ -395,6 +395,13 @@ export const pagoArancelUpdatePorcentajeSchema = pagoArancelMonthSchema.extend({
   escuelaPorcentaje: porcentajeSchema,
 });
 
+// Para marcar un pago parcial (porcentajePagado) como completado: el admin carga cuánto pagó
+// el alumno ahora del resto, que se suma al `amount` ya registrado — ver PATCH en
+// pagos/route.ts.
+export const pagoArancelCompletarSchema = pagoArancelMonthSchema.extend({
+  montoAdicional: z.number().int().min(1, "El monto debe ser mayor a 0").max(100_000_000),
+});
+
 export const movimientoFinancieroCreateSchema = z
   .object({
     tipo: z.enum(["INGRESO", "EGRESO"]),

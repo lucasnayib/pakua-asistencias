@@ -374,6 +374,14 @@ model PagoArancel {
   // cobrado — es solo para que quede registrado que fue parcial y de cuánto.
   porcentajePagado Int?
 
+  // Solo tiene sentido cuando porcentajePagado no es null: si el alumno ya terminó de pagar el
+  // resto de la cuota. true por default — un pago completo (porcentajePagado null) siempre
+  // cuenta como terminado, nunca queda "pendiente de completar". Un pago parcial arranca en
+  // false y pasa a true con el PATCH de "completar pago" (ver pagos/route.ts), que además suma
+  // el monto adicional recibido a `amount` — no desbloquea nada que ya estuviera bloqueado por
+  // reciboExportedAt, es un dato aparte.
+  pagoCompletado Boolean @default(true)
+
   // Se completa la primera vez que se exporta/imprime el recibo de este pago (ver
   // /api/aranceles/movimientos/recibo). A partir de ahí el pago queda protegido contra
   // borrado directo — ya existe un comprobante entregado con estos datos — y desmarcarlo

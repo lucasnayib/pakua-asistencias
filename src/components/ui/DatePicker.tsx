@@ -19,6 +19,10 @@ type DatePickerProps = {
   max?: string;
   min?: string;
   className?: string;
+  // De qué lado del campo se ancla el popover. "right" es para cuando el campo está en la
+  // columna derecha de un formulario angosto (ej. un <dialog>): si colgara del borde izquierdo
+  // se saldría del contenedor y generaba scroll horizontal — ver MovimientosTab.
+  align?: "left" | "right";
 };
 
 // Reemplazo táctil del <input type="date"> nativo: en varias tablets (sobre todo Android con
@@ -26,7 +30,7 @@ type DatePickerProps = {
 // confirmar — ver ClasesAnterioresClient. Este es un calendario propio, mismo patrón de popover
 // con click-afuera-para-cerrar que ya usa OverflowMenu, con botones de día de 36px (sobra para
 // un dedo) en vez de depender del picker del sistema operativo.
-export function DatePicker({ value, onChange, label, max, min, className = "" }: DatePickerProps) {
+export function DatePicker({ value, onChange, label, max, min, className = "", align = "left" }: DatePickerProps) {
   const [open, setOpen] = useState(false);
   const [closing, setClosing] = useState(false);
   const [viewMonth, setViewMonth] = useState(() => startOfMonth(value ? parseISO(value) : new Date()));
@@ -78,7 +82,7 @@ export function DatePicker({ value, onChange, label, max, min, className = "" }:
   const prevDisabled = Boolean(min) && prevMonthIso < min!.slice(0, 7);
 
   const selectedDate = value ? parseISO(value) : null;
-  const displayLabel = selectedDate ? format(selectedDate, "d 'de' MMMM 'de' yyyy", { locale: es }) : "Elegí una fecha";
+  const displayLabel = selectedDate ? format(selectedDate, "d MMM yyyy", { locale: es }) : "Elegí una fecha";
 
   return (
     <div ref={wrapperRef} className="relative flex flex-col gap-1.5 text-sm">
@@ -96,9 +100,9 @@ export function DatePicker({ value, onChange, label, max, min, className = "" }:
         <div
           role="dialog"
           aria-label="Elegir fecha"
-          className={`absolute left-0 top-full z-20 mt-1 w-72 rounded-xl border border-border bg-surface p-3 shadow-key ${
-            closing ? "overflow-menu-closing" : "overflow-menu-open"
-          }`}
+          className={`absolute top-full z-20 mt-1 w-72 max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-surface p-3 shadow-key ${
+            align === "right" ? "right-0" : "left-0"
+          } ${closing ? "overflow-menu-closing" : "overflow-menu-open"}`}
         >
           <div className="flex items-center justify-between pb-2">
             <button

@@ -26,6 +26,10 @@ export type MovimientoRow = {
   // Solo tiene valor en pagos de CUOTAS marcados como "pago parcial" — ver PagoArancel en el
   // schema de Prisma.
   porcentajePagado?: number | null;
+  // Solo relevante cuando porcentajePagado no es null: false = todavía falta que el alumno
+  // pague el resto. true en cualquier otro caso (incluidos los MovimientoFinanciero sueltos,
+  // que no tienen este concepto).
+  pagoCompletado: boolean;
 };
 
 /** Mezcla los MovimientoFinanciero sueltos con las cuotas pagadas por alumno (PagoArancel),
@@ -97,6 +101,7 @@ export async function getMovimientosList(
     requestPending: pendingTargetIds.has(`pago:${p.id}`),
     escuelaPorcentaje: p.escuelaPorcentaje,
     porcentajePagado: p.porcentajePagado,
+    pagoCompletado: p.pagoCompletado,
   }));
 
   const movimientoRows: MovimientoRow[] = movimientos.map((m) => ({
@@ -107,6 +112,7 @@ export async function getMovimientosList(
     numero: m.id.slice(-8).toUpperCase(),
     locked: Boolean(m.reciboExportedAt),
     requestPending: pendingTargetIds.has(m.id),
+    pagoCompletado: true,
   }));
 
   return [...movimientoRows, ...pagoRows].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
