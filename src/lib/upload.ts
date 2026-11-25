@@ -1,6 +1,7 @@
 import { copyFile, mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import convertHeic from "heic-convert";
 
 // Fuera de /public a propósito: Next.js 16 sólo sirve estáticamente los archivos
 // de /public que existían al momento del build, así que las fotos subidas en
@@ -29,9 +30,23 @@ async function savePhoto(file: File, dir: string): Promise<string> {
 
   await mkdir(dir, { recursive: true });
 
-  const extension = ALLOWED_TYPES[file.type];
+  let extension = ALLOWED_TYPES[file.type];
+  let buffer = Buffer.from(await file.arrayBuffer());
+
+  // HEIC (el formato por default de la cámara del iPhone) no lo puede decodificar el
+  // optimizador de imágenes de Next ni la mayoría de los navegadores fuera de Apple/Windows con
+  // el códec instalado — se convierte acá a JPEG una sola vez, al subir la foto, para que el
+  // archivo guardado funcione en cualquier lado sin depender de eso.
+  if (file.type === "image/heic") {
+    try {
+      buffer = Buffer.from(await convertHeic({ buffer, format: "JPEG", quality: 0.9 }));
+      extension = "jpg";
+    } catch {
+      throw new UploadError("No se pudo procesar esta foto HEIC. Probá sacarle una captura o exportarla como JPG.");
+    }
+  }
+
   const filename = `${randomUUID()}.${extension}`;
-  const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(path.join(dir, filename), buffer);
 
   return filename;

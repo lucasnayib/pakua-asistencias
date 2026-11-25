@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -14,6 +13,7 @@ import { StudentFormDialog } from "@/components/admin/StudentFormDialog";
 import { StudentDetailsDialog } from "@/components/admin/StudentDetailsDialog";
 import { StudentMigrationDialog } from "@/components/admin/StudentMigrationDialog";
 import { ReceiveMigratedStudentDialog } from "@/components/admin/ReceiveMigratedStudentDialog";
+import { StudentAvatarImage } from "@/components/students/StudentAvatarImage";
 import type { StudentListItem } from "@/types";
 
 type ConfirmAction = { type: "deactivate" | "reactivate" | "delete"; student: StudentListItem };
@@ -246,7 +246,7 @@ export default function AlumnosAdminPage() {
                     className="h-full w-full cursor-zoom-in"
                     aria-label={`Ver foto de ${s.firstName} ${s.lastName} en grande`}
                   >
-                    <Image src={s.photoUrl} alt={`${s.firstName} ${s.lastName}`} fill sizes="56px" className="object-cover" />
+                    <StudentAvatarImage photoUrl={s.photoUrl} firstName={s.firstName} lastName={s.lastName} />
                   </button>
                 ) : (
                   <span className="text-xs text-muted-foreground">

@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { StudentAvatarImage } from "@/components/students/StudentAvatarImage";
 
 type StudentCardProps = {
   firstName: string;
@@ -25,13 +25,7 @@ export function StudentCard({ firstName, lastName, photoUrl, present, onClick, d
         }`}
       >
         {photoUrl ? (
-          <Image
-            src={photoUrl}
-            alt={`${firstName} ${lastName}`}
-            fill
-            sizes="144px"
-            className="object-cover"
-          />
+          <StudentAvatarImage photoUrl={photoUrl} firstName={firstName} lastName={lastName} textClassName="text-2xl font-semibold text-muted-foreground" />
         ) : (
           <span className="flex h-full w-full items-center justify-center bg-surface-2 text-2xl font-semibold text-muted-foreground">
             {firstName[0]}
