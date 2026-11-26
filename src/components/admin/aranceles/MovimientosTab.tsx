@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { DatePicker } from "@/components/ui/DatePicker";
-import { MonthPicker } from "@/components/ui/MonthPicker";
 import { Spinner } from "@/components/ui/Spinner";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { OverflowMenu } from "@/components/ui/OverflowMenu";
@@ -86,7 +85,10 @@ export function MovimientosTab() {
   const [cuotaEscuelaPorcentaje, setCuotaEscuelaPorcentaje] = useState("");
   const [cuotaEsParcial, setCuotaEsParcial] = useState(false);
   const [cuotaPorcentajePagado, setCuotaPorcentajePagado] = useState("");
-  const [cuotaMonth, setCuotaMonth] = useState(() => getLocalNow().date.slice(0, 7));
+  // Fecha real en que se pagó la cuota — de acá se deriva el "mes" que la identifica para el
+  // recibo y los movimientos (cuotaMonth más abajo), ya no se elige por separado.
+  const [cuotaDate, setCuotaDate] = useState(() => getLocalNow().date);
+  const cuotaMonth = cuotaDate.slice(0, 7);
   const [cuotaStudentQuery, setCuotaStudentQuery] = useState("");
   const [cuotaStudentResults, setCuotaStudentResults] = useState<StudentOption[]>([]);
   const [cuotaStudent, setCuotaStudent] = useState<StudentOption | null>(null);
@@ -171,7 +173,7 @@ export function MovimientosTab() {
     setCuotaEscuelaPorcentaje("");
     setCuotaEsParcial(false);
     setCuotaPorcentajePagado("");
-    setCuotaMonth(getLocalNow().date.slice(0, 7));
+    setCuotaDate(getLocalNow().date);
     setCuotaStudentQuery("");
     setCuotaStudentResults([]);
     setCuotaStudent(null);
@@ -245,7 +247,7 @@ export function MovimientosTab() {
       const payRes = await fetch(`/api/students/${cuotaStudent.id}/aranceles/${alumnoArancelId}/pagos`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ month: cuotaMonth, amount, escuelaPorcentaje, porcentajePagado }),
+        body: JSON.stringify({ month: cuotaMonth, date: cuotaDate, amount, escuelaPorcentaje, porcentajePagado }),
       });
       const payData = await payRes.json();
       if (!payRes.ok) {
@@ -629,7 +631,7 @@ export function MovimientosTab() {
                   onChange={(e) => setFormAmount(e.target.value)}
                   required
                 />
-                <MonthPicker label="Mes" value={cuotaMonth} onChange={setCuotaMonth} align="right" />
+                <DatePicker label="Fecha" value={cuotaDate} onChange={setCuotaDate} align="right" />
               </div>
 
               {formCategoria === "CUOTAS" && (
@@ -678,18 +680,16 @@ export function MovimientosTab() {
           ) : (
             <>
               <Input label="Concepto" value={formConcepto} onChange={(e) => setFormConcepto(e.target.value)} required />
-              <div className="grid grid-cols-2 gap-2">
-                <Input
-                  label="Monto"
-                  type="number"
-                  min={1}
-                  step={1}
-                  value={formAmount}
-                  onChange={(e) => setFormAmount(e.target.value)}
-                  required
-                />
-                <DatePicker label="Fecha" value={formDate} onChange={setFormDate} align="right" />
-              </div>
+              <Input
+                label="Monto"
+                type="number"
+                min={1}
+                step={1}
+                value={formAmount}
+                onChange={(e) => setFormAmount(e.target.value)}
+                required
+              />
+              <DatePicker label="Fecha" value={formDate} onChange={setFormDate} />
               <Select label="Estado" value={formEstado} onChange={(e) => setFormEstado(e.target.value as "PAGADO" | "NO_PAGADO")}>
                 <option value="PAGADO">Pagado</option>
                 <option value="NO_PAGADO">No pagado</option>

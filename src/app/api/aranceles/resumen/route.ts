@@ -17,6 +17,18 @@ export async function GET(request: NextRequest) {
   if (session instanceof NextResponse) return session;
 
   const month = request.nextUrl.searchParams.get("month") || currentMonth();
+
+  // "all" = histórico completo, sin recorte por mes (botón "Ver todo" del Resumen): no hay
+  // "mes anterior" con el que comparar, así que prevMonth va null y el cliente oculta esa
+  // tarjeta comparativa.
+  if (month === "all") {
+    const [movimientos, pagos] = await Promise.all([
+      prisma.movimientoFinanciero.findMany({ where: { adminId: session.adminId }, orderBy: [{ date: "desc" }] }),
+      prisma.pagoArancel.findMany({ where: { adminId: session.adminId }, include: { tipoArancel: true } }),
+    ]);
+    return NextResponse.json({ month: "all", prevMonth: null, movimientos, pagos });
+  }
+
   const prevMonth = previousMonth(month);
 
   const [allMovimientos, pagos] = await Promise.all([

@@ -135,7 +135,7 @@ export function MonthPicker({ value, onChange, label, max, min, className = "", 
             </button>
           </div>
 
-          <div className="grid grid-cols-3 gap-1.5">
+          <div className="grid grid-cols-2 gap-1.5">
             {MONTH_LABELS.map((monthLabel, i) => {
               const iso = `${viewYear}-${String(i + 1).padStart(2, "0")}`;
               const disabled = (Boolean(max) && iso > max!) || (Boolean(min) && iso < min!);
@@ -155,7 +155,7 @@ export function MonthPicker({ value, onChange, label, max, min, className = "", 
                       : "text-foreground hover:bg-surface-2"
                   }`}
                 >
-                  {monthLabel.slice(0, 3)}
+                  {monthLabel}
                 </button>
               );
             })}

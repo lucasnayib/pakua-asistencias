@@ -20,7 +20,7 @@ import {
 
 type ResumenResponse = {
   month: string;
-  prevMonth: string;
+  prevMonth: string | null;
   movimientos: {
     tipo: string;
     categoria: string;
@@ -77,7 +77,8 @@ export function ResumenTab() {
     return [...data.movimientos.map(movimientoToLedgerRow), ...data.pagos.map(pagoToLedgerRow)];
   }, [data]);
 
-  const rowsThisMonth = useMemo(() => rows.filter((r) => r.month === month), [rows, month]);
+  const verTodo = month === "all";
+  const rowsThisMonth = useMemo(() => (verTodo ? rows : rows.filter((r) => r.month === month)), [rows, month, verTodo]);
   const kpis = useMemo(() => calcularKpis(rowsThisMonth), [rowsThisMonth]);
   const desgloseIngresos = useMemo(() => desglosePorCategoria(rowsThisMonth, "INGRESO"), [rowsThisMonth]);
   const desgloseEgresos = useMemo(() => desglosePorCategoria(rowsThisMonth, "EGRESO"), [rowsThisMonth]);
@@ -87,15 +88,16 @@ export function ResumenTab() {
     [rowsThisMonth]
   );
   const comparativa = useMemo(
-    () => (data ? calcularComparativaMensual(rows, data.month, data.prevMonth) : null),
+    () => (data?.prevMonth ? calcularComparativaMensual(rows, data.month, data.prevMonth) : null),
     [rows, data]
   );
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold">{formatMonth(month)}</h2>
+        <h2 className="text-lg font-semibold">{verTodo ? "Todo" : formatMonth(month)}</h2>
         <Select value={month} onChange={(e) => setMonth(e.target.value)} className="w-48">
+          <option value="all">Ver todo</option>
           {mesesConDatos.map((m) => (
             <option key={m} value={m}>
               {formatMonth(m)}
@@ -119,7 +121,7 @@ export function ResumenTab() {
           {totalFederacion > 0 && (
             <Card className="p-4 text-sm">
               <p className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-muted-foreground">Recaudado para la Federación este mes</span>
+                <span className="text-muted-foreground">Recaudado para la Federación{verTodo ? "" : " este mes"}</span>
                 <span className="font-semibold">{formatMoney(totalFederacion)}</span>
               </p>
               <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2">
@@ -141,7 +143,7 @@ export function ResumenTab() {
           {comparativa && comparativa.egresosAnterior > 0 && (
             <Card className="p-4 text-sm">
               <p className="text-muted-foreground">
-                Egresos vs. mes anterior ({formatMonth(data!.prevMonth)}):{" "}
+                Egresos vs. mes anterior ({formatMonth(data!.prevMonth!)}):{" "}
                 <span className={comparativa.diferencia > 0 ? "text-danger" : "text-success"}>
                   {comparativa.diferencia > 0 ? "+" : ""}
                   {formatMoney(comparativa.diferencia)}
@@ -157,7 +159,7 @@ export function ResumenTab() {
                 Ingresos por categoría
               </h3>
               {desgloseIngresos.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Sin ingresos este mes.</p>
+                <p className="text-sm text-muted-foreground">Sin ingresos{verTodo ? " registrados" : " este mes"}.</p>
               ) : (
                 <ul className="flex flex-col divide-y divide-border rounded-xl border border-border text-sm">
                   {desgloseIngresos.map((d) => (
@@ -175,7 +177,7 @@ export function ResumenTab() {
                 Egresos por categoría
               </h3>
               {desgloseEgresos.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Sin egresos este mes.</p>
+                <p className="text-sm text-muted-foreground">Sin egresos{verTodo ? " registrados" : " este mes"}.</p>
               ) : (
                 <ul className="flex flex-col divide-y divide-border rounded-xl border border-border text-sm">
                   {desgloseEgresos.map((d) => (

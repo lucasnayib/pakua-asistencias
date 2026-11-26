@@ -53,6 +53,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       tipoArancelId: enrollment.tipoArancelId,
       adminId: session.adminId,
       month: parsed.data.month,
+      paidAt: new Date(`${parsed.data.date}T12:00:00.000Z`),
       amount: parsed.data.amount,
       escuelaPorcentaje: parsed.data.escuelaPorcentaje,
       porcentajePagado: parsed.data.porcentajePagado,

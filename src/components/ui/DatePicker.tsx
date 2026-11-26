@@ -82,7 +82,7 @@ export function DatePicker({ value, onChange, label, max, min, className = "", a
   const prevDisabled = Boolean(min) && prevMonthIso < min!.slice(0, 7);
 
   const selectedDate = value ? parseISO(value) : null;
-  const displayLabel = selectedDate ? format(selectedDate, "d MMM yyyy", { locale: es }) : "Elegí una fecha";
+  const displayLabel = selectedDate ? format(selectedDate, "d 'de' MMMM 'de' yyyy", { locale: es }) : "Elegí una fecha";
 
   return (
     <div ref={wrapperRef} className="relative flex flex-col gap-1.5 text-sm">

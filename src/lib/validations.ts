@@ -374,11 +374,15 @@ export const pagoArancelMonthSchema = z.object({
 
 // El monto es obligatorio: ya no existe un precio fijo del que copiarlo (ver
 // tipoArancelCreateSchema), así que hay que pedirlo cada vez que se marca un pago.
+// date es la fecha real en que se pagó (de ahí sale `month`, que es solo el "YYYY-MM" para
+// identificar de qué cuota se trata) — antes no se pedía y el pago quedaba con la fecha del
+// momento en que se cargó, en vez de la fecha real del pago.
 // escuelaPorcentaje solo tiene sentido en pagos de categoría FEDERACION (ver el campo
 // homónimo en PagoArancel) — en cualquier otra categoría se ignora. porcentajePagado solo
 // tiene sentido en pagos de categoría CUOTAS marcados como "pago parcial" (1-99: 100 sería un
 // pago completo, no parcial).
 export const pagoArancelCreateSchema = pagoArancelMonthSchema.extend({
+  date: z.string().regex(dateRegex, "Fecha inválida (YYYY-MM-DD)"),
   amount: z.number().int().min(1, "El monto debe ser mayor a 0").max(100_000_000),
   escuelaPorcentaje: porcentajeSchema.optional(),
   porcentajePagado: z
